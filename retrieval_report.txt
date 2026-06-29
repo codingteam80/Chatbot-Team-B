@@ -1,0 +1,77 @@
+==================================================
+QUESTION
+==================================================
+
+who killed magellan?
+
+==================================================
+COUNTS
+==================================================
+
+Final retrieved docs : 3
+
+==================================================
+TIMINGS
+==================================================
+
+Retrieval : 5.60 sec
+
+==================================================
+FINAL RETRIEVED CONTEXT
+==================================================
+
+Result 1
+
+Source       : History of the Philippines (1565–1898) - Wikipedia.md
+Page         : N/A
+Chunk index  : 0
+Chunk chars  : 2895
+
+Hybrid score : 0.243762
+Rerank score : 0.896426
+
+Preview:
+6/9/26, 10:32 AM History of the Philippines (1565-1898) - Wikipedia History of the Philippines (1565-1898) The history of the Philippines from 1565 to 1898 is known as the Spanish colonial period . During which the Philippine Islands were ruled as the Captaincy General of the Philippines within the Spanish East Indies, initially under the Viceroyalty of New Spain, based in Mexico City, until the independence of the Mexican Empire from Spain in 1821. This resulted in direct Spanish control during a period of governmental instability there. The first documented European contact with the Philippines was made in 1521 by Ferdinand Magellan in his circumnavigation expedition,[1] during which he wa
+
+--------------------------------------------------
+
+Result 2
+
+Source       : Gomburza - Wikipedia.md
+Page         : N/A
+Chunk index  : 3
+Chunk chars  : 2808
+
+Hybrid score : 0.233976
+Rerank score : 0.828729
+
+Preview:
+The inclusion of a biased story detailing the reasons for the execution of Gomburza later gained widespread criticism.[10] Vidal's account was corroborated by the then GovernorKOMISYONG PANGKASAYSAYAN NG General Rafael Izquierdo y Gutiérrez. In his report, he PILIPINAS, 27 ENERO 20?), narrated that the abolition of privileges enjoyed by the _ ANG PANANDANG ITO AY INILAGAY workers of Cavite arsenals caused the "revolution". He BILANG PAGGUNITA SA_IKA-150 ANIBERSARYO NG PAGBITAY also blamed the media, specifically the Spanish press, KINA PADRE MARIANO GOMES» PADRE JOSE BURGOS AT PADRE regardless of democratic, liberal, or republican affiliation, JACINTO ZAMORA, for the circulation of unrestrai
+
+--------------------------------------------------
+
+Result 3
+
+Source       : Andrés Bonifacio - Wikipedia.pdf
+Page         : N/A
+Chunk index  : 9
+Chunk chars  : 2877
+
+Hybrid score : 0.419830
+Rerank score : 0.804559
+
+Preview:
+Bonifacio appointing generals for these areas, or approving selections the troops themselves made.[59] On November 7, 1896, Bonifacio led an assault on San Mateo, Mariquina and Montalban. The Spanish were forced to retreat, leaving these areas to the rebels, except for the municipal hall of San Mateo where some Spanish troops had barricaded. While Bonifacio's troops laid siege to the hall, other Katipunan forces set up defensive lines along the nearby Langka (or Nangka) River against Spanish reinforcements coming from the direction of Mariquina. After three days, Spanish counterattacks broke through the Nangka River lines. The Spanish troops thus recaptured the rebel positions and surprised 
+
+--------------------------------------------------
+
+==================================================
+SUMMARY
+==================================================
+
+Query                : who killed magellan?
+Retrieved chunks     : 3
+Unique files         : 3
+Top source           : History of the Philippines (1565–1898) - Wikipedia.md
+Best rerank score    : 0.896426
+Total retrieval time : 5.60 sec

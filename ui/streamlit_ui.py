@@ -1,0 +1,362 @@
+import streamlit as st
+import base64
+from pathlib import Path
+
+from config.settings import (
+    PAGE_TITLE,
+    PAGE_ICON,
+    LAYOUT
+)
+
+from chat.chat_manager import ChatManager
+
+
+class StreamlitUI:
+
+    # =====================================================
+    # LOAD HERO LOGO
+    # =====================================================
+
+    @staticmethod
+    def assoc_logo():
+
+        logo_path = Path("assets/Tsukiden_Denso.png")
+
+        if not logo_path.exists():
+            return ""
+
+        with open(logo_path, "rb") as image:
+
+            return base64.b64encode(
+                image.read()
+            ).decode()
+        
+    # =====================================================
+    # PAGE CONFIGURATION
+    # =====================================================
+
+    @staticmethod
+    def configure():
+
+        st.set_page_config(
+            page_title=PAGE_TITLE,
+            page_icon=PAGE_ICON,
+            layout=LAYOUT,
+            initial_sidebar_state="expanded"
+        )
+
+        css_file = Path(__file__).parent / "styles.css"
+
+        if css_file.exists():
+
+            with open(
+                css_file,
+                "r",
+                encoding="utf-8"
+            ) as css:
+
+                st.markdown(
+                    f"<style>{css.read()}</style>",
+                    unsafe_allow_html=True
+                )
+
+    # =====================================================
+    # SESSION INITIALIZATION
+    # =====================================================
+
+    @staticmethod
+    def initialize_session():
+
+        # Reserved for future UI state
+        # Uncomment when implementing features such as:
+        #   • Sidebar search
+        #   • Theme switch
+        #   • Sidebar collapse
+
+        #defaults = {
+        #    "sidebar_search": "",
+        #    "theme": "dark"
+        #}
+        #
+        #for key, value in defaults.items():
+        #    if key not in st.session_state:
+        #        st.session_state[key] = value
+
+        pass
+
+    # =====================================================
+    # SIDEBAR
+    # =====================================================
+
+    @staticmethod
+    def render_sidebar():
+
+        with st.sidebar:
+
+            # ---------------------------------------------
+            # LOGO
+            # ---------------------------------------------
+
+            st.markdown(
+                """
+                <div class="sidebar-logo">
+                    🤖 DocuBot
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                """
+                <div class="sidebar-title">
+                    Your company’s knowledge assistant
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                """
+                <div class="sidebar-version">
+                    v1.0
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.write("")
+
+            # ---------------------------------------------
+            # NEW CHAT
+            # ---------------------------------------------
+
+            if st.button(
+                "✚ New Chat",
+                use_container_width=True
+            ):
+
+                ChatManager.create_chat()
+
+                StreamlitUI.rerun()
+
+            st.write("")
+
+            st.markdown("---")
+
+            st.markdown(
+                """
+                <div class="sidebar-section">
+                    Recent Chats
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            conversations = ChatManager.get_recent_chats()
+
+            if not conversations:
+                st.button(
+                    "No recent chats",
+                    disabled=True,
+                    use_container_width=True
+                )
+
+            else:
+
+                for conversation in conversations:
+
+                    is_current = (
+
+                        conversation["id"]
+
+                        ==
+
+                        ChatManager.current_chat_id()
+
+                    )
+
+                    button_type = (
+
+                        "primary"
+
+                        if is_current
+
+                        else
+
+                        "secondary"
+
+                    )
+
+                    if st.button(
+
+                        f"💬 {conversation['title']}",
+
+                        key=conversation["id"],
+
+                        use_container_width=True,
+
+                        type=button_type
+
+                    ):
+
+                        ChatManager.switch_chat(
+                            conversation["id"]
+                        )
+
+                        StreamlitUI.rerun()
+
+            # Push footer to bottom
+            st.markdown(
+                "<div class='sidebar-spacer'></div>",
+                unsafe_allow_html=True
+            )
+
+#            st.markdown("---")
+
+#            st.html("""
+#                <div class="sidebar-footer">
+#                    <strong>DocuBot</strong><br>
+#                    v1.0
+#                </div>
+#            """)
+
+    # =====================================================
+    # WELCOME SCREEN
+    # =====================================================
+
+    @staticmethod
+    def show_welcome():
+
+        if not ChatManager.is_current_chat_empty():
+            return
+
+        logo = StreamlitUI.assoc_logo()
+
+        st.html(f"""
+        <div class="hero-container">
+
+            <div class="hero-title">
+                Hi! Is there anything I can help you with?
+            </div>
+
+            <div class="hero-description">
+                Search company policies, manuals,
+                standards, procedures and internal
+                company knowledge.
+            </div>
+
+            <img
+                src="data:image/png;base64,{logo}"
+                class="hero-logo"
+            >
+
+        </div>
+        """)
+
+    # =====================================================
+    # CHAT HISTORY
+    # =====================================================
+
+    @staticmethod
+    def render_chat_history():
+
+        messages = ChatManager.get_current_messages()
+
+        if not messages:
+            return
+
+        for message in messages:
+
+            role = message.get(
+                "role",
+                "assistant"
+            )
+
+            content = message.get(
+                "content",
+                ""
+            )
+
+            avatar = "🧑🏼‍🦰" if role == "user" else "🤖"
+
+            with st.chat_message(
+                role,
+                avatar=avatar
+            ):
+
+                st.markdown(
+                    content
+                )
+
+    # =====================================================
+    # SOURCES
+    # =====================================================
+
+    @staticmethod
+    def render_sources(sources):
+
+        if not sources:
+            return
+
+        # Remove duplicates while preserving order
+        unique_sources = list(
+            dict.fromkeys(
+                sources
+            )
+        )
+
+        with st.expander(
+            f"📄 Sources ({len(unique_sources)})",
+            expanded=False
+        ):
+
+            for index, source in enumerate(
+                unique_sources,
+                start=1
+            ):
+
+                st.markdown(
+                    f"""
+                    <div class="source-card">
+
+                        <strong>{index}.</strong>
+                        {source}
+
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    # =====================================================
+    # FOOTER
+    # =====================================================
+
+    @staticmethod
+    def render_footer_note():
+
+        st.markdown(
+            """
+            <div class="chat-footer">
+                DocuBot can make mistakes. Check important information.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # =====================================================
+    # UI RERUN
+    # =====================================================
+
+    @staticmethod
+    def rerun():
+        """
+        Centralized UI refresh.
+
+        Using a helper instead of calling st.rerun()
+        directly makes future maintenance easier.
+
+        Example:
+            StreamlitUI.rerun()
+        """
+
+        st.rerun()
