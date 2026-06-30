@@ -1,3 +1,5 @@
+import streamlit as st
+
 # Import HuggingFace embedding wrapper from LlamaIndex
 from llama_index.embeddings.huggingface import (
     HuggingFaceEmbedding
@@ -11,52 +13,47 @@ from config.settings import (
 )
 
 # Cached embedding model
-_embedding_model = None
+#_embedding_model = None
 
 
+@st.cache_resource(show_spinner=False)
 def get_embedding_model():
+    
+    print(
+        f"[EMBEDDING] Loading model: "
+        f"{EMBED_MODEL_NAME}"
+    )
 
-    # Access cached model
-    global _embedding_model
+    # =====================================
+    # EMBEDDING MODEL
+    # Converts text into vectors
+    # =====================================
 
-    # Load only once
-    if _embedding_model is None:
+    model = HuggingFaceEmbedding(
 
-        print(
-            f"[EMBEDDING] Loading model: "
-            f"{EMBED_MODEL_NAME}"
-        )
+        # E5 multilingual model
+        model_name=EMBED_MODEL_NAME,
 
-        # =====================================
-        # EMBEDDING MODEL
-        # Converts text into vectors
-        # =====================================
+        # Normalize vectors
+        # Improves cosine similarity search
+        normalize=DEFAULT_NORMALIZE_EMBEDDINGS,
 
-        _embedding_model = HuggingFaceEmbedding(
+        # Number of texts embedded together
+        embed_batch_size=DEFAULT_BATCH_SIZE
+    )
 
-            # E5 multilingual model
-            model_name=EMBED_MODEL_NAME,
+    print(
+        "[EMBEDDING] Model loaded successfully"
+    )
 
-            # Normalize vectors
-            # Improves cosine similarity search
-            normalize=DEFAULT_NORMALIZE_EMBEDDINGS,
+    print(
+        f"[EMBEDDING] Normalize: "
+        f"{DEFAULT_NORMALIZE_EMBEDDINGS}"
+    )
 
-            # Number of texts embedded together
-            embed_batch_size=DEFAULT_BATCH_SIZE
-        )
+    print(
+        f"[EMBEDDING] Batch Size: "
+        f"{DEFAULT_BATCH_SIZE}"
+    )
 
-        print(
-            "[EMBEDDING] Model loaded successfully"
-        )
-
-        print(
-            f"[EMBEDDING] Normalize: "
-            f"{DEFAULT_NORMALIZE_EMBEDDINGS}"
-        )
-
-        print(
-            f"[EMBEDDING] Batch Size: "
-            f"{DEFAULT_BATCH_SIZE}"
-        )
-
-    return _embedding_model
+    return model

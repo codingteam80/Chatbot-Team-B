@@ -14,9 +14,10 @@ from config.prompts import (
 )
 
 from config.settings import DEBUG_MODE
+
 from chat.chat_manager import ChatManager
+
 from chat.query_normalizer import QueryNormalizer
-from chat.conversation_resolver import ConversationResolver
 
 class AnswerService:
 
@@ -33,11 +34,6 @@ class AnswerService:
         # Normalize retrieval queries
         self.query_normalizer = (
             QueryNormalizer()
-        )
-
-        # Resolve follow-up questions
-        self.conversation_resolver = (
-            ConversationResolver()
         )
 
     def _build_chat_history(self):
@@ -213,26 +209,18 @@ class AnswerService:
             self._build_chat_history()
         )
 
-        # ======================================
-        # Normalize Question
-        # ======================================
-        normalized_question = (
+        #search_question = (
+        #     self._rewrite_question(
+        #         question,
+        #         history
+        #     )
+        #)
+
+        #search_question = question
+        # Normalize the query before retrieval.
+        search_question = (
             self.query_normalizer.normalize(
                 question
-            )
-        )
-
-        # Previous messages only
-        messages = (
-            ChatManager.get_current_messages()
-        )
-        previous_messages = messages[:-1]
-
-        # Resolve follow-up references
-        search_question = (
-            self.conversation_resolver.resolve(
-                previous_messages,
-                normalized_question
             )
         )
 
@@ -252,13 +240,13 @@ class AnswerService:
 
             print(
                 f"Normalized Question : "
-                f"{normalized_question}"
+                f"{search_question}"
             )
 
             print(
                 f"Search Question     : "
                 f"{search_question}"
-            )            
+            )
             
             print("\nHistory:")
 

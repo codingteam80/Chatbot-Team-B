@@ -1,19 +1,18 @@
 import re
 
+from chat.topic_extractor import (
+    TopicExtractor
+)
+
 
 class ConversationResolver:
     """
     Resolves follow-up questions into standalone questions.
 
-    This class does NOT use an LLM.
-
-    It simply looks at the recent conversation and
-    replaces pronouns with the latest discussed topic.
-
-    Examples
+    Example
 
     User:
-    Tell me about Jose Rizal.
+    Who is Jose Rizal?
 
     User:
     Where was he born?
@@ -23,90 +22,110 @@ class ConversationResolver:
     Where was Jose Rizal born?
     """
 
-    # Pronouns we want to resolve
-    PRONOUNS = {
+    # Subject pronouns
+    SUBJECT_PRONOUNS = {
+
         "he",
         "she",
         "him",
-        "his",
-        "her",
-        "hers",
+
         "they",
         "them",
-        "their",
-        "theirs",
+
         "it",
-        "its",
+
         "this",
         "that",
         "these",
         "those"
     }
 
+    # Possessive pronouns
+    POSSESSIVE_PRONOUNS = {
+
+        "his",
+        "her",
+        "hers",
+
+        "their",
+        "theirs",
+
+        "its"
+    }
+
+    # Common follow-up commands
+    FOLLOW_UP_PHRASES = {
+
+        "continue",
+        "tell me more",
+        "explain more",
+        "elaborate",
+        "more",
+        "go on"
+    }
+
+    def __init__(self):
+
+        self.topic_extractor = (
+            TopicExtractor()
+        )
+
     def resolve(
         self,
         history_messages,
         question
     ):
-        """
-        Returns a rewritten standalone question.
-        """
 
         if not history_messages:
+
             return question
 
-        topic = self._find_latest_topic(
-            history_messages
+        topic = (
+            self.topic_extractor.extract(
+                history_messages
+            )
         )
 
         if not topic:
+
             return question
+
+        # Handle commands like:
+        # Continue
+        # Tell me more
+        # Explain more
+        followup = self._handle_followup_command(
+            question,
+            topic
+        )
+
+        if followup != question:
+
+            return followup
 
         return self._replace_pronouns(
             question,
             topic
         )
 
-    def _find_latest_topic(
+    def _handle_followup_command(
         self,
-        history_messages
+        question,
+        topic
     ):
-        """
-        Very simple heuristic.
 
-        Find the latest capitalized phrase from
-        previous conversation.
+        clean = (
+            question
+            .lower()
+            .strip()
+            .rstrip("?.!")
+        )
 
-        Example:
+        if clean in self.FOLLOW_UP_PHRASES:
 
-        Emilio Aguinaldo
+            return f"{question.strip()} about {topic}"
 
-        Treaty of Paris
-
-        Battle of Mactan
-        """
-
-        text = ""
-
-        for message in reversed(history_messages):
-
-            text += (
-                message["content"]
-                + "\n"
-            )
-
-            matches = re.findall(
-
-                r"(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,5})",
-
-                text
-            )
-
-            if matches:
-
-                return matches[0]
-
-        return None
+        return question
 
     def _replace_pronouns(
         self,
@@ -122,22 +141,45 @@ class ConversationResolver:
 
         for word in words:
 
+            punctuation = ""
+
+            if word and word[-1] in ".,?!":
+
+                punctuation = word[-1]
+
             clean = (
                 word.lower()
                 .strip(".,?!")
             )
 
+            # Subject pronouns
             if (
-                clean in self.PRONOUNS
+                clean in self.SUBJECT_PRONOUNS
                 and not replaced
             ):
 
-                new_words.append(topic)
+                new_words.append(
+                    topic + punctuation
+                )
 
                 replaced = True
 
-            else:
+                continue
 
-                new_words.append(word)
+            # Possessive pronouns
+            if (
+                clean in self.POSSESSIVE_PRONOUNS
+                and not replaced
+            ):
+
+                new_words.append(
+                    topic + "'s" + punctuation
+                )
+
+                replaced = True
+
+                continue
+
+            new_words.append(word)
 
         return " ".join(new_words)

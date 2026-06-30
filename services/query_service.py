@@ -7,22 +7,42 @@ class QueryService:
 
     def __init__(self):
 
-        # Main retrieval pipeline
-        self.retriever = (
-            CompanyRetriever()
-        )
+        # Lazy-loaded retriever.
+        # It will only be created when the
+        # first search request is executed.
+        self.retriever = None
+
+    def _get_retriever(self):
+
+        if self.retriever is None:
+
+            print(
+                "[RETRIEVER] Initializing..."
+            )
+
+            self.retriever = (
+                CompanyRetriever()
+            )
+
+            print(
+                "[RETRIEVER] Ready."
+            )
+
+        return self.retriever
 
     def retrieve_context(
         self,
         question: str
     ):
 
-        # Retrieve best chunks and build context
+        retriever = (
+            self._get_retriever()
+        )
+
         context, results = (
-            self.retriever.build_context(
+            retriever.build_context(
                 question
             )
         )
 
-        # Return context and retrieval results
         return context, results

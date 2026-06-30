@@ -14,9 +14,8 @@ from config.prompts import (
 )
 
 from config.settings import DEBUG_MODE
+
 from chat.chat_manager import ChatManager
-from chat.query_normalizer import QueryNormalizer
-from chat.conversation_resolver import ConversationResolver
 
 class AnswerService:
 
@@ -29,16 +28,6 @@ class AnswerService:
 
         # Generate answers using Ollama
         self.llm = OllamaClient()
-
-        # Normalize retrieval queries
-        self.query_normalizer = (
-            QueryNormalizer()
-        )
-
-        # Resolve follow-up questions
-        self.conversation_resolver = (
-            ConversationResolver()
-        )
 
     def _build_chat_history(self):
 
@@ -213,28 +202,14 @@ class AnswerService:
             self._build_chat_history()
         )
 
-        # ======================================
-        # Normalize Question
-        # ======================================
-        normalized_question = (
-            self.query_normalizer.normalize(
-                question
-            )
-        )
+        #search_question = (
+        #     self._rewrite_question(
+        #         question,
+        #         history
+        #     )
+        #)
 
-        # Previous messages only
-        messages = (
-            ChatManager.get_current_messages()
-        )
-        previous_messages = messages[:-1]
-
-        # Resolve follow-up references
-        search_question = (
-            self.conversation_resolver.resolve(
-                previous_messages,
-                normalized_question
-            )
-        )
+        search_question = question
 
         # ======================================
         # DEBUG
@@ -245,21 +220,9 @@ class AnswerService:
             print("Conversation Debug")
             print("=" * 60)
 
-            print(
-                f"Original Question   : "
-                f"{question}"
-            )
+            print(f"Original Question : {question}")
+            print(f"Search Question   : {search_question}")
 
-            print(
-                f"Normalized Question : "
-                f"{normalized_question}"
-            )
-
-            print(
-                f"Search Question     : "
-                f"{search_question}"
-            )            
-            
             print("\nHistory:")
 
             print(history)

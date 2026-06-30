@@ -1,4 +1,3 @@
-import streamlit as st
 import pickle
 import os
 
@@ -67,51 +66,23 @@ class BM25Indexer:
         )
 
 
-# ==========================================================
-# GET BM25 INDEX
-#
-# Cache the BM25 index so it is loaded only once
-# during the Streamlit session.
-# ==========================================================
-
-@st.cache_resource(show_spinner=False)
-def get_bm25_resources():
-
-    print(
-        "[BM25] Loading index..."
-    )
-
-    # Load BM25 index.
-    with open(
-        INDEX_FILE,
-        "rb"
-    ) as f:
-
-        bm25 = pickle.load(f)
-
-    # Load original records.
-    with open(
-        CORPUS_FILE,
-        "rb"
-    ) as f:
-
-        records = pickle.load(f)
-
-    print(
-        "[BM25] Ready."
-    )
-
-    return bm25, records
-
-
 class BM25Searcher:
 
     def __init__(self):
 
-        # Reuse cached BM25 resources.
-        self.bm25, self.records = (
-            get_bm25_resources()
-        )
+        # Load BM25 index from storage.
+        with open(
+            INDEX_FILE,
+            "rb"
+        ) as f:
+            self.bm25 = pickle.load(f)
+
+        # Load original chunk records.
+        with open(
+            CORPUS_FILE,
+            "rb"
+        ) as f:
+            self.records = pickle.load(f)
 
     def search(
         self,

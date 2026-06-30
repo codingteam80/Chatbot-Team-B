@@ -1,4 +1,3 @@
-import streamlit as st
 import chromadb
 
 from config.settings import (
@@ -11,45 +10,24 @@ from embeddings.embedding_model import (
     get_embedding_model
 )
 
-# ==========================================================
-# GET CHROMA COLLECTION
-#
-# Cache the ChromaDB connection so Streamlit
-# does not reopen the database every rerun.
-# ==========================================================
-
-@st.cache_resource(show_spinner=False)
-def get_chroma_collection():
-
-    print(
-        "[CHROMA] Opening database..."
-    )
-
-    client = chromadb.PersistentClient(
-        path=str(CHROMA_DIR)
-    )
-
-    collection = client.get_collection(
-        CHROMA_COLLECTION_NAME
-    )
-
-    print(
-        "[CHROMA] Ready."
-    )
-
-    return collection
-
 
 class ChromaSearcher:
 
     def __init__(self):
 
-        # Reuse cached Chroma collection.
-        self.collection = (
-            get_chroma_collection()
+        # Connect to local ChromaDB storage.
+        self.client = chromadb.PersistentClient(
+            path=str(CHROMA_DIR)
         )
 
-        # Reuse cached embedding model.
+        # Load document embedding collection.
+        self.collection = (
+            self.client.get_collection(
+                CHROMA_COLLECTION_NAME
+            )
+        )
+
+        # Load embedding model for semantic search.
         self.embed_model = (
             get_embedding_model()
         )

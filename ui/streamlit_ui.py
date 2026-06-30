@@ -277,7 +277,16 @@ class StreamlitUI:
                 ""
             )
 
-            avatar = "🧑🏼‍🦰" if role == "user" else "🤖"
+            sources = message.get(
+                "sources",
+                []
+            )
+
+            avatar = (
+                "🧑🏼‍🦰"
+                if role == "user"
+                else "🤖"
+            )
 
             with st.chat_message(
                 role,
@@ -287,6 +296,16 @@ class StreamlitUI:
                 st.markdown(
                     content
                 )
+
+                # Show sources only for assistant messages
+                if (
+                    role == "assistant"
+                    and sources
+                ):
+
+                    StreamlitUI.render_sources(
+                        sources
+                    )
 
     # =====================================================
     # SOURCES
@@ -310,21 +329,10 @@ class StreamlitUI:
             expanded=False
         ):
 
-            for index, source in enumerate(
-                unique_sources,
-                start=1
-            ):
+            for source in unique_sources:
 
-                st.markdown(
-                    f"""
-                    <div class="source-card">
-
-                        <strong>{index}.</strong>
-                        {source}
-
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                st.caption(
+                    f"📄 {source}"
                 )
 
     # =====================================================

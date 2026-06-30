@@ -1,5 +1,4 @@
-import streamlit as st
-
+print("USING reranker.py")
 from sentence_transformers import (
     CrossEncoder
 )
@@ -9,33 +8,40 @@ from config.settings import (
     FINAL_TOP_K
 )
 
-print("USING reranker.py")
+# ==========================================================
+# Cached CrossEncoder model
+#
+# Prevents reloading the reranker model every time
+# Streamlit reruns the application.
+# ==========================================================
+
+_cross_encoder = None
 
 # ==========================================================
 # GET RERANKER MODEL
-#
-# Cached using Streamlit resource cache.
-# The model is loaded only once per application session.
 # ==========================================================
 
-@st.cache_resource(show_spinner=False)
 def get_reranker_model():
 
-    print(
-        f"[RERANKER] Loading model: "
-        f"{RERANKER_MODEL}"
-    )
+    global _cross_encoder
 
-    model = CrossEncoder(
-        RERANKER_MODEL
-    )
+    # Load only once
+    if _cross_encoder is None:
 
-    print(
-        "[RERANKER] Model loaded successfully"
-    )
+        print(
+            f"[RERANKER] Loading model: "
+            f"{RERANKER_MODEL}"
+        )
 
-    return model
+        _cross_encoder = CrossEncoder(
+            RERANKER_MODEL
+        )
 
+        print(
+            "[RERANKER] Model loaded successfully"
+        )
+
+    return _cross_encoder
 
 # ==========================================================
 # CROSS ENCODER RERANKER
@@ -116,6 +122,13 @@ class CrossEncoderReranker:
         print(
             "=========================\n"
         )
+
+        # Get highest reranker score.
+        #best_score = candidates[0]["rerank_score"]
+
+        # Reject results with very low relevance.
+        #if best_score < 0.01:
+        #    return []
 
         # Return the top reranked chunks.
         return candidates[:FINAL_TOP_K]

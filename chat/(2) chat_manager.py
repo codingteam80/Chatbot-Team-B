@@ -204,25 +204,8 @@ class ChatManager:
     @staticmethod
     def add_message(
         role,
-        content,
-        sources=None
+        content
     ):
-        """
-        Add a message to the current conversation.
-
-        Parameters
-        ----------
-        role : str
-            "user" or "assistant"
-
-        content : str
-            Message content.
-
-        sources : list[str] | None
-            Source filenames used to generate the answer.
-            Stored with the assistant message so they persist
-            after Streamlit reruns.
-        """
 
         conversation = ChatManager.get_current_chat()
 
@@ -230,7 +213,6 @@ class ChatManager:
             {
                 "role": role,
                 "content": content,
-                "sources": sources or [],
                 "timestamp": datetime.now()
             }
         )

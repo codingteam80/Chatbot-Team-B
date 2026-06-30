@@ -118,6 +118,31 @@ if (
                             )
 
                 # ==================================
+                # ACTIONS
+                # ==================================
+
+                col1, col2 = st.columns(
+                    2
+                )
+
+                with col1:
+
+                    st.button(
+                        "📋 Copy",
+                        key=f"copy_{ChatManager.message_count()}"
+                    )
+
+                with col2:
+
+                    st.download_button(
+                        "📤 Export",
+                        data=answer,
+                        file_name="answer.txt",
+                        mime="text/plain",
+                        key=f"export_{ChatManager.message_count()}"
+                    )
+
+                # ==================================
                 # DEBUG
                 # ==================================
 
