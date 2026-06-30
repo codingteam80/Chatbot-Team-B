@@ -49,6 +49,9 @@ class ChatManager:
         if "current_chat_id" not in st.session_state:
             st.session_state.current_chat_id = None
 
+        if "current_topic" not in st.session_state:
+            st.session_state.current_topic = None
+
         if len(st.session_state.conversations) == 0:
             ChatManager.create_chat()
 
@@ -355,3 +358,35 @@ class ChatManager:
             )
 
         return question
+    
+    # ======================================================
+    # CURRENT TOPIC
+    # ======================================================
+
+    @staticmethod
+    def get_current_topic():
+
+        return st.session_state.current_topic
+
+    #@staticmethod
+    #def set_current_topic(
+    #    topic
+    #):
+
+    #    st.session_state.current_topic = topic
+
+    @staticmethod
+    def set_current_topic(
+        topic
+    ):
+
+        st.session_state.current_topic = (
+            topic.strip()
+            if topic
+            else None
+        )
+
+    @staticmethod
+    def clear_current_topic():
+
+        st.session_state.current_topic = None

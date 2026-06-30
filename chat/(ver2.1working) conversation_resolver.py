@@ -1,3 +1,5 @@
+import re
+
 from chat.topic_extractor import TopicExtractor
 
 from chat.chat_manager import ChatManager
@@ -73,31 +75,19 @@ class ConversationResolver:
         question
     ):
 
-        # ----------------------------------
-        # Check if CURRENT question introduces
-        # a brand-new topic.
-        # ----------------------------------
-        new_topic = (
-            self.topic_extractor.extract_new_topic(
-                question
-            )
-        )
+        if not history_messages:
 
-        if new_topic:
-
-            ChatManager.set_current_topic(
-                new_topic
-            )
+            return question
 
         # ----------------------------------
-        # Get current topic from memory
+        # Try Topic Memory first
         # ----------------------------------
         topic = (
             ChatManager.get_current_topic()
         )
 
         # ----------------------------------
-        # Fallback to previous conversation
+        # Fallback to Topic Extractor
         # ----------------------------------
         if not topic:
 
@@ -113,28 +103,23 @@ class ConversationResolver:
                     topic
                 )
 
-        # No topic available
         if not topic:
 
             return question
 
-        # ----------------------------------
-        # Handle simple follow-up commands
-        # ----------------------------------
-        followup = (
-            self._handle_followup_command(
-                question,
-                topic
-            )
+        # Handle commands like:
+        # Continue
+        # Tell me more
+        # Explain more
+        followup = self._handle_followup_command(
+            question,
+            topic
         )
 
         if followup != question:
 
             return followup
 
-        # ----------------------------------
-        # Replace pronouns
-        # ----------------------------------
         return self._replace_pronouns(
             question,
             topic

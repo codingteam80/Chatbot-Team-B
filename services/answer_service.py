@@ -1,10 +1,5 @@
-from llm.ollama_client import (
-    OllamaClient
-)
-
-from services.query_service import (
-    QueryService
-)
+from llm.ollama_client import OllamaClient
+from services.query_service import QueryService
 
 from config.prompts import (
     SYSTEM_PROMPT,
@@ -17,6 +12,7 @@ from config.settings import DEBUG_MODE
 from chat.chat_manager import ChatManager
 from chat.query_normalizer import QueryNormalizer
 from chat.conversation_resolver import ConversationResolver
+from chat.query_enricher import QueryEnricher
 
 class AnswerService:
 
@@ -38,6 +34,11 @@ class AnswerService:
         # Resolve follow-up questions
         self.conversation_resolver = (
             ConversationResolver()
+        )
+
+        # Expand simple topic queries
+        self.query_enricher = (
+            QueryEnricher()
         )
 
     def _build_chat_history(self):
@@ -222,6 +223,17 @@ class AnswerService:
             )
         )
 
+        #topic = (
+        #    self.conversation_resolver.topic_extractor
+        #    .extract(previous_messages)
+        #)
+
+        #if topic:
+
+        #    ChatManager.set_current_topic(
+        #        topic
+        #    )
+
         # Previous messages only
         messages = (
             ChatManager.get_current_messages()
@@ -233,6 +245,13 @@ class AnswerService:
             self.conversation_resolver.resolve(
                 previous_messages,
                 normalized_question
+            )
+        )
+
+        # Expand simple topic queries
+        search_question = (
+            self.query_enricher.enrich(
+                search_question
             )
         )
 

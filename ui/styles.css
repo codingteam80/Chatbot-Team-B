@@ -108,13 +108,32 @@ header {
 
     background: var(--bg-sidebar);
 
-    padding-top: 18px;
+    padding-top: 8px;
 
     padding-left: 16px;
 
     padding-right: 16px;
 }
 
+/* ==========================================
+   COMPANY LOGO
+========================================== */
+
+.company-logo-wrapper{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin-top:-90px;
+    margin-bottom:16px;
+    width:100%;
+}
+
+.company-logo{
+    width:170px;
+    height:auto;
+    object-fit:contain;
+    display:block;
+}
 
 /* ==========================================================
    SIDEBAR LOGO
@@ -122,10 +141,11 @@ header {
 
 .sidebar-logo {
 
-    font-size: 48px;
-    font-weight: 600;
+    font-size: 47px;
+    font-weight: 700;
     text-align: center;
-    margin-bottom: 8px;
+    margin-top: -50px;
+    margin-bottom: 6px;
 }
 
 .sidebar-title {
@@ -134,8 +154,8 @@ header {
     font-size: 14px;
     font-weight: 333;
     color: white;
-    margin-top: -23px;
-    margin-bottom: 3px;
+    margin-top: -24px;
+    margin-bottom: 2px;
 }
 
 .sidebar-version {
@@ -143,7 +163,8 @@ header {
     text-align: center;
     color: var(--text-muted);
     font-size: 13px;
-    margin-top: -22px;
+    margin-top: -8px;
+    margin-bottom: 10px;
 
 }
 

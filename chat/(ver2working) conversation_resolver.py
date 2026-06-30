@@ -1,6 +1,9 @@
-from chat.topic_extractor import TopicExtractor
+import re
 
-from chat.chat_manager import ChatManager
+from chat.topic_extractor import (
+    TopicExtractor
+)
+
 
 class ConversationResolver:
     """
@@ -73,68 +76,33 @@ class ConversationResolver:
         question
     ):
 
-        # ----------------------------------
-        # Check if CURRENT question introduces
-        # a brand-new topic.
-        # ----------------------------------
-        new_topic = (
-            self.topic_extractor.extract_new_topic(
-                question
-            )
-        )
+        if not history_messages:
 
-        if new_topic:
+            return question
 
-            ChatManager.set_current_topic(
-                new_topic
-            )
-
-        # ----------------------------------
-        # Get current topic from memory
-        # ----------------------------------
         topic = (
-            ChatManager.get_current_topic()
+            self.topic_extractor.extract(
+                history_messages
+            )
         )
 
-        # ----------------------------------
-        # Fallback to previous conversation
-        # ----------------------------------
-        if not topic:
-
-            topic = (
-                self.topic_extractor.extract(
-                    history_messages
-                )
-            )
-
-            if topic:
-
-                ChatManager.set_current_topic(
-                    topic
-                )
-
-        # No topic available
         if not topic:
 
             return question
 
-        # ----------------------------------
-        # Handle simple follow-up commands
-        # ----------------------------------
-        followup = (
-            self._handle_followup_command(
-                question,
-                topic
-            )
+        # Handle commands like:
+        # Continue
+        # Tell me more
+        # Explain more
+        followup = self._handle_followup_command(
+            question,
+            topic
         )
 
         if followup != question:
 
             return followup
 
-        # ----------------------------------
-        # Replace pronouns
-        # ----------------------------------
         return self._replace_pronouns(
             question,
             topic
@@ -155,14 +123,7 @@ class ConversationResolver:
 
         if clean in self.FOLLOW_UP_PHRASES:
 
-            #return f"{question.strip()} about {topic}"
-            clean_question = (
-                question
-                .strip()
-                .rstrip(".?!")
-            )
-
-            return f"{clean_question} about {topic}"
+            return f"{question.strip()} about {topic}"
 
         return question
 

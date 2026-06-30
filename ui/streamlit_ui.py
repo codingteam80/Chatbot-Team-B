@@ -20,7 +20,7 @@ class StreamlitUI:
     @staticmethod
     def assoc_logo():
 
-        logo_path = Path("assets/Tsukiden_Denso.png")
+        logo_path = Path("assets_logos/Logo_TSUKIDEN.png")
 
         if not logo_path.exists():
             return ""
@@ -94,7 +94,27 @@ class StreamlitUI:
         with st.sidebar:
 
             # ---------------------------------------------
-            # LOGO
+            # COMPANY LOGO
+            # ---------------------------------------------
+
+            logo = StreamlitUI.assoc_logo()
+
+            if logo:
+
+                st.markdown(
+                    f"""
+                    <div class="company-logo-wrapper">
+                        <img
+                            src="data:image/png;base64,{logo}"
+                            class="company-logo"
+                        >
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            # ---------------------------------------------
+            # DOCUBOT TITLE
             # ---------------------------------------------
 
             st.markdown(
@@ -109,7 +129,7 @@ class StreamlitUI:
             st.markdown(
                 """
                 <div class="sidebar-title">
-                    Your company’s knowledge assistant
+                    Your company's knowledge assistant
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -230,9 +250,7 @@ class StreamlitUI:
         if not ChatManager.is_current_chat_empty():
             return
 
-        logo = StreamlitUI.assoc_logo()
-
-        st.html(f"""
+        st.html("""
         <div class="hero-container">
 
             <div class="hero-title">
@@ -244,11 +262,6 @@ class StreamlitUI:
                 standards, procedures and internal
                 company knowledge.
             </div>
-
-            <img
-                src="data:image/png;base64,{logo}"
-                class="hero-logo"
-            >
 
         </div>
         """)

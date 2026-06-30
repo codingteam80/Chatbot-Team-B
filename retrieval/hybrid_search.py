@@ -18,8 +18,12 @@ class HybridRetriever:
         # Get highest BM25 score for normalization.
         max_bm25 = max(
             [r["score"] for r in bm25_results],
-            default=1
+            default=0
         )
+
+        # Prevent division by zero when all BM25 scores are zero.
+        if max_bm25 <= 0:
+            max_bm25 = 1
 
         # Add vector search results.
         for item in vector_results:
@@ -60,10 +64,12 @@ class HybridRetriever:
             )
 
             # Normalize BM25 score to 0-1 range.
-            normalized_score = (
-                item["score"]
-                / max_bm25
-            )
+            if max_bm25 > 0:
+                normalized_score = (
+                    item["score"] / max_bm25
+                )
+            else:
+                normalized_score = 0.0
 
             # Combine scores when chunk exists in both searches.
             if key in merged:
