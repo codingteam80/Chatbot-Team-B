@@ -20,13 +20,25 @@ from config.settings import (
     CHROMA_COLLECTION_NAME
 )
 
+from utils.logger import (
+    separator,
+    summary
+)
 
-def main():
+def build_index():
 
+    separator("BUILD STARTED")
+   
     # STEP 1: LOAD + CHUNK DOCUMENTS ======================
     print("[STEP 1] Loading documents...")
 
     pipeline = IngestionPipeline()
+
+    from utils.file_utils import get_all_documents
+
+    document_count = len(
+        get_all_documents()
+    )
 
     records = pipeline.run()
 
@@ -131,6 +143,11 @@ def main():
     print(f"Stored embeddings: {len(embeddings)}")
     print("==========================\n")
 
+    summary(
+        Documents=document_count,
+        Chunks=len(records),
+        Embeddings=len(embeddings)
+    )
 
 if __name__ == "__main__":
-    main()
+    build_index()

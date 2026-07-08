@@ -5,9 +5,7 @@ from config.settings import (
     BM25_DIR
 )
 
-from scripts.build_index import (
-    main
-)
+from scripts.build_index import build_index
 
 # REBUILD INDEX SCRIPT ================================
 # PURPOSE: Delete old indexes - Recreate ChromaDB index - Recreate BM25 index
@@ -68,7 +66,7 @@ except Exception as e:
 # STEP 3: REBUILD EVERYTHING ==========================
 print("\n[STEP 3] Building fresh indexes...")
 
-main()
+build_index()
 
 # FINISHED ============================================
 print("\n===== REBUILD COMPLETE =====")

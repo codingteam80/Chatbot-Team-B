@@ -3,9 +3,9 @@ import pickle
 import os
 
 from rank_bm25 import BM25Okapi
-
 from config.settings import BM25_DIR
-
+import re
+import unicodedata
 
 # Store original chunk records.
 CORPUS_FILE = BM25_DIR / "corpus.pkl"
@@ -19,8 +19,24 @@ class BM25Indexer:
     @staticmethod
     def tokenize(text):
 
-        # Convert text into searchable tokens.
-        return text.lower().split()
+        text = text.lower()
+
+        # Remove accents (José -> Jose)
+        text = unicodedata.normalize(
+            "NFKD",
+            text
+        ).encode(
+            "ascii",
+            "ignore"
+        ).decode(
+            "ascii"
+        )
+
+        # Keep only letters and numbers
+        return re.findall(
+            r"[a-z0-9]+",
+            text
+        )
 
     def build(self, records):
 
@@ -120,8 +136,9 @@ class BM25Searcher:
     ):
 
         # Tokenize the search query.
-        tokens = query.lower().split()
-
+        tokens = BM25Indexer.tokenize(
+            query
+        )
         # Calculate BM25 relevance scores.
         scores = self.bm25.get_scores(
             tokens

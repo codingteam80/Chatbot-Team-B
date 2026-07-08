@@ -42,6 +42,7 @@ DEFAULT_BATCH_SIZE = 32
 # =====================================================
 #RERANKER_MODEL = "BAAI/bge-reranker-large"
 RERANKER_MODEL = "BAAI/bge-reranker-base"
+#RERANKER_MODEL = "jinaai/jina-reranker-v2-base-multilingual"
 
 #Try possible improvement on reranking
 #RERANK_MAX_CHARS = 900 # Maximum characters per chunk before reranking.
@@ -56,8 +57,8 @@ OLLAMA_TIMEOUT = 120
 # =====================================================
 # CHUNKING
 # =====================================================
-CHUNK_SIZE = 700
-CHUNK_OVERLAP = 80
+CHUNK_SIZE = 900
+CHUNK_OVERLAP = 150
 
 # =====================================================
 # DOCUMENT VALIDATION
@@ -70,7 +71,23 @@ MIN_DOCUMENT_LENGTH = 50
 VECTOR_TOP_K = 10
 BM25_TOP_K = 10
 FINAL_TOP_K = 3
-#Score debugger
+
+# =====================================================
+# CONTEXT COMPLETENESS EXPANSION
+# =====================================================
+# Used for list / procedure / requirement / rule questions.
+# When a relevant chunk is found, DocuBot also includes
+# nearby chunks from the same file so lists/steps are not cut.
+COMPLETENESS_TOP_K = 6
+CONTEXT_EXPANSION_PREVIOUS_CHUNKS = 1
+CONTEXT_EXPANSION_NEXT_CHUNKS = 1
+CONTEXT_EXPANSION_MAX_SEEDS = 2
+
+# Fast mode:
+# False = BM25 + Vector Hybrid only
+# True  = Hybrid + Reranker
+ENABLE_RERANKER = True
+# Score debugger
 DEBUG_RETRIEVAL = True
 
 # =====================================================
@@ -88,7 +105,7 @@ BM25_WEIGHT = 0.60
 # UI
 # =====================================================
 PAGE_TITLE = "Company Knowledge Assistant"
-PAGE_ICON = "📚"
+PAGE_ICON = r"C:\user_dev\company-chatbot\assets_logos\docubot_logo.png"
 LAYOUT = "wide"
 
 # =====================================================

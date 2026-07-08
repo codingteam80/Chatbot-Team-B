@@ -1,62 +1,71 @@
 import re
+import unicodedata
 
 
 class QueryNormalizer:
     """
-    ==========================================================
-    Query Normalizer
+    Generic query normalizer for retrieval.
 
-    Converts different question patterns into a standardized
-    retrieval query.
-
-    This improves retrieval consistency without requiring
-    any additional LLM calls.
-
-    Example
-
-    Who is Jose Rizal?
-        -> Jose Rizal
-
-    Tell me about Jose Rizal.
-        -> Jose Rizal
-
-    Explain ISO 9001.
-        -> ISO 9001
-    ==========================================================
+    Responsibilities:
+    - Lowercase text
+    - Remove accents
+    - Remove punctuation safely
+    - Preserve technical rule numbers like 10.1
+    - Remove common question prefixes
+    - Expand common abbreviations
+    - Normalize whitespace
     """
 
-    # ======================================================
-    # QUESTION PREFIXES
-    # ======================================================
-
     PREFIX_PATTERNS = [
-
         r"^who\s+is\s+",
         r"^who\s+was\s+",
-
+        r"^who\s+are\s+",
         r"^what\s+is\s+",
         r"^what\s+was\s+",
-
+        r"^what\s+are\s+",
+        r"^where\s+is\s+",
+        r"^where\s+was\s+",
+        r"^when\s+is\s+",
+        r"^when\s+was\s+",
         r"^tell\s+me\s+about\s+",
-
         r"^what\s+can\s+you\s+tell\s+me\s+about\s+",
-
         r"^give\s+me\s+information\s+about\s+",
-
         r"^provide\s+information\s+about\s+",
-
-        r"^explain\s+",
-
-        r"^describe\s+",
-
         r"^can\s+you\s+explain\s+",
-
         r"^can\s+you\s+tell\s+me\s+about\s+",
+        r"^please\s+explain\s+",
+        r"^explain\s+",
+        r"^describe\s+",
+        r"^define\s+",
+        r"^summarize\s+",
     ]
 
-    # ======================================================
-    # NORMALIZE
-    # ======================================================
+    ABBREVIATIONS = {
+        "vl": "vacation leave",
+        "sl": "sick leave",
+        "el": "emergency leave",
+        "pl": "paternity leave",
+        "ml": "maternity leave",
+        "ot": "overtime",
+        "hr": "human resources",
+        "coe": "certificate of employment",
+        "loa": "leave of absence",
+        "dept": "department",
+        "yr": "year",
+    }
+
+    @staticmethod
+    def _remove_accents(text: str) -> str:
+
+        normalized = unicodedata.normalize(
+            "NFKD",
+            text
+        )
+
+        return "".join(
+            char for char in normalized
+            if not unicodedata.combining(char)
+        )
 
     def normalize(
         self,
@@ -67,18 +76,27 @@ class QueryNormalizer:
 
             return question
 
-        query = question.strip()
+        query = question.strip().lower()
 
-        # Remove ending punctuation
-        query = query.rstrip("?.! ")
+        query = self._remove_accents(
+            query
+        )
 
-        # Lowercase only for matching
-        lower_query = query.lower()
+        # Preserve decimal rule numbers:
+        # rule 10.1 should stay rule 10.1
+        query = re.sub(
+            r"(?<=\d)\.(?=\d)",
+            "__dot__",
+            query
+        )
 
-        # Remove known prefixes
+        # Remove common question prefixes
         for pattern in self.PREFIX_PATTERNS:
 
-            if re.match(pattern, lower_query):
+            if re.match(
+                pattern,
+                query
+            ):
 
                 query = re.sub(
                     pattern,
@@ -89,11 +107,52 @@ class QueryNormalizer:
 
                 break
 
-        # Remove duplicate spaces
+        # Replace punctuation/symbols with space,
+        # but preserve underscores for __dot__ marker.
         query = re.sub(
-            r"\s+",
+            r"[^a-z0-9\s_]",
             " ",
             query
         )
 
-        return query.strip()
+        # Restore decimal dots
+        query = query.replace(
+            "__dot__",
+            "."
+        )
+
+        # Normalize spaces
+        query = re.sub(
+            r"\s+",
+            " ",
+            query
+        ).strip()
+
+        if not query:
+
+            return query
+
+        expanded_words = []
+
+        for word in query.split():
+
+            replacement = self.ABBREVIATIONS.get(
+                word,
+                word
+            )
+
+            expanded_words.extend(
+                replacement.split()
+            )
+
+        query = " ".join(
+            expanded_words
+        )
+
+        query = re.sub(
+            r"\s+",
+            " ",
+            query
+        ).strip()
+
+        return query

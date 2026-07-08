@@ -1,33 +1,29 @@
 import streamlit as st
 import torch
 
-from sentence_transformers import CrossEncoder
-
-from config.settings import (
-    RERANKER_MODEL
+from transformers import (
+    AutoModelForSequenceClassification
 )
 
+from config.settings import (
+    RERANKER_MODEL,
+    FINAL_TOP_K
+)
 
 print("USING reranker.py")
 
 
 # ==========================================================
 # GET RERANKER MODEL
+#
+# Jina reranker uses a custom model implementation.
+# trust_remote_code=True is required.
+#
+# use_flash_attn=False is safer for local CPU / non-CUDA setup.
 # ==========================================================
 
 @st.cache_resource(show_spinner=False)
 def get_reranker_model():
-
-    """
-    Load and cache the reranker model.
-
-    This uses sentence-transformers CrossEncoder,
-    which is compatible with:
-        BAAI/bge-reranker-base
-
-    The model is cached so Streamlit does not reload it
-    on every rerun.
-    """
 
     print(
         f"[RERANKER] Loading model: "
@@ -40,11 +36,16 @@ def get_reranker_model():
         else "cpu"
     )
 
-    model = CrossEncoder(
+    model = AutoModelForSequenceClassification.from_pretrained(
         RERANKER_MODEL,
-        device=device,
-        max_length=512
+        trust_remote_code=True,
+        torch_dtype="auto",
+        use_flash_attn=False
     )
+
+    model.to(device)
+
+    model.eval()
 
     print(
         f"[RERANKER] Model loaded successfully on {device}"
@@ -62,7 +63,9 @@ class CrossEncoderReranker:
     def __init__(self):
 
         # Reuse cached model.
-        self.model = get_reranker_model()
+        self.model = (
+            get_reranker_model()
+        )
 
     def rerank(
         self,
@@ -70,39 +73,21 @@ class CrossEncoderReranker:
         candidates
     ):
 
-        """
-        Rerank candidate chunks using query-document relevance.
-
-        Input:
-            query      - final retrieval query
-            candidates - chunks from hybrid retrieval
-
-        Output:
-            candidates sorted by rerank_score descending
-        """
-
+        # Return empty results when no candidates exist.
         if not candidates:
 
             return []
 
-        pairs = []
+        # Build query-document pairs.
+        pairs = [
 
-        for item in candidates:
+            [
+                query,
+                item["text"]
+            ]
 
-            text = item.get(
-                "text",
-                ""
-            )
-
-            # Keep reranking input compact for speed.
-            text = text[:3000]
-
-            pairs.append(
-                [
-                    query,
-                    text
-                ]
-            )
+            for item in candidates
+        ]
 
         print("\n===== RERANK INPUT =====")
 
@@ -116,10 +101,10 @@ class CrossEncoderReranker:
                 )
             )
 
-        scores = self.model.predict(
+        # Jina official scoring method.
+        scores = self.model.compute_score(
             pairs,
-            batch_size=8,
-            show_progress_bar=False
+            max_length=1024
         )
 
         print("\n===== RAW RERANK SCORES =====")
@@ -131,43 +116,40 @@ class CrossEncoderReranker:
             print(
                 f"{index} | "
                 f"{item['metadata'].get('file_name', 'Unknown')} | "
-                f"{float(score):.4f}"
+                f"{score}"
             )
 
         print("=============================\n")
 
+        # Attach scores.
         for item, score in zip(
             candidates,
             scores
         ):
 
-            item["rerank_score"] = float(
-                score
-            )
+            item["rerank_score"] = float(score)
 
+        # Sort by highest reranker score.
         candidates.sort(
             key=lambda item:
-                item.get(
-                    "rerank_score",
-                    0.0
-                ),
+            item.get(
+                "rerank_score",
+                0.0
+            ),
             reverse=True
         )
 
-        print("\n===== FINAL RERANKING =====")
+        print("\n===== FINAL RANKING =====")
 
         for item in candidates[:10]:
 
             print(
                 f"{item['metadata'].get('file_name', 'Unknown')} "
-                f"=> rerank={item.get('rerank_score', 0.0):.4f} "
-                f"hybrid={item.get('score', 0.0):.4f} "
-                f"info={item.get('_info_score', 0.0):.4f}"
+                f"=> "
+                f"{item.get('rerank_score', 0.0):.4f}"
             )
 
-        print("===========================\n")
+        print("=========================\n")
 
-        # Important:
-        # Return all sorted candidates.
-        # retriever.py will decide final_top_k.
-        return candidates
+        # Return top reranked chunks.
+        return candidates[:FINAL_TOP_K]

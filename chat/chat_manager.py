@@ -76,7 +76,9 @@ class ChatManager:
 
             "updated_at": now,
 
-            "messages": []
+            "messages": [],
+
+            "current_topic": None
 
         }
 
@@ -87,6 +89,7 @@ class ChatManager:
         )
 
         st.session_state.current_chat_id = chat_id
+        st.session_state.current_topic = None
 
         return conversation
 
@@ -279,6 +282,11 @@ class ChatManager:
 
         st.session_state.current_chat_id = chat_id
 
+        st.session_state.current_topic = conversation.get(
+            "current_topic",
+            None
+        )
+
         return True
 
     # ======================================================
@@ -306,8 +314,17 @@ class ChatManager:
 
         if st.session_state.current_chat_id == chat_id:
 
+            next_conversation = st.session_state.conversations[0]
+
             st.session_state.current_chat_id = (
-                st.session_state.conversations[0]["id"]
+                next_conversation["id"]
+            )
+
+            st.session_state.current_topic = (
+                next_conversation.get(
+                    "current_topic",
+                    None
+                )
             )
 
     # ======================================================
@@ -380,13 +397,27 @@ class ChatManager:
         topic
     ):
 
-        st.session_state.current_topic = (
+        clean_topic = (
             topic.strip()
             if topic
             else None
         )
 
+        st.session_state.current_topic = clean_topic
+
+        conversation = ChatManager.get_current_chat()
+
+        if conversation is not None:
+
+            conversation["current_topic"] = clean_topic
+
     @staticmethod
     def clear_current_topic():
 
         st.session_state.current_topic = None
+
+        conversation = ChatManager.get_current_chat()
+
+        if conversation is not None:
+
+            conversation["current_topic"] = None

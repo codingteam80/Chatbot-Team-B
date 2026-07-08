@@ -1,6 +1,8 @@
 import streamlit as st
 import base64
 from pathlib import Path
+#from urllib.parse import quote
+import os
 
 from config.settings import (
     PAGE_TITLE,
@@ -278,7 +280,7 @@ class StreamlitUI:
         if not messages:
             return
 
-        for message in messages:
+        for message_index, message in enumerate(messages):
 
             role = message.get(
                 "role",
@@ -296,7 +298,7 @@ class StreamlitUI:
             )
 
             avatar = (
-                "🧑🏼‍🦰"
+                "☺"
                 if role == "user"
                 else "🤖"
             )
@@ -306,49 +308,109 @@ class StreamlitUI:
                 avatar=avatar
             ):
 
-                st.markdown(
-                    content
-                )
+                if role == "assistant":
 
-                # Show sources only for assistant messages
-                if (
-                    role == "assistant"
-                    and sources
-                ):
+                    st.markdown(content)
 
-                    StreamlitUI.render_sources(
-                        sources
-                    )
+                    if sources:
+                        StreamlitUI.render_sources(sources, message_index)
+
+                else:
+
+                    st.markdown(content)
+
+    # =====================================================
+    # BUILD ASSISTANT MESSAGE
+    # =====================================================
+
+#    @staticmethod
+#    def build_assistant_message(answer, sources):
+
+#        html = f"""
+#        <div class="assistant-answer">
+
+#        <div class="assistant-text">
+#        {answer}
+#        </div>
+#        """
+
+#        if sources:
+
+#            unique_sources = list(dict.fromkeys(sources))
+
+#            title = (
+#                "📄 Source"
+#                if len(unique_sources) == 1
+#                else f"📄 Sources ({len(unique_sources)})"
+#            )
+
+#            html += """
+#                <hr class="sources-divider">
+#            """
+
+#            html += f"""
+#                <div class="sources-title">
+#                    {title}
+#                </div>
+#            """
+
+#            for source in unique_sources:
+
+#                html += f"""
+#                    <div class="source-item">
+#                        {source}
+#                    </div>
+#                """
+
+#        html += """
+#        </div>
+#        """
+
+#        return html
 
     # =====================================================
     # SOURCES
     # =====================================================
 
     @staticmethod
-    def render_sources(sources):
+    def render_sources(sources, message_index=0):
 
         if not sources:
             return
 
-        # Remove duplicates while preserving order
-        unique_sources = list(
-            dict.fromkeys(
-                sources
-            )
-        )
+        unique_sources = []
+        seen = set()
 
-        with st.expander(
-            f"📄 Sources ({len(unique_sources)})",
-            expanded=False
-        ):
+        for source in sources:
 
-            for source in unique_sources:
+            key = source["path"]
 
-                st.caption(
-                    f"📄 {source}"
-                )
+            if key not in seen:
+                seen.add(key)
+                unique_sources.append(source)
 
-    # =====================================================
+        #st.markdown(
+        #    '<div class="docubot-sources">',
+        #    unsafe_allow_html=True
+        #)
+
+        st.markdown("#### 📄 Source")
+
+        for i, source in enumerate(unique_sources):
+
+            if st.button(
+                f"📄 {source['name']}",
+                key=f"source_{message_index}_{i}"
+            ):
+                os.startfile(source["path"])
+
+        #st.markdown(
+        #    "</div>",
+        #    unsafe_allow_html=True
+        #)
+
+    # =======================
+    # ==============================
     # FOOTER
     # =====================================================
 

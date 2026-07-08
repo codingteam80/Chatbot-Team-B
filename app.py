@@ -3,6 +3,10 @@ import streamlit as st
 from ui.streamlit_ui import StreamlitUI
 from services.answer_service import AnswerService
 from chat.chat_manager import ChatManager
+from scripts.smart_build import (
+    smart_build,
+    check_changes
+)
 
 # ======================================
 # SETTINGS
@@ -17,6 +21,38 @@ DEBUG_MODE = False
 StreamlitUI.configure()
 
 StreamlitUI.initialize_session()
+
+# ======================================
+# KNOWLEDGE BASE STATUS
+# ======================================
+
+if "kb_checked" not in st.session_state:
+
+    st.session_state.kb_outdated = (
+        check_changes()
+    )
+
+    st.session_state.kb_checked = True
+
+if st.session_state.kb_outdated:
+
+    st.warning(
+        "Knowledge base has changed. Rebuild is required."
+    )
+
+    if st.button(
+        "Rebuild Knowledge Base"
+    ):
+
+        smart_build()
+
+        st.session_state.kb_outdated = False
+
+        st.success(
+            "Knowledge base updated."
+        )
+
+        st.rerun()
 
 ChatManager.initialize()
 
@@ -70,106 +106,112 @@ if (
 
     question = messages[-1]["content"]
 
-    with st.chat_message("assistant"):
+    with st.chat_message(
+        "assistant",
+        avatar="🤖"
+    ):
 
-        with st.spinner(
-            "Searching knowledge base..."
-        ):
+        loading = st.empty()
 
-            try:
+        loading.markdown(
+            """
+            <div class="loading-bubble">
+                <div class="loading-spinner"></div>
+                <div>Searching knowledge base...</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-                response = assistant.ask(
-                    question
+        try:
+
+            response = assistant.ask(
+                question
+            )
+
+            loading.empty()
+
+            answer = response.get(
+                "answer",
+                "No answer returned."
+            )
+
+            sources = response.get(
+                "sources",
+                []
+            )
+
+            print("\n===== SOURCES =====")
+            print(sources)
+            print("===================\n")
+
+            chunks = response.get(
+                "chunks",
+                []
+            )
+
+            st.markdown(
+                answer
+            )
+
+            if sources:
+
+                StreamlitUI.render_sources(
+                    sources,
+                    -1
                 )
 
-                answer = response.get(
-                    "answer",
-                    "No answer returned."
-                )
+            if DEBUG_MODE:
 
-                sources = response.get(
-                    "sources",
-                    []
-                )
+                with st.expander(
+                    "Retrieved Chunks"
+                ):
 
-                chunks = response.get(
-                    "chunks",
-                    []
-                )
-
-                st.markdown(
-                    answer
-                )
-
-                # ==================================
-                # SOURCES
-                # ==================================
-
-                if sources:
-
-                    with st.expander(
-                        f"📄 Sources ({len(sources)})"
+                    for index, chunk in enumerate(
+                        chunks,
+                        start=1
                     ):
 
-                        for source in sources:
+                        st.markdown(
+                            f"### Chunk {index}"
+                        )
 
-                            st.caption(
-                                f"📄 {source}"
+                        st.write(
+                            chunk.get(
+                                "metadata",
+                                {}
                             )
+                        )
 
-                # ==================================
-                # DEBUG
-                # ==================================
+                        st.text_area(
+                            label=f"chunk_{index}",
+                            value=chunk.get(
+                                "text",
+                                ""
+                            ),
+                            height=180,
+                            disabled=True
+                        )
 
-                if DEBUG_MODE:
+            ChatManager.add_message(
+                role="assistant",
+                content=answer,
+                sources=sources
+            )
 
-                    with st.expander(
-                        "Retrieved Chunks"
-                    ):
+            st.rerun()
 
-                        for index, chunk in enumerate(
-                            chunks,
-                            start=1
-                        ):
+        except Exception as e:
 
-                            st.markdown(
-                                f"### Chunk {index}"
-                            )
+            loading.empty()
 
-                            st.write(
-                                chunk.get(
-                                    "metadata",
-                                    {}
-                                )
-                            )
+            error_message = (
+                f"Error: {str(e)}"
+            )
 
-                            st.text_area(
-                                label=f"chunk_{index}",
-                                value=chunk.get(
-                                    "text",
-                                    ""
-                                ),
-                                height=180,
-                                disabled=True
-                            )
+            ChatManager.add_message(
+                role="assistant",
+                content=error_message
+            )
 
-                ChatManager.add_message(
-                    role="assistant",
-                    content=answer,
-                    sources=sources
-                )
-
-                st.rerun()
-
-            except Exception as e:
-
-                error_message = (
-                    f"Error: {str(e)}"
-                )
-
-                ChatManager.add_message(
-                    role="assistant",
-                    content=error_message
-                )
-
-                st.rerun()
+            st.rerun()

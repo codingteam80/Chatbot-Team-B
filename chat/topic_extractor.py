@@ -82,6 +82,27 @@ class TopicExtractor:
         "next"
     }
 
+    IGNORE_AS_TOPIC = {
+        "yes",
+        "yeah",
+        "yep",
+        "ok",
+        "okay",
+        "thanks",
+        "thank you",
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "continue",
+        "more",
+        "next",
+        "again",
+        "help",
+    }
+
     def extract(
         self,
         history_messages
@@ -150,10 +171,14 @@ class TopicExtractor:
         if not text:
             return None
 
-        # Ignore follow-up commands.
-        if text.lower() in self.FOLLOW_UP_COMMANDS:
+        clean = text.lower()
+
+        if clean in self.FOLLOW_UP_COMMANDS:
             return None
 
+        if clean in self.IGNORE_AS_TOPIC:
+            return None
+        
         words = text.split()
 
         if not words:
@@ -206,6 +231,27 @@ class TopicExtractor:
                     "will"
                 }
             ):
+                return None
+
+        # Ignore very short generic topics.
+        if len(words) == 1:
+
+            generic = {
+                "policy",
+                "procedure",
+                "process",
+                "manual",
+                "document",
+                "file",
+                "form",
+                "system",
+                "information",
+                "details",
+                "overview",
+                "requirements",
+            }
+
+            if first_word in generic:
                 return None
 
         return text

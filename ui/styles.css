@@ -3,11 +3,9 @@
    Part 3A
    Global • Variables • Layout • Sidebar
 ========================================================== */
-
 /* ==========================================================
    DESIGN TOKENS
 ========================================================== */
-
 :root {
 
     --bg-primary: #0b1220;
@@ -34,11 +32,9 @@
     --transition: .20s ease;
 }
 
-
 /* ==========================================================
    GLOBAL
 ========================================================== */
-
 html,
 body,
 .stApp {
@@ -53,11 +49,9 @@ body,
     color: var(--text-primary);
 }
 
-
 /* ==========================================================
    STREAMLIT
 ========================================================== */
-
 #MainMenu,
 footer,
 header {
@@ -70,11 +64,9 @@ header {
     display: none;
 }
 
-
 /* ==========================================================
    MAIN LAYOUT
 ========================================================== */
-
 .main .block-container {
 
     max-width: 1050px;
@@ -86,11 +78,9 @@ header {
     padding-bottom: 0px;
 }
 
-
 /* ==========================================================
    SIDEBAR
 ========================================================== */
-
 [data-testid="stSidebar"] {
 
     width: 290px !important;
@@ -118,7 +108,6 @@ header {
 /* ==========================================
    COMPANY LOGO
 ========================================== */
-
 .company-logo-wrapper{
     display:flex;
     justify-content:center;
@@ -138,10 +127,9 @@ header {
 /* ==========================================================
    SIDEBAR LOGO
 ========================================================== */
-
 .sidebar-logo {
 
-    font-size: 47px;
+    font-size: 46px;
     font-weight: 700;
     text-align: center;
     margin-top: -50px;
@@ -168,11 +156,9 @@ header {
 
 }
 
-
 /* ==========================================================
    SIDEBAR SECTION
 ========================================================== */
-
 .sidebar-section {
 
     font-size: 14px;
@@ -184,11 +170,9 @@ header {
     margin-bottom: 10px;
 }
 
-
 /* ==========================================================
    SIDEBAR BUTTONS
 ========================================================== */
-
 [data-testid="stSidebar"] .stButton {
 
     margin-bottom: 8px;
@@ -202,20 +186,15 @@ header {
 
     border-radius: 13px;
 
-    border: 1px solid rgba(255,255,255,.08);
-
+    border: 0.5px solid rgba(255,255,255,.10);
+    /*border: 1px solid rgba(255,255,255,.08);*/
     background: transparent;
 
     color: var(--text-primary);
-
-    text-align: left;
-
+    text-align: center;
     font-size: 12px;
-
     font-weight: 500;
-
     transition: all .18s ease;
-
     padding: 0 16px;
 }
 
@@ -250,40 +229,20 @@ header {
 [data-testid="stSidebar"] .stButton>button:focus {
 
     box-shadow: none;
-
     outline: none;
 }
 
 /* ==========================================================
    SIDEBAR SPACER
 ========================================================== */
-
 .sidebar-spacer {
 
     height: 120px;
 }
 
-
-/* ==========================================================
-   SIDEBAR FOOTER
-========================================================== */
-
-/*.sidebar-footer {
-
-    text-align: center;
-
-    color: var(--text-muted);
-
-    font-size: 12px;
-
-    line-height: 1.7;
-}*/
-
-
 /* ==========================================================
    SCROLLBAR
 ========================================================== */
-
 ::-webkit-scrollbar {
 
     width: 10px;
@@ -305,7 +264,6 @@ header {
 
     background: #475569;
 }
-
 
 /* ==========================================================
    HERO
@@ -372,92 +330,154 @@ header {
     margin-top: -22px;
 }
 
-
 /* ==========================================================
    CHAT AREA
 ========================================================== */
+[data-testid="stChatMessage"]{
+    display:flex;
+    align-items:flex-start;
+    width:100%;
+    margin:18px 0;
+    padding:0;
 
-[data-testid="stChatMessage"] {
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+}
+
+[data-testid="stChatMessage"] > div{
+
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+}
+
+/* Remove user message wrapper */
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]){
+
+    background:transparent !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) > div{
+
+    background:transparent !important;
+}
+
+[data-testid="stChatMessageContent"]{
+    flex:1;
+    width:100%;
+}
+
+/* ==========================================================
+   CHAT AVATAR
+========================================================== */
+/* Emoji size */
+.st-emotion-cache-18qnold{
+    font-size:24px !important;
+}
+
+/* ==========================================
+   Remove Streamlit default chat background
+========================================== */
+[data-testid="stChatMessageContent"]{
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stChatMessageContent"] > div{
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stVerticalBlock"]{
 
     background: transparent;
-
-    border: none;
-
-    padding: 10px 0;
-
-    margin-bottom: 14px;
 }
 
-[data-testid="stChatMessageContent"] {
+[data-testid="stVerticalBlock"] > div{
 
-    width: 100%;
+    background: transparent;
 }
-
 
 /* ==========================================================
-   USER MESSAGE
+   USER
 ========================================================== */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]){
 
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
-
-    display: flex;
-    justify-content: flex-end;
-    flex-direction: row-reverse;
-    width: 100%;
+    justify-content:flex-end;
+    flex-direction:row-reverse;
 }
 
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"])
-[data-testid="stMarkdownContainer"] {
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"])
+[data-testid="stChatMessageContent"]{
 
-    background: var(--accent);
-
-    color: white;
-
-    padding: 16px 18px;
-
-    border-radius: 20px;
-
-    max-width: 70%;
-
-    margin-left: auto;
-
-    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    display:flex;
+    justify-content:flex-end;
 }
 
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"])
+[data-testid="stMarkdownContainer"]{
+
+    margin-left:auto;
+
+    max-width:60%;
+    background:#163053;
+    /*border-radius:10px;*/
+    padding:14px 18px;
+    border:0.5px solid rgba(255,255,255,.08);
+}
 
 /* ==========================================================
-   ASSISTANT MESSAGE
+   ASSISTANT
 ========================================================== */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"]){
 
-[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"])
-[data-testid="stMarkdownContainer"] {
-
-    background: rgba(255,255,255,.03);
-
-    border: 1px solid var(--border);
-
-    padding: 18px;
-
-    border-radius: 18px;
-
-    max-width: 95%;
+    justify-content:flex-start;
 }
 
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stChatMessageContent"]{
+
+    display:flex;
+    justify-content:flex-start;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"]{
+
+    max-width:60%;
+    background: rgba(255,255,255,.06);
+    /*background: #0f172a;*/
+    /*background:#142742;*/
+    /*border-radius:10px;*/
+    padding:7px 18px;
+    /*border:1px solid rgba(255,255,255,.08);*/
+}
 
 /* ==========================================================
    MARKDOWN
 ========================================================== */
+[data-testid="stMarkdownContainer"] p{
 
-[data-testid="stMarkdownContainer"] p {
+    /*margin:0 0 12px;*/
 
-    line-height: 1.8;
+    line-height:1.8;
 
-    font-size: 16px;
+    font-size:15px;
 }
 
-[data-testid="stMarkdownContainer"] ul {
+[data-testid="stMarkdownContainer"] ul{
 
-    padding-left: 22px;
+    margin-top:8px;
+
+    margin-bottom:12px;
+
+    padding-left:24px;
 }
 
 [data-testid="stMarkdownContainer"] li {
@@ -465,18 +485,20 @@ header {
     margin-bottom: 8px;
 }
 
-[data-testid="stMarkdownContainer"] table {
+[data-testid="stMarkdownContainer"] table{
 
-    width: 100%;
+    margin-top:14px;
 
-    border-collapse: collapse;
+    margin-bottom:14px;
 
-    margin: 18px 0;
+    border-collapse:collapse;
+
+    width:100%;
 }
 
 [data-testid="stMarkdownContainer"] th {
 
-    background: rgba(255,255,255,.06);
+    background: rgba(255, 255, 255, 0.06);
 
     padding: 10px;
 
@@ -497,11 +519,9 @@ header {
     overflow-x: auto;
 }
 
-
 /* ==========================================================
    SOURCES
 ========================================================== */
-
 .source-card {
 
     background: rgba(255,255,255,.04);
@@ -522,11 +542,9 @@ header {
     background: rgba(255,255,255,.07);
 }
 
-
 /* ==========================================================
    FADE ANIMATION
 ========================================================== */
-
 @keyframes fadeIn {
 
     from {
@@ -547,11 +565,9 @@ header {
 
 }
 
-
 /* ==========================================================
    CHAT INPUT
 ========================================================== */
-
 [data-testid="stChatInput"] {
     position: sticky;
     bottom: 0;
@@ -568,7 +584,7 @@ header {
     margin: auto;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 28px;
+    border-radius: 13px;
     box-shadow:
         0 10px 35px rgba(0,0,0,.35);
     transition: var(--transition);
@@ -584,13 +600,9 @@ header {
 [data-testid="stChatInput"] textarea {
 
     background: transparent !important;
-
     color: var(--text-primary) !important;
-
     font-size: 14px !important;
-
     line-height: 2.1;
-
     padding: 5px 16px !important;
 }
 
@@ -599,11 +611,9 @@ header {
     color: var(--text-muted);
 }
 
-
 /* ==========================================================
    BUTTONS
 ========================================================== */
-
 .stButton>button,
 .stDownloadButton>button {
 
@@ -626,11 +636,9 @@ header {
     border-color: rgba(255,255,255,.18);
 }
 
-
 /* ==========================================================
    EXPANDER
 ========================================================== */
-
 .streamlit-expanderHeader {
 
     border-radius: var(--radius-md);
@@ -638,11 +646,9 @@ header {
     font-weight: 600;
 }
 
-
 /* ==========================================================
    CHAT FOOTER
 ========================================================== */
-
 .chat-footer {
     position: fixed;
     bottom: 6px;
@@ -662,7 +668,6 @@ header {
 /* ==========================================================
    SCROLLBAR POLISH
 ========================================================== */
-
 * {
 
     scrollbar-width: thin;
@@ -670,11 +675,9 @@ header {
     scrollbar-color: #475569 transparent;
 }
 
-
 /* ==========================================================
    LINKS
 ========================================================== */
-
 a {
 
     color: #7cb8ff;
@@ -687,11 +690,9 @@ a:hover {
     text-decoration: underline;
 }
 
-
 /* ==========================================================
    RESPONSIVE
 ========================================================== */
-
 @media (max-width: 1100px) {
 
     .main .block-container {
@@ -790,5 +791,179 @@ button[kind="header"]{
 }
 
 /* ==========================================================
+   LOADING BUBBLE
+========================================================== */
+.loading-bubble{
+
+    max-width:60%;
+
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:transparent !important;
+    border-radius:10px;
+    padding:14px 18px;
+    color:white;
+}
+
+.loading-spinner{
+
+    width:18px;
+    height:18px;
+
+    border:3px solid rgba(255,255,255,.25);
+    border-top-color:#4ea1ff;
+
+    border-radius:50%;
+
+    animation:loading-spin .8s linear infinite;
+
+    flex-shrink:0;
+}
+
+@keyframes loading-spin{
+
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+/* ==========================================================
+   INLINE SOURCES
+========================================================== */
+/*.sources-inline{
+
+    max-width:60%;
+    margin-top:0px;
+    margin-left:0px;
+    background:transparent !important;
+    #border:1px solid rgba(255,255,255,.08);
+    border-top:none;
+    border-radius:0 0 12px 12px;
+    #padding:14px 18px;
+    #box-sizing:border-box;
+}*/
+
+.sources-title{
+
+    color:#ffffff;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    margin-bottom:10px;
+}
+
+.source-item{
+
+    color:#7db8ff;
+
+    padding:4px 0;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.source-item:hover{
+
+    color:#ffffff;
+    text-decoration:underline;
+}
+
+/*.assistant-answer{
+
+    max-width:60%;
+
+    background:#142742;
+
+    border-radius:12px;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    padding:14px 18px;
+
+}
+
+.assistant-text{
+
+    line-height:1.8;
+
+}*/
+
+.source-item a {
+    color: #66b3ff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.source-item a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================
+   SOURCE BUTTON
+========================================== */
+/*div.stButton > button[kind="secondary"] {
+
+    width: auto;
+    display: inline-flex;
+
+    padding: 6px 14px;
+
+    border-radius: 8px;
+
+    background: #2b3548;
+    border: 1px solid #3f4b63;
+
+    color: white;
+
+    font-size: 14px;
+}
+
+div.stButton {
+
+    display: inline-block;
+}*/
+/* ==========================================================
+   DOCUBOT SOURCES
+========================================================== */
+
+/*.docubot-sources{
+
+    margin-top:12px;
+}
+
+.docubot-sources h4{
+
+    margin-bottom:10px;
+}*/
+
+/* ==========================================================
+   SOURCE FILE
+========================================================== */
+
+.source-file{
+
+    width: auto;
+    /*margin: 6px 0;*/
+    padding: 8px 12px;
+    /*border-radius: 8px;
+    /*background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    color: #7db8ff;*/
+    cursor: pointer;
+    transition: .2s;
+    font-size: 15px;
+}
+
+.source-file:hover{
+
+    background: rgba(255,255,255,.10);
+    color: white;
+}
+/* ==========================================================
    END OF FILE
 ========================================================== */
+
