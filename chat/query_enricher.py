@@ -44,7 +44,29 @@ class QueryEnricher:
             r"\bkilala ang\b",
         ]
 
-                # Questions asking for multiple answers / lists.
+        # Questions asking who qualifies, is entitled, or is allowed.
+        # These are policy/eligibility requests, not person-identity
+        # questions even when they begin with "who is".
+        self.eligibility_patterns = [
+            # Eligibility / qualification
+            r"\b(?:eligible|eligibility|qualified|qualification)\b",
+
+            # Entitlement
+            r"\b(?:entitled|entitlement)\b",
+
+            # Authorization / permission
+            r"\b(?:authorized|authorization|allowed|permission|permitted)\b",
+            r"\bwho\s+(?:can|may)\b",
+            r"\bwhich\s+.+?\s+(?:can|may)\b",
+
+            # Responsibility / ownership
+            r"\b(?:responsible|responsibility|owner|ownership)\b",
+
+            # Approval
+            r"\b(?:approve|approval|approver|authorize)\b",
+        ]
+
+        # Questions asking for multiple answers / lists.
         self.list_patterns = [
             r"\bwho are\b",
             r"\bwhat are\b",
@@ -254,8 +276,19 @@ class QueryEnricher:
 
         enrichment_terms = []
 
-        is_identity_question = self._is_identity_question(
-            lowered_intent
+        is_eligibility_question = (
+            self._is_eligibility_question(
+                lowered_intent
+                + " "
+                + lowered_question
+            )
+        )
+
+        is_identity_question = (
+            self._is_identity_question(
+                lowered_intent
+            )
+            and not is_eligibility_question
         )
 
         is_overview_question = self._is_overview_question(
@@ -283,9 +316,34 @@ class QueryEnricher:
         )
 
         # ======================================
+        # Eligibility / Entitlement Questions
+        # ======================================
+        if is_eligibility_question:
+
+            eligibility_subject = (
+                self._extract_eligibility_subject(
+                    original_question,
+                    intent_text
+                )
+            )
+
+            enrichment_terms.extend(
+                self._build_eligibility_terms(
+                    eligibility_subject
+                    or topic
+                    or original_question,
+                    intent_text=(
+                        lowered_intent
+                        + " "
+                        + lowered_question
+                    )
+                )
+            )
+
+        # ======================================
         # Relationship / Multi-Answer List Questions
         # ======================================
-        if (
+        elif (
             is_relationship_question
             and topic
         ):
@@ -435,6 +493,15 @@ class QueryEnricher:
                 self.configuration_terms
             )
 
+        # ======================================
+        # Yes/No Claim Retrieval Compatibility
+        # ======================================
+        enrichment_terms.extend(
+            self._build_boolean_claim_terms(
+                intent_text
+            )
+        )
+
         enrichment_terms = self._deduplicate(
             enrichment_terms
         )
@@ -463,6 +530,506 @@ class QueryEnricher:
                 enriched_query_parts
             )
         )
+
+    def _simple_past_form(
+        self,
+        verb: str
+    ) -> str:
+
+        """
+        Return a retrieval-friendly past form.
+
+        Exact grammar is less important than adding a useful
+        semantic and lexical search variant.
+        """
+
+        irregular = {
+            "be": "was",
+            "begin": "began",
+            "build": "built",
+            "buy": "bought",
+            "cause": "caused",
+            "come": "came",
+            "create": "created",
+            "do": "did",
+            "find": "found",
+            "found": "founded",
+            "get": "got",
+            "give": "gave",
+            "go": "went",
+            "have": "had",
+            "kill": "killed",
+            "lead": "led",
+            "make": "made",
+            "run": "ran",
+            "send": "sent",
+            "take": "took",
+            "write": "wrote",
+        }
+
+        clean = (
+            verb or ""
+        ).strip().lower()
+
+        if not clean:
+
+            return ""
+
+        if clean in irregular:
+
+            return irregular[clean]
+
+        if clean.endswith("e"):
+
+            return clean + "d"
+
+        if clean.endswith("y") and len(clean) > 1:
+
+            return clean[:-1] + "ied"
+
+        return clean + "ed"
+
+    def _join_repeated_name_tokens(
+        self,
+        text: str
+    ) -> str:
+
+        """
+        Add compatibility for names or identifiers that may be
+        indexed with or without a space.
+
+        Example:
+            token token -> tokentoken
+        """
+
+        if not text:
+
+            return ""
+
+        tokens = text.split()
+        output = []
+        index = 0
+
+        while index < len(tokens):
+
+            if (
+                index + 1 < len(tokens)
+                and tokens[index].lower()
+                == tokens[index + 1].lower()
+            ):
+
+                output.append(
+                    tokens[index]
+                    + tokens[index + 1]
+                )
+
+                index += 2
+
+                continue
+
+            output.append(
+                tokens[index]
+            )
+
+            index += 1
+
+        return " ".join(
+            output
+        )
+
+    def _build_boolean_claim_terms(
+        self,
+        question: str
+    ) -> list[str]:
+
+        """
+        Expand yes/no claims into retrieval-friendly forms.
+
+        This helps semantically equivalent queries retrieve the
+        same evidence as direct WH questions.
+
+        Example structure:
+            Did SUBJECT VERB OBJECT?
+            SUBJECT VERB OBJECT
+            SUBJECT PAST_VERB OBJECT
+            OBJECT PAST_VERB by SUBJECT
+            who PAST_VERB OBJECT
+        """
+
+        if not question:
+
+            return []
+
+        clean = re.sub(
+            r"[?!.]+$",
+            "",
+            question.strip()
+        )
+
+        match = re.match(
+            r"^(did|does|do|is|are|was|were|has|have|had|"
+            r"can|could|will|would|should|must)\s+(.+)$",
+            clean,
+            flags=re.IGNORECASE
+        )
+
+        if not match:
+
+            return []
+
+        auxiliary = match.group(1).lower()
+        claim = match.group(2).strip()
+
+        if not claim:
+
+            return []
+
+        terms = [
+            claim,
+            self._join_repeated_name_tokens(
+                claim
+            ),
+            f"evidence {claim}",
+            f"statement {claim}",
+        ]
+
+        # For action claims, create active/passive/WH variants.
+        action_verbs = {
+            "access",
+            "add",
+            "allow",
+            "approve",
+            "assign",
+            "authorize",
+            "build",
+            "cause",
+            "configure",
+            "create",
+            "delete",
+            "deploy",
+            "design",
+            "develop",
+            "establish",
+            "execute",
+            "found",
+            "implement",
+            "install",
+            "invent",
+            "kill",
+            "lead",
+            "make",
+            "manage",
+            "modify",
+            "own",
+            "perform",
+            "publish",
+            "release",
+            "require",
+            "run",
+            "start",
+            "stop",
+            "support",
+            "update",
+            "use",
+            "write",
+        }
+
+        claim_tokens = claim.split()
+        verb_index = None
+
+        for index, token in enumerate(
+            claim_tokens
+        ):
+
+            normalized_token = re.sub(
+                r"[^A-Za-z'-]",
+                "",
+                token
+            ).lower()
+
+            if normalized_token in action_verbs:
+
+                verb_index = index
+                break
+
+        if (
+            auxiliary in {
+                "did",
+                "does",
+                "do",
+            }
+            and verb_index is not None
+            and verb_index > 0
+            and verb_index < len(claim_tokens) - 1
+        ):
+
+            subject = " ".join(
+                claim_tokens[:verb_index]
+            )
+
+            verb = re.sub(
+                r"[^A-Za-z'-]",
+                "",
+                claim_tokens[verb_index]
+            )
+
+            object_text = " ".join(
+                claim_tokens[verb_index + 1:]
+            )
+
+            past_verb = self._simple_past_form(
+                verb
+            )
+
+            compact_subject = (
+                self._join_repeated_name_tokens(
+                    subject
+                )
+            )
+
+            terms.extend(
+                [
+                    f"{subject} {past_verb} {object_text}",
+                    f"{compact_subject} {past_verb} {object_text}",
+                    f"{object_text} {past_verb} by {subject}",
+                    f"{object_text} {past_verb} by {compact_subject}",
+                    f"who {past_verb} {object_text}",
+                ]
+            )
+
+        return self._deduplicate(
+            [
+                term
+                for term in terms
+                if term
+            ]
+        )
+
+
+    def _build_eligibility_terms(
+        self,
+        subject: str,
+        intent_text: str = ""
+    ) -> list[str]:
+        """
+        Build generic, topic-anchored retrieval terms.
+
+        This works across company policies, technical manuals,
+        access rules, approvals, responsibilities, benefits,
+        systems, procedures, and other document types.
+        """
+
+        clean_subject = re.sub(
+            r"\s+",
+            " ",
+            subject or ""
+        ).strip()
+
+        if not clean_subject:
+
+            return []
+
+        intent_type = self._detect_eligibility_intent(
+            intent_text
+            + " "
+            + clean_subject
+        )
+
+        terms = [
+            clean_subject
+        ]
+
+        if intent_type == "authorization":
+
+            terms.extend(
+                [
+                    f"{clean_subject} authorization",
+                    f"authorized to {clean_subject}",
+                    f"permission to {clean_subject}",
+                    f"permitted roles {clean_subject}",
+                    f"{clean_subject} access requirements",
+                    f"{clean_subject} allowed roles",
+                ]
+            )
+
+        elif intent_type == "responsibility":
+
+            terms.extend(
+                [
+                    f"{clean_subject} responsibility",
+                    f"responsible for {clean_subject}",
+                    f"{clean_subject} owner",
+                    f"{clean_subject} assigned role",
+                    f"{clean_subject} duties",
+                ]
+            )
+
+        elif intent_type == "approval":
+
+            terms.extend(
+                [
+                    f"{clean_subject} approval",
+                    f"approve {clean_subject}",
+                    f"{clean_subject} approver",
+                    f"authorized approver {clean_subject}",
+                    f"{clean_subject} approval authority",
+                ]
+            )
+
+        elif intent_type == "entitlement":
+
+            terms.extend(
+                [
+                    f"{clean_subject} entitlement",
+                    f"entitled to {clean_subject}",
+                    f"{clean_subject} eligibility",
+                    f"{clean_subject} conditions",
+                    f"{clean_subject} requirements",
+                ]
+            )
+
+        else:
+
+            terms.extend(
+                [
+                    f"{clean_subject} eligibility",
+                    f"eligible for {clean_subject}",
+                    f"{clean_subject} qualification",
+                    f"{clean_subject} requirements",
+                    f"{clean_subject} conditions",
+                    f"{clean_subject} criteria",
+                ]
+            )
+
+        return self._deduplicate(
+            terms
+        )
+
+    def _detect_eligibility_intent(
+        self,
+        text: str
+    ) -> str:
+        """
+        Identify the generic intent family without relying on
+        a specific document topic.
+        """
+
+        clean = (
+            text
+            or ""
+        ).lower()
+
+        if re.search(
+            r"\b(approve|approval|approver)\b",
+            clean
+        ):
+
+            return "approval"
+
+        if re.search(
+            r"\b(responsible|responsibility|owner|ownership)\b",
+            clean
+        ):
+
+            return "responsibility"
+
+        if re.search(
+            r"\b(authorized|authorization|allowed|permission|permitted)\b",
+            clean
+        ) or re.search(
+            r"\b(?:who|which\s+.+?)\s+(?:can|may)\b",
+            clean
+        ):
+
+            return "authorization"
+
+        if re.search(
+            r"\b(entitled|entitlement)\b",
+            clean
+        ):
+
+            return "entitlement"
+
+        return "eligibility"
+
+    def _extract_eligibility_subject(
+        self,
+        normalized_question: str,
+        intent_question: str
+    ) -> str:
+        """
+        Extract the subject of a generic role/policy intent.
+
+        Examples:
+            leave eligibility -> leave
+            deploy production authorization -> deploy production
+            incident response responsibility -> incident response
+            purchase request approval -> purchase request
+        """
+
+        candidates = [
+            normalized_question,
+            intent_question,
+        ]
+
+        patterns = [
+            # Canonical normalized forms
+            r"^(.+?)\s+(?:eligibility|entitlement|authorization|responsibility|approval)$",
+            r"^(.+?)\s+(?:eligibility|entitlement|authorization|responsibility|approval)\s+.+$",
+
+            # Natural eligibility / entitlement wording
+            r"^(?:eligibility|qualification)\s+for\s+(.+)$",
+            r"^(?:eligible|qualified)\s+for\s+(.+)$",
+            r"^entitlement\s+to\s+(.+)$",
+            r"^entitled\s+to\s+(.+)$",
+            r"^who\s+(?:is|are)\s+(?:eligible|qualified)\s+for\s+(.+)$",
+            r"^who\s+(?:is|are)\s+entitled\s+to\s+(.+)$",
+            r"^which\s+.+?\s+(?:is|are)\s+(?:eligible|qualified)\s+for\s+(.+)$",
+
+            # Authorization / permission
+            r"^who\s+(?:can|may)\s+(.+)$",
+            r"^which\s+.+?\s+(?:can|may)\s+(.+)$",
+            r"^who\s+(?:is|are)\s+(?:authorized|allowed|permitted)\s+to\s+(.+)$",
+
+            # Responsibility / approval
+            r"^who\s+(?:is|are)\s+responsible\s+for\s+(.+)$",
+            r"^which\s+.+?\s+(?:is|are)\s+responsible\s+for\s+(.+)$",
+            r"^who\s+(?:can\s+)?(?:approve|authorize)\s+(.+)$",
+            r"^which\s+.+?\s+(?:can\s+)?(?:approve|authorize)\s+(.+)$",
+        ]
+
+        for candidate in candidates:
+
+            clean_candidate = (
+                candidate
+                .strip()
+                .rstrip("?!.")
+            )
+
+            for pattern in patterns:
+
+                match = re.match(
+                    pattern,
+                    clean_candidate,
+                    flags=re.IGNORECASE
+                )
+
+                if not match:
+
+                    continue
+
+                subject = match.group(1).strip()
+
+                subject = re.sub(
+                    r"^(?:the|a|an)\s+",
+                    "",
+                    subject,
+                    flags=re.IGNORECASE
+                ).strip()
+
+                return subject
+
+        return ""
 
     def _build_identity_terms(
         self,
@@ -877,6 +1444,28 @@ class QueryEnricher:
         """
 
         for pattern in self.overview_patterns:
+
+            if re.search(
+                pattern,
+                lowered_question
+            ):
+
+                return True
+
+        return False
+
+    def _is_eligibility_question(
+        self,
+        lowered_question: str
+    ) -> bool:
+        """
+        Detect policy questions asking who qualifies or is entitled.
+
+        This prevents "who is eligible..." from being treated as
+        a biography/person identity query.
+        """
+
+        for pattern in self.eligibility_patterns:
 
             if re.search(
                 pattern,

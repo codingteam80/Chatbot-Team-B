@@ -1916,7 +1916,51 @@ class CompanyRetriever:
 
                 return []
 
+            # Keep only chunks that individually pass the
+            # reranker confidence threshold.
+            #
+            # The previous logic checked only the best result.
+            # That allowed low-confidence unrelated chunks to
+            # enter the final context whenever the top result
+            # passed the gate.
+            ranked = [
+                item
+                for item in ranked
+                if float(
+                    item.get(
+                        "rerank_score",
+                        0.0
+                    )
+                ) >= MIN_RETRIEVAL_SCORE
+            ]
+
             if DEBUG_RETRIEVAL:
+
+                print(
+                    "\n===== PER-RESULT CONFIDENCE FILTER ====="
+                )
+
+                print(
+                    f"Minimum required : "
+                    f"{MIN_RETRIEVAL_SCORE:.4f}"
+                )
+
+                print(
+                    f"Accepted chunks  : "
+                    f"{len(ranked)}"
+                )
+
+                for item in ranked:
+
+                    print(
+                        f"{item['metadata'].get('file_name', 'Unknown')} "
+                        f"=> "
+                        f"{item.get('rerank_score', 0.0):.4f}"
+                    )
+
+                print(
+                    "========================================\n"
+                )
 
                 print("\n===== RERANKED RESULTS =====")
 

@@ -1,5 +1,4 @@
 import streamlit as st
-from contextlib import nullcontext
 
 from ui.streamlit_ui import StreamlitUI
 from services.answer_service import AnswerService
@@ -71,29 +70,9 @@ StreamlitUI.render_sidebar()
 
 StreamlitUI.render_chat_history()
 
-is_empty_chat = (
-    ChatManager.is_current_chat_empty()
-)
-
-if is_empty_chat:
+if ChatManager.is_current_chat_empty():
 
     StreamlitUI.show_welcome()
-
-chat_input_container_key = (
-    "chat_input_shell_empty"
-    if is_empty_chat
-    else "chat_input_shell_active"
-)
-
-# Dedicated fixed backdrop for active chats.
-# It covers the full bottom area so messages do not
-# remain visible behind the fixed input while scrolling.
-if not is_empty_chat:
-
-    st.markdown(
-        '<div class="docubot-bottom-mask" aria-hidden="true"></div>',
-        unsafe_allow_html=True
-    )
 
 # Clear the textbox only after a question has
 # been accepted for processing.
@@ -104,14 +83,17 @@ if st.session_state.clear_chat_draft:
 
 # The textbox remains editable while processing.
 # Only the send action is disabled.
-with st.container(
-    key=chat_input_container_key
+with st.form(
+    key="chat_input_form",
+    clear_on_submit=False
 ):
 
-    with st.form(
-        key="chat_input_form",
-        clear_on_submit=False
-    ):
+    input_column, send_column = st.columns(
+        [12, 1],
+        vertical_alignment="bottom"
+    )
+
+    with input_column:
 
         question = st.text_input(
             "Ask company knowledge...",
@@ -120,16 +102,13 @@ with st.container(
             placeholder="Ask company knowledge..."
         )
 
-        # Dedicated keyed wrapper makes the send button
-        # reliable to position inside the textbox.
-        with st.container(
-            key="chat_send_button"
-        ):
+    with send_column:
 
-            submitted = st.form_submit_button(
-                "➤",
-                disabled=st.session_state.is_processing
-            )
+        submitted = st.form_submit_button(
+            "➤",
+            use_container_width=True,
+            disabled=st.session_state.is_processing
+        )
 
 StreamlitUI.render_footer_note()
 
@@ -166,82 +145,31 @@ if submitted:
 
 messages = ChatManager.get_current_messages()
 
-regenerate_message_index = (
-    st.session_state.regenerate_message_index
-)
-
-is_regeneration = (
-    regenerate_message_index is not None
-)
-
-normal_request_ready = (
-    ChatManager.has_messages()
-    and messages[-1]["role"] == "user"
-)
-
-regeneration_ready = (
-    is_regeneration
-    and st.session_state.regenerate_chat_id
-    == ChatManager.current_chat_id()
-)
-
 if (
     st.session_state.is_processing
     and st.session_state.pending_question
-    and (
-        normal_request_ready
-        or regeneration_ready
-    )
+    and ChatManager.has_messages()
+    and messages[-1]["role"] == "user"
 ):
 
     question = st.session_state.pending_question
 
-    regeneration_snapshot = None
+    with st.chat_message(
+        "assistant",
+        avatar="🤖"
+    ):
 
-    if is_regeneration:
+        loading = st.empty()
 
-        regeneration_snapshot = (
-            ChatManager.begin_regeneration(
-                regenerate_message_index,
-                st.session_state.regenerate_chat_id
-            )
+        loading.markdown(
+            """
+            <div class="loading-bubble">
+                <div class="loading-spinner"></div>
+                <div>Searching knowledge base...</div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
-
-        if regeneration_snapshot is None:
-
-            st.session_state.is_processing = False
-            st.session_state.pending_question = None
-            st.session_state.regenerate_message_index = None
-            st.session_state.regenerate_chat_id = None
-
-            st.rerun()
-
-    response_container = (
-        nullcontext()
-        if is_regeneration
-        else st.chat_message(
-            "assistant",
-            avatar="🤖"
-        )
-    )
-
-    with response_container:
-
-        loading = None
-
-        if not is_regeneration:
-
-            loading = st.empty()
-
-            loading.markdown(
-                """
-                <div class="loading-bubble">
-                    <div class="loading-spinner"></div>
-                    <div>Searching knowledge base...</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
 
         try:
 
@@ -249,8 +177,7 @@ if (
                 question
             )
 
-            if loading is not None:
-                loading.empty()
+            loading.empty()
 
             answer = response.get(
                 "answer",
@@ -271,20 +198,18 @@ if (
                 []
             )
 
-            if not is_regeneration:
+            st.markdown(
+                answer
+            )
 
-                st.markdown(
-                    answer
+            if sources:
+
+                StreamlitUI.render_sources(
+                    sources,
+                    -1
                 )
 
-                if sources:
-
-                    StreamlitUI.render_sources(
-                        sources,
-                        -1
-                    )
-
-            if DEBUG_MODE and not is_regeneration:
+            if DEBUG_MODE:
 
                 with st.expander(
                     "Retrieved Chunks"
@@ -316,45 +241,24 @@ if (
                             disabled=True
                         )
 
-            if is_regeneration:
-
-                ChatManager.complete_regeneration(
-                    regeneration_snapshot,
-                    answer,
-                    sources
-                )
-
-            else:
-
-                ChatManager.add_message(
-                    role="assistant",
-                    content=answer,
-                    sources=sources
-                )
+            ChatManager.add_message(
+                role="assistant",
+                content=answer,
+                sources=sources
+            )
 
         except Exception as e:
 
-            if loading is not None:
-                loading.empty()
+            loading.empty()
 
             error_message = (
                 f"Error: {str(e)}"
             )
 
-            if is_regeneration:
-
-                ChatManager.restore_regeneration(
-                    regeneration_snapshot
-                )
-
-                print(error_message)
-
-            else:
-
-                ChatManager.add_message(
-                    role="assistant",
-                    content=error_message
-                )
+            ChatManager.add_message(
+                role="assistant",
+                content=error_message
+            )
 
         finally:
 
@@ -362,7 +266,5 @@ if (
             # or error message has been saved.
             st.session_state.is_processing = False
             st.session_state.pending_question = None
-            st.session_state.regenerate_message_index = None
-            st.session_state.regenerate_chat_id = None
 
             st.rerun()

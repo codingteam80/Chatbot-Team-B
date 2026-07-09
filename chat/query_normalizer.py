@@ -40,6 +40,86 @@ class QueryNormalizer:
         r"^summarize\s+",
     ]
 
+    # Canonical rewrites for equivalent retrieval intents.
+    # These run before generic prefix removal so important words
+    # such as eligibility and entitlement are preserved.
+    CANONICAL_INTENT_PATTERNS = [
+        # Eligibility / qualification
+        (
+            r"^who\s+(?:is|are)\s+(?:eligible|qualified)\s+for\s+(.+?)[?!.]*$",
+            r"\1 eligibility"
+        ),
+        (
+            r"^which\s+(.+?)\s+(?:is|are)\s+(?:eligible|qualified)\s+for\s+(.+?)[?!.]*$",
+            r"\2 eligibility \1"
+        ),
+        (
+            r"^(.+?)\s+(?:is|are)\s+(?:eligible|qualified)\s+for\s+(.+?)[?!.]*$",
+            r"\2 eligibility \1"
+        ),
+        (
+            r"^(?:eligible|qualified)\s+for\s+(.+?)[?!.]*$",
+            r"\1 eligibility"
+        ),
+        (
+            r"^(?:eligibility|qualification)\s+for\s+(.+?)[?!.]*$",
+            r"\1 eligibility"
+        ),
+
+        # Entitlement
+        (
+            r"^who\s+(?:is|are)\s+entitled\s+to\s+(.+?)[?!.]*$",
+            r"\1 entitlement"
+        ),
+        (
+            r"^which\s+(.+?)\s+(?:is|are)\s+entitled\s+to\s+(.+?)[?!.]*$",
+            r"\2 entitlement \1"
+        ),
+        (
+            r"^entitled\s+to\s+(.+?)[?!.]*$",
+            r"\1 entitlement"
+        ),
+        (
+            r"^entitlement\s+to\s+(.+?)[?!.]*$",
+            r"\1 entitlement"
+        ),
+
+        # Approval
+        (
+            r"^who\s+(?:can\s+)?(?:approve|authorize)\s+(.+?)[?!.]*$",
+            r"\1 approval"
+        ),
+        (
+            r"^which\s+(.+?)\s+(?:can\s+)?(?:approve|authorize)\s+(.+?)[?!.]*$",
+            r"\2 approval \1"
+        ),
+
+        # Authorization / permission
+        (
+            r"^who\s+(?:can|may)\s+(.+?)[?!.]*$",
+            r"\1 authorization"
+        ),
+        (
+            r"^which\s+(.+?)\s+(?:can|may)\s+(.+?)[?!.]*$",
+            r"\2 authorization \1"
+        ),
+        (
+            r"^who\s+(?:is|are)\s+(?:authorized|allowed|permitted)\s+to\s+(.+?)[?!.]*$",
+            r"\1 authorization"
+        ),
+
+        # Responsibility / ownership
+        (
+            r"^who\s+(?:is|are)\s+responsible\s+for\s+(.+?)[?!.]*$",
+            r"\1 responsibility"
+        ),
+        (
+            r"^which\s+(.+?)\s+(?:is|are)\s+responsible\s+for\s+(.+?)[?!.]*$",
+            r"\2 responsibility \1"
+        ),
+
+    ]
+
     ABBREVIATIONS = {
         "vl": "vacation leave",
         "sl": "sick leave",
@@ -81,6 +161,28 @@ class QueryNormalizer:
         query = self._remove_accents(
             query
         )
+
+        # Convert equivalent eligibility/entitlement questions
+        # into one stable retrieval form.
+        for pattern, replacement in (
+            self.CANONICAL_INTENT_PATTERNS
+        ):
+
+            if re.match(
+                pattern,
+                query,
+                flags=re.IGNORECASE
+            ):
+
+                query = re.sub(
+                    pattern,
+                    replacement,
+                    query,
+                    count=1,
+                    flags=re.IGNORECASE
+                )
+
+                break
 
         # Preserve decimal rule numbers:
         # rule 10.1 should stay rule 10.1

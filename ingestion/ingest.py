@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from ingestion.parser import DocumentParser        # Extract text from files
-from ingestion.cleaner import TextCleaner          # Clean extracted text
-from ingestion.splitter import DocumentSplitter    # Split document into chunks
-from ingestion.metadata import MetadataBuilder     # Create metadata per chunk
+from ingestion.parser import DocumentParser
+from ingestion.cleaner import TextCleaner
+from ingestion.splitter import DocumentSplitter
+from ingestion.metadata import MetadataBuilder
 
-from utils.file_utils import get_all_documents     # Discover all files
-from utils.logger import log                       # Console logger
+from utils.file_utils import get_all_documents
+from utils.logger import log
 
 from config.settings import (
     MIN_DOCUMENT_LENGTH
@@ -17,13 +17,8 @@ class IngestionPipeline:
 
     def __init__(self):
 
-        # Document parser
         self.parser = DocumentParser()
-
-        # Text cleaner
         self.cleaner = TextCleaner()
-
-        # Chunk splitter
         self.splitter = DocumentSplitter()
 
     def process_document(
@@ -31,17 +26,25 @@ class IngestionPipeline:
         file_path
     ):
 
+        """
+        Parse, clean, split, and describe one document.
+
+        This method is used by incremental indexing so unchanged
+        documents never enter the ingestion pipeline.
+        """
+
+        file_path = Path(
+            file_path
+        )
+
         log(
             f"Processing: {file_path.name}"
         )
 
-        # EXTRACT TEXT
-        # Convert file into raw text
         raw_text = self.parser.parse(
             str(file_path)
         )
 
-        # Skip if parser returns nothing
         if not raw_text:
 
             log(
@@ -51,17 +54,10 @@ class IngestionPipeline:
 
             return []
 
-        # CLEAN TEXT
-        # Remove unwanted characters,
-        # normalize spaces and line breaks
         clean_text = self.cleaner.clean(
             raw_text
         )
 
-        # DOCUMENT LENGTH VALIDATION
-        # Prevent indexing useless files:
-        # empty pages, corrupted files,
-        # "OK", "-", "N/A", etc.
         if (
             len(clean_text)
             < MIN_DOCUMENT_LENGTH
@@ -75,14 +71,10 @@ class IngestionPipeline:
 
             return []
 
-        # CHUNKING
-        # Convert large document into
-        # smaller searchable chunks
         chunks = self.splitter.split(
             clean_text
         )
 
-        # Safety check
         if not chunks:
 
             log(
@@ -92,63 +84,87 @@ class IngestionPipeline:
 
             return []
 
+        total_chunks = len(
+            chunks
+        )
+
         records = []
 
-        total_chunks = len(chunks)
-
-        # CREATE CHUNK RECORDS
-        # Each chunk gets its own metadata
-        for idx, chunk in enumerate(
+        for chunk_id, chunk in enumerate(
             chunks
         ):
-
-            metadata = MetadataBuilder.build(
-                file_path=str(file_path),
-                chunk_id=idx,
-                total_chunks=total_chunks
-            )
 
             records.append(
                 {
                     "text": chunk,
-                    "metadata": metadata
+                    "metadata": (
+                        MetadataBuilder.build(
+                            file_path=str(
+                                file_path
+                            ),
+                            chunk_id=chunk_id,
+                            total_chunks=total_chunks
+                        )
+                    )
                 }
             )
 
         log(
-            f"Created "
-            f"{total_chunks} chunks"
+            f"Created {total_chunks} chunks"
         )
 
         return records
 
-    def run(self):
+    def run(
+        self,
+        documents=None
+    ):
 
-        all_records = []
+        """
+        Process all documents by default, or only the supplied
+        document paths during an incremental operation.
+        """
 
-        # DISCOVER DOCUMENTS
-        # Scan document folder and collect
-        # all supported files
-        documents = get_all_documents()
+        if documents is None:
+
+            documents = (
+                get_all_documents()
+            )
+
+        documents = [
+            Path(document)
+            for document in documents
+        ]
 
         log(
             f"Found {len(documents)} documents"
         )
 
-        # PROCESS DOCUMENTS
-        # Parse -> Clean -> Chunk -> Metadata
+        all_records = []
+
         for document in documents:
 
-            records = self.process_document(
-                document
-            )
+            try:
 
-            all_records.extend(
-                records
-            )
+                records = (
+                    self.process_document(
+                        document
+                    )
+                )
 
-        # FINAL STATISTICS
-        # Total chunks generated from all files
+                all_records.extend(
+                    records
+                )
+
+            except Exception as error:
+
+                # One damaged file must not stop the rest of
+                # a full build.
+                log(
+                    f"Failed: {document.name} "
+                    f"[{error}]"
+                )
+
         log(
             f"Total Chunks: "
             f"{len(all_records)}"
@@ -164,12 +180,9 @@ if __name__ == "__main__":
     chunks = pipeline.run()
 
     print()
-
     print("=" * 50)
-
     print(
         f"TOTAL CHUNKS CREATED: "
         f"{len(chunks)}"
     )
-
     print("=" * 50)

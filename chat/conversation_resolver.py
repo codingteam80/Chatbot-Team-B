@@ -546,14 +546,21 @@ class ConversationResolver:
 
         first_word = words[0]
 
-        # Question-style follow-up:
-        # what did he do is already handled by pronoun resolver.
-        # what are the requirements
-        # when effective
-        # where configured
+        # Question-style contextual follow-ups must remain short.
+        #
+        # Examples that should use the current topic:
+        # - when effective
+        # - where configured
+        # - what are the requirements
+        #
+        # Long questions usually contain their own explicit subject
+        # and must not inherit an unrelated previous topic.
+        #
+        # Pronoun-based questions are already resolved before this
+        # method is called.
         if first_word in self.FOLLOW_UP_STARTERS:
 
-            return True
+            return len(words) <= 5
 
         # Exact generic follow-up:
         # syntax

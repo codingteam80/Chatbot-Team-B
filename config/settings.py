@@ -164,4 +164,5 @@ for path in [
 #
 # Recommended range:
 # 0.55 - 0.75
-MIN_RETRIEVAL_SCORE = 0.65
+#MIN_RETRIEVAL_SCORE = 0.65
+MIN_RETRIEVAL_SCORE = 0.10

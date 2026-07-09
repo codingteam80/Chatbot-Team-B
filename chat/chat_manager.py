@@ -266,6 +266,259 @@ class ChatManager:
             )
 
     # ======================================================
+    # PREPARE REGENERATION
+    # ======================================================
+
+    @staticmethod
+    def get_regeneration_question(
+        message_index
+    ):
+        """
+        Return the user question linked to one assistant response.
+
+        This method does not delete or modify any message.
+        """
+
+        messages = ChatManager.get_current_messages()
+
+        if not isinstance(
+            message_index,
+            int
+        ):
+
+            return None
+
+        if (
+            message_index < 0
+            or message_index >= len(messages)
+        ):
+
+            return None
+
+        selected_message = messages[
+            message_index
+        ]
+
+        if selected_message.get("role") != "assistant":
+
+            return None
+
+        for index in range(
+            message_index - 1,
+            -1,
+            -1
+        ):
+
+            previous_message = messages[index]
+
+            if previous_message.get("role") == "user":
+
+                question = (
+                    previous_message
+                    .get(
+                        "content",
+                        ""
+                    )
+                    .strip()
+                )
+
+                return question or None
+
+        return None
+
+    # ======================================================
+    # BEGIN REGENERATION CONTEXT
+    # ======================================================
+
+    @staticmethod
+    def begin_regeneration(
+        message_index,
+        chat_id
+    ):
+        """
+        Temporarily expose only the conversation context that existed
+        before the selected assistant response.
+
+        The full conversation is restored after answer generation.
+        """
+
+        if chat_id != ChatManager.current_chat_id():
+
+            return None
+
+        conversation = ChatManager.get_current_chat()
+
+        messages = conversation.get(
+            "messages",
+            []
+        )
+
+        question = ChatManager.get_regeneration_question(
+            message_index
+        )
+
+        if not question:
+
+            return None
+
+        original_messages = messages
+        original_topic = conversation.get(
+            "current_topic",
+            None
+        )
+        original_session_topic = st.session_state.get(
+            "current_topic",
+            None
+        )
+
+        snapshot = {
+            "chat_id": chat_id,
+            "message_index": message_index,
+            "question": question,
+            "messages": original_messages,
+            "conversation_topic": original_topic,
+            "session_topic": original_session_topic
+        }
+
+        # Keep messages only up to the user question that produced
+        # the selected assistant response. This prevents later turns
+        # from contaminating the regenerated answer.
+        conversation["messages"] = (
+            original_messages[:message_index]
+        )
+
+        conversation["current_topic"] = None
+        st.session_state.current_topic = None
+
+        return snapshot
+
+    # ======================================================
+    # COMPLETE REGENERATION
+    # ======================================================
+
+    @staticmethod
+    def complete_regeneration(
+        snapshot,
+        answer,
+        sources=None
+    ):
+        """
+        Replace only the selected assistant response.
+
+        No other message is removed or changed.
+        """
+
+        if not snapshot:
+
+            return False
+
+        conversation = ChatManager.get_chat(
+            snapshot.get(
+                "chat_id"
+            )
+        )
+
+        if conversation is None:
+
+            return False
+
+        original_messages = snapshot.get(
+            "messages",
+            []
+        )
+
+        message_index = snapshot.get(
+            "message_index"
+        )
+
+        conversation["messages"] = (
+            original_messages
+        )
+
+        if (
+            not isinstance(message_index, int)
+            or message_index < 0
+            or message_index >= len(original_messages)
+        ):
+
+            ChatManager.restore_regeneration(
+                snapshot
+            )
+
+            return False
+
+        target_message = original_messages[
+            message_index
+        ]
+
+        if target_message.get("role") != "assistant":
+
+            ChatManager.restore_regeneration(
+                snapshot
+            )
+
+            return False
+
+        target_message["content"] = answer
+        target_message["sources"] = sources or []
+        target_message["timestamp"] = datetime.now()
+
+        conversation["updated_at"] = datetime.now()
+
+        # Preserve the topic state of the complete conversation,
+        # because later messages remain in place.
+        conversation["current_topic"] = snapshot.get(
+            "conversation_topic"
+        )
+
+        st.session_state.current_topic = snapshot.get(
+            "session_topic"
+        )
+
+        return True
+
+    # ======================================================
+    # RESTORE REGENERATION
+    # ======================================================
+
+    @staticmethod
+    def restore_regeneration(
+        snapshot
+    ):
+        """
+        Restore the untouched conversation when regeneration fails.
+        """
+
+        if not snapshot:
+
+            return False
+
+        conversation = ChatManager.get_chat(
+            snapshot.get(
+                "chat_id"
+            )
+        )
+
+        if conversation is None:
+
+            return False
+
+        conversation["messages"] = snapshot.get(
+            "messages",
+            []
+        )
+
+        conversation["current_topic"] = snapshot.get(
+            "conversation_topic"
+        )
+
+        st.session_state.current_topic = snapshot.get(
+            "session_topic"
+        )
+
+        return True
+
+    # ======================================================
     # SWITCH CHAT
     # ======================================================
 

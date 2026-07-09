@@ -11,14 +11,10 @@ from embeddings.embedding_model import (
     get_embedding_model
 )
 
-# ==========================================================
-# GET CHROMA COLLECTION
-#
-# Cache the ChromaDB connection so Streamlit
-# does not reopen the database every rerun.
-# ==========================================================
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(
+    show_spinner=False
+)
 def get_chroma_collection():
 
     print(
@@ -29,8 +25,12 @@ def get_chroma_collection():
         path=str(CHROMA_DIR)
     )
 
-    collection = client.get_collection(
-        CHROMA_COLLECTION_NAME
+    # get_or_create_collection also supports first-run and
+    # empty-knowledge-base states.
+    collection = (
+        client.get_or_create_collection(
+            CHROMA_COLLECTION_NAME
+        )
     )
 
     print(
@@ -44,12 +44,10 @@ class ChromaSearcher:
 
     def __init__(self):
 
-        # Reuse cached Chroma collection.
         self.collection = (
             get_chroma_collection()
         )
 
-        # Reuse cached embedding model.
         self.embed_model = (
             get_embedding_model()
         )
@@ -60,41 +58,52 @@ class ChromaSearcher:
         top_k=None
     ):
 
-        # Use default retrieval limit from settings.
         if top_k is None:
+
             top_k = VECTOR_TOP_K
 
-        # Convert user query into an embedding vector.
+        collection_count = (
+            self.collection.count()
+        )
+
+        if collection_count == 0:
+
+            return []
+
         query_embedding = (
             self.embed_model.get_text_embedding(
                 f"query: {query}"
             )
         )
 
-        # Retrieve similar chunks from ChromaDB.
-        result = (
-            self.collection.query(
-                query_embeddings=[
-                    query_embedding
-                ],
-                n_results=top_k
+        result = self.collection.query(
+            query_embeddings=[
+                query_embedding
+            ],
+            n_results=min(
+                top_k,
+                collection_count
             )
         )
 
-        # Extract retrieved chunk texts.
-        documents = result["documents"][0]
+        documents = (
+            result.get("documents")
+            or [[]]
+        )[0]
 
-        # Extract chunk metadata.
-        metadatas = result["metadatas"][0]
+        metadatas = (
+            result.get("metadatas")
+            or [[]]
+        )[0]
 
-        # Extract vector distances.
-        distances = result["distances"][0]
+        distances = (
+            result.get("distances")
+            or [[]]
+        )[0]
 
-        # Store formatted search results.
         output = []
 
-        # Convert Chroma results into standard retrieval format.
-        for doc, meta, dist in zip(
+        for document, metadata, distance in zip(
             documents,
             metadatas,
             distances
@@ -102,16 +111,12 @@ class ChromaSearcher:
 
             output.append(
                 {
-                    # Retrieved document chunk.
-                    "text": doc,
-
-                    # File and chunk information.
-                    "metadata": meta,
-
-                    # Convert distance into similarity score.
-                    "score": 1 - float(dist)
+                    "text": document,
+                    "metadata": metadata,
+                    "score": (
+                        1 - float(distance)
+                    )
                 }
             )
 
-        # Return semantic search results.
         return output

@@ -1,17 +1,21 @@
-import streamlit as st
-import pickle
 import os
-
-from rank_bm25 import BM25Okapi
-from config.settings import BM25_DIR
+import pickle
 import re
 import unicodedata
 
-# Store original chunk records.
-CORPUS_FILE = BM25_DIR / "corpus.pkl"
+import streamlit as st
 
-# Store trained BM25 index.
-INDEX_FILE = BM25_DIR / "bm25_index.pkl"
+from rank_bm25 import BM25Okapi
+from config.settings import BM25_DIR
+
+
+CORPUS_FILE = (
+    BM25_DIR / "corpus.pkl"
+)
+
+INDEX_FILE = (
+    BM25_DIR / "bm25_index.pkl"
+)
 
 
 class BM25Indexer:
@@ -21,7 +25,6 @@ class BM25Indexer:
 
         text = text.lower()
 
-        # Remove accents (José -> Jose)
         text = unicodedata.normalize(
             "NFKD",
             text
@@ -32,86 +35,115 @@ class BM25Indexer:
             "ascii"
         )
 
-        # Keep only letters and numbers
         return re.findall(
             r"[a-z0-9]+",
             text
         )
 
-    def build(self, records):
+    def build(
+        self,
+        records
+    ):
 
-        # Create BM25 storage directory.
+        """
+        BM25 is rebuilt from the current Chroma records.
+
+        This operation is fast compared with document parsing and
+        embedding, so unchanged documents are reused without being
+        embedded again.
+        """
+
         os.makedirs(
             BM25_DIR,
             exist_ok=True
         )
 
-        # Tokenize all document chunks.
-        corpus = [
-            self.tokenize(
-                record["text"]
+        if not records:
+
+            # Keep valid empty resources so retrieval can safely
+            # return no BM25 results after all files are deleted.
+            bm25 = None
+
+        else:
+
+            corpus = [
+                self.tokenize(
+                    record.get(
+                        "text",
+                        ""
+                    )
+                )
+                for record in records
+            ]
+
+            bm25 = BM25Okapi(
+                corpus
             )
-            for record in records
-        ]
 
-        # Build BM25 keyword index.
-        bm25 = BM25Okapi(corpus)
-
-        # Save original chunk records.
         with open(
             CORPUS_FILE,
             "wb"
-        ) as f:
+        ) as file:
+
             pickle.dump(
                 records,
-                f
+                file
             )
 
-        # Save BM25 index to disk.
         with open(
             INDEX_FILE,
             "wb"
-        ) as f:
+        ) as file:
+
             pickle.dump(
                 bm25,
-                f
+                file
             )
 
-        # Display indexing summary.
         print(
-            f"BM25 index created: {len(records)} chunks"
+            f"BM25 index created: "
+            f"{len(records)} chunks"
         )
 
 
-# ==========================================================
-# GET BM25 INDEX
-#
-# Cache the BM25 index so it is loaded only once
-# during the Streamlit session.
-# ==========================================================
-
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(
+    show_spinner=False
+)
 def get_bm25_resources():
 
     print(
         "[BM25] Loading index..."
     )
 
-    # Load BM25 index.
+    if (
+        not INDEX_FILE.exists()
+        or not CORPUS_FILE.exists()
+    ):
+
+        print(
+            "[BM25] Index files not found. "
+            "Using empty resources."
+        )
+
+        return None, []
+
     with open(
         INDEX_FILE,
         "rb"
-    ) as f:
+    ) as file:
 
-        bm25 = pickle.load(f)
+        bm25 = pickle.load(
+            file
+        )
 
-    # Load original records.
     with open(
         CORPUS_FILE,
         "rb"
-    ) as f:
+    ) as file:
 
-        records = pickle.load(f)
+        records = pickle.load(
+            file
+        )
 
     print(
         "[BM25] Ready."
@@ -124,7 +156,6 @@ class BM25Searcher:
 
     def __init__(self):
 
-        # Reuse cached BM25 resources.
         self.bm25, self.records = (
             get_bm25_resources()
         )
@@ -135,42 +166,54 @@ class BM25Searcher:
         top_k=20
     ):
 
-        # Tokenize the search query.
+        if (
+            self.bm25 is None
+            or not self.records
+        ):
+
+            return []
+
         tokens = BM25Indexer.tokenize(
             query
         )
-        # Calculate BM25 relevance scores.
+
+        if not tokens:
+
+            return []
+
         scores = self.bm25.get_scores(
             tokens
         )
 
-        # Rank chunks by score.
         ranked = sorted(
             enumerate(scores),
-            key=lambda x: x[1],
+            key=lambda item: item[1],
             reverse=True
         )
 
-        # Store formatted search results.
         results = []
 
-        # Collect top ranked chunks.
-        for idx, score in ranked[:top_k]:
+        result_limit = min(
+            top_k,
+            len(self.records)
+        )
 
-            record = self.records[idx]
+        for index, score in ranked[
+            :result_limit
+        ]:
+
+            record = self.records[
+                index
+            ]
 
             results.append(
                 {
-                    # Retrieved chunk text.
                     "text": record["text"],
-
-                    # File and chunk metadata.
-                    "metadata": record["metadata"],
-
-                    # BM25 relevance score.
+                    "metadata": (
+                        record["metadata"]
+                    ),
                     "score": float(score)
                 }
             )
 
-        # Return keyword search results.
         return results

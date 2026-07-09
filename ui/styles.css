@@ -428,7 +428,7 @@ header {
     max-width:60%;
     background:#163053;
     /*border-radius:10px;*/
-    padding:14px 18px;
+    padding:7px 18px;
     border:0.5px solid rgba(255,255,255,.08);
 }
 
@@ -464,11 +464,10 @@ header {
 ========================================================== */
 [data-testid="stMarkdownContainer"] p{
 
-    /*margin:0 0 12px;*/
-
+    /*margin:auto;*/
     line-height:1.8;
-
     font-size:15px;
+    margin-bottom: auto;
 }
 
 [data-testid="stMarkdownContainer"] ul{
@@ -617,11 +616,11 @@ header {
 .stButton>button,
 .stDownloadButton>button {
 
-    border-radius: var(--radius-md);
+    /*border-radius: var(--radius-md);
 
     border: 1px solid var(--border);
 
-    background: var(--surface);
+    background: var(--surface);*/
 
     color: var(--text-primary);
 
@@ -963,7 +962,1036 @@ div.stButton {
     background: rgba(255,255,255,.10);
     color: white;
 }
+
+/* ==========================================================
+   CHAT INPUT FORM — CONSOLIDATED
+========================================================== */
+
+/* Shared keyed wrappers. */
+.st-key-chat_input_shell_empty,
+.st-key-chat_input_shell_active {
+    width: 100%;
+    max-width: 1000px;
+
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin-left: auto;
+    margin-right: auto;
+
+    padding: 0 !important;
+
+    z-index: 950;
+}
+
+/* Empty chat: keep input in the welcome area and raise it. */
+.st-key-chat_input_shell_empty {
+    position: relative !important;
+
+    margin-top: -55px !important;
+    margin-bottom: 90px !important;
+}
+
+/* Active chat: keep input fixed near the bottom. */
+.st-key-chat_input_shell_active {
+    position: fixed !important;
+
+    left: calc(50% + 145px) !important;
+    bottom: 34px !important;
+
+    transform: translateX(-50%) !important;
+
+    width: min(
+        1000px,
+        calc(100vw - 340px)
+    ) !important;
+
+    margin: 0 !important;
+}
+
+/* Leave room for the fixed chat input. */
+.main .block-container {
+    padding-bottom: 150px !important;
+}
+
+/* The whole form is the visible chat input box. */
+.st-key-chat_input_shell_empty [data-testid="stForm"],
+.st-key-chat_input_shell_active [data-testid="stForm"] {
+    position: relative !important;
+
+    width: 100% !important;
+    height: 44px !important;
+    min-height: 44px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #242632 !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease,
+        background .18s ease !important;
+}
+
+/* Blue outline around the entire chat box on hover. */
+.st-key-chat_input_shell_empty [data-testid="stForm"]:hover,
+.st-key-chat_input_shell_active [data-testid="stForm"]:hover {
+    border-color: rgba(78, 161, 255, .55) !important;
+    box-shadow:
+        0 0 0 1px rgba(78, 161, 255, .08) !important;
+}
+
+/* Stronger blue outline while typing or using the send button. */
+.st-key-chat_input_shell_empty [data-testid="stForm"]:focus-within,
+.st-key-chat_input_shell_active [data-testid="stForm"]:focus-within {
+    border-color: #4ea1ff !important;
+    box-shadow:
+        0 0 0 1px #4ea1ff,
+        0 0 0 3px rgba(78, 161, 255, .16) !important;
+}
+
+/* Remove Streamlit's extra vertical spacing inside the form. */
+.st-key-chat_input_shell_empty [data-testid="stForm"] [data-testid="stVerticalBlock"],
+.st-key-chat_input_shell_active [data-testid="stForm"] [data-testid="stVerticalBlock"] {
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Text-input wrapper fills the form. */
+.st-key-chat_input_shell_empty [data-testid="stTextInput"],
+.st-key-chat_input_shell_active [data-testid="stTextInput"] {
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+/* Remove additional input wrapper borders. */
+.st-key-chat_input_shell_empty [data-testid="stTextInput"] > div,
+.st-key-chat_input_shell_active [data-testid="stTextInput"] > div {
+    width: 100% !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Main textbox stays transparent because the form owns the box. */
+.st-key-chat_input_shell_empty [data-testid="stTextInput"] input,
+.st-key-chat_input_shell_active [data-testid="stTextInput"] input {
+    width: 100% !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+
+    padding: 0 55px 0 16px !important;
+
+    background: transparent !important;
+    color: #ffffff !important;
+
+    border: none !important;
+    outline: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    line-height: 42px !important;
+    text-align: left !important;
+
+    margin: 0 !important;
+}
+
+/* Prevent a second, smaller outline on the text field itself. */
+.st-key-chat_input_shell_empty [data-testid="stTextInput"] input:hover,
+.st-key-chat_input_shell_active [data-testid="stTextInput"] input:hover,
+.st-key-chat_input_shell_empty [data-testid="stTextInput"] input:focus,
+.st-key-chat_input_shell_active [data-testid="stTextInput"] input:focus,
+.st-key-chat_input_shell_empty [data-testid="stTextInput"] input:focus-visible,
+.st-key-chat_input_shell_active [data-testid="stTextInput"] input:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Placeholder. */
+.st-key-chat_input_shell_empty [data-testid="stTextInput"] input::placeholder,
+.st-key-chat_input_shell_active [data-testid="stTextInput"] input::placeholder {
+    color: #8d98aa !important;
+    opacity: 1 !important;
+
+    font-size: 13px !important;
+    font-weight: 400 !important;
+}
+
+/* Hide Streamlit's Enter-key instruction text. */
+.st-key-chat_input_shell_empty [data-testid="InputInstructions"],
+.st-key-chat_input_shell_active [data-testid="InputInstructions"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Dedicated send-button wrapper inside the textbox. */
+.st-key-chat_input_shell_empty .st-key-chat_send_button,
+.st-key-chat_input_shell_active .st-key-chat_send_button {
+    position: absolute !important;
+
+    top: 5px !important;
+    right: 5px !important;
+    left: auto !important;
+    bottom: auto !important;
+
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    z-index: 50 !important;
+}
+
+/* Remove spacing added by the keyed wrapper. */
+.st-key-chat_input_shell_empty .st-key-chat_send_button > div,
+.st-key-chat_input_shell_active .st-key-chat_send_button > div,
+.st-key-chat_input_shell_empty .st-key-chat_send_button [data-testid="stVerticalBlock"],
+.st-key-chat_input_shell_active .st-key-chat_send_button [data-testid="stVerticalBlock"] {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Submit wrapper. */
+.st-key-chat_send_button [data-testid="stFormSubmitButton"] {
+    width: 34px !important;
+    height: 34px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Actual send button. */
+.st-key-chat_send_button [data-testid="stFormSubmitButton"] button {
+    width: 35px !important;
+    min-width: 35px !important;
+
+    height: 34px !important;
+    min-height: 34px !important;
+
+    margin: -2px !important;
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: transparent !important;
+    color: #ffffff !important;
+
+    border: none !important;
+    border-radius: 23px !important;
+    box-shadow: none !important;
+
+    font-size: 17px !important;
+    line-height: 1 !important;
+}
+
+/* Hover and disabled states. */
+.st-key-chat_send_button [data-testid="stFormSubmitButton"] button:hover {
+    background: rgba(78, 161, 255, .16) !important;
+    color: #66b3ff !important;
+    transform: none !important;
+}
+
+.st-key-chat_send_button [data-testid="stFormSubmitButton"] button:disabled {
+    opacity: .40 !important;
+    cursor: not-allowed !important;
+}
+
+/* Keep the footer below the active input. */
+.chat-footer {
+    bottom: 7px !important;
+}
+
+/* Responsive positioning. */
+@media (max-width: 900px) {
+
+    .st-key-chat_input_shell_active {
+        left: calc(50% + 130px) !important;
+        width: calc(100vw - 300px) !important;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .st-key-chat_input_shell_active {
+        left: 50% !important;
+        width: calc(100vw - 20px) !important;
+        bottom: 34px !important;
+    }
+
+    .st-key-chat_input_shell_empty {
+        margin-top: -35px !important;
+        margin-bottom: 80px !important;
+    }
+}
+
+/* ==========================================================
+   HIDE FORM ENTER HINT
+========================================================== */
+
+.st-key-chat_input_shell_empty [data-testid="InputInstructions"],
+.st-key-chat_input_shell_active [data-testid="InputInstructions"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+
+/* ==========================================================
+   DOCUBOT FIXED BOTTOM MASK
+   Covers the full bottom area during active conversations
+========================================================== */
+
+/* Prevent the Streamlit wrapper for the mask from taking space. */
+.element-container:has(.docubot-bottom-mask),
+[data-testid="stElementContainer"]:has(.docubot-bottom-mask) {
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Full-width bottom cover from sidebar edge to viewport edge. */
+.docubot-bottom-mask {
+    position: fixed;
+
+    left: 290px;
+    right: 10px;
+    bottom: 0;
+
+    height: 115px;
+
+    background: linear-gradient(
+        to bottom,
+        rgba(7, 17, 29, 0) 0%,
+        rgba(7, 17, 29, 0.88) 22%,
+        #07111d 48%,
+        #07111d 100%
+    );
+
+    border: none;
+    box-shadow: none;
+
+    pointer-events: none;
+
+    z-index: 900;
+}
+
+/* Keep the fixed chat input above the mask. */
+.st-key-chat_input_shell_active {
+    z-index: 950 !important;
+}
+
+/* Keep footer text above the mask. */
+.chat-footer {
+    z-index: 999 !important;
+}
+
+/* Match the narrower sidebar breakpoint. */
+@media (max-width: 900px) {
+
+    .docubot-bottom-mask {
+        left: 260px;
+    }
+}
+
+/* Mobile layout has no sidebar offset. */
+@media (max-width: 768px) {
+
+    .docubot-bottom-mask {
+        left: 0;
+        height: 115px;
+    }
+}
+
+/* Keep the actual form above the background cover */
+.st-key-chat_input_shell_active [data-testid="stForm"] {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* ==========================================================
+   HIDE MAIN SCROLLBAR — SCROLL STILL WORKS
+========================================================== */
+
+/*html,
+body,
+.stApp,
+[data-testid="stMain"] {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.stApp::-webkit-scrollbar,
+[data-testid="stMain"]::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+}*/
+
+
+/* ==========================================================
+   COMPACT DOCUBOT SOURCES
+========================================================== */
+
+/* Remove Streamlit's gap between the answer and source section. */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stChatMessageContent"] > [data-testid="stVerticalBlock"],
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stChatMessageContent"] > div > [data-testid="stVerticalBlock"] {
+    gap: 0 !important;
+}
+
+/* Source section becomes a continuation of the assistant bubble. */
+div[class*="st-key-docubot_sources_"] {
+    width: 60% !important;
+    max-width: 60% !important;
+
+    margin-top: 16px !important;
+    padding: 7px 18px 12px !important;
+
+    background: rgba(255,255,255,.06) !important;
+
+    border: none !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+}
+
+/* Keep the source label and file chip close together. */
+div[class*="st-key-docubot_sources_"] [data-testid="stVerticalBlock"] {
+    gap: 3px !important;
+}
+
+div[class*="st-key-docubot_sources_"] [data-testid="stMarkdownContainer"] {
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Small muted heading. */
+.docubot-sources-heading {
+    margin: 0 0 2px !important;
+
+    color: #8d98aa !important;
+
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+/* Each source chip remains compact. */
+div[class*="st-key-docubot_source_chip_"] {
+    width: fit-content !important;
+    max-width: 100% !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+div[class*="st-key-docubot_source_chip_"] [data-testid="stButton"] {
+    width: fit-content !important;
+    max-width: 100% !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+div[class*="st-key-docubot_source_chip_"] [data-testid="stButton"] > button {
+    width: auto !important;
+    max-width: 100% !important;
+
+    min-height: 29px !important;
+
+    margin: 0 !important;
+    padding: 4px 0 !important;
+
+    justify-content: flex-start !important;
+
+    background: transparent !important;
+    color: #9cc9ff !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+
+    transition: color .16s ease !important;
+}
+
+/* Keep long filenames on one clean line. */
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button p {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+/* Subtle source hover. */
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:hover {
+    background: #163b6d !important;
+    color: #ffffff !important;
+
+    border-color: #4ea1ff !important;
+    box-shadow: none !important;
+
+    transform: none !important;
+}
+
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:focus,
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:active {
+    background: #163b6d !important;
+    color: #ffffff !important;
+
+    border-color: #4ea1ff !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Responsive source width. */
+@media (max-width: 768px) {
+
+    div[class*="st-key-docubot_sources_"] {
+        width: 90% !important;
+        max-width: 90% !important;
+    }
+}
+
+/* ==========================================================
+   SOURCE BUTTON — FORCE BLUE STATES
+========================================================== */
+
+div[class*="st-key-docubot_source_chip_"] button,
+div[class*="st-key-docubot_source_chip_"] button[kind="secondary"],
+div[class*="st-key-docubot_source_chip_"] button[kind="tertiary"],
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stBaseButton-secondary"],
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stBaseButton-tertiary"] {
+
+    background: rgba(78, 161, 255, .07) !important;
+    background-color: rgba(78, 161, 255, .07) !important;
+
+    color: #9cc9ff !important;
+    -webkit-text-fill-color: #9cc9ff !important;
+
+    border: 1px solid rgba(78, 161, 255, .22) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Hover, focus, click */
+div[class*="st-key-docubot_source_chip_"] button:hover,
+div[class*="st-key-docubot_source_chip_"] button:focus,
+div[class*="st-key-docubot_source_chip_"] button:focus-visible,
+div[class*="st-key-docubot_source_chip_"] button:active {
+
+    background: #163b6d !important;
+    background-color: #163b6d !important;
+    background-image: none !important;
+
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+
+    border: 1px solid #4ea1ff !important;
+
+    outline: none !important;
+    box-shadow: none !important;
+
+    transform: none !important;
+}
+
+/* ==========================================================
+   SOURCE BUTTON — RESTORE COMPACT BOX STYLE
+========================================================== */
+
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button {
+    width: auto !important;
+    max-width: 100% !important;
+
+    min-height: 32px !important;
+
+    margin: 0 !important;
+    padding: 5px 11px !important;
+
+    justify-content: flex-start !important;
+
+    background: #172a46 !important;
+    background-color: #172a46 !important;
+    background-image: none !important;
+
+    color: #9cc9ff !important;
+    -webkit-text-fill-color: #9cc9ff !important;
+
+    border: 1px solid rgba(78, 161, 255, .35) !important;
+    border-radius: 7px !important;
+
+    outline: none !important;
+    box-shadow: none !important;
+
+    font-size: 12px !important;
+    font-weight: 500 !important;
+
+    text-decoration: none !important;
+    transform: none !important;
+}
+
+/* Dark-blue hover */
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:hover {
+    background: #1d4f88 !important;
+    background-color: #1d4f88 !important;
+
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+
+    border-color: #4ea1ff !important;
+
+    text-decoration: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Prevent red focus/click state */
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:focus,
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:focus-visible,
+div[class*="st-key-docubot_source_chip_"]
+[data-testid="stButton"] > button:active {
+    background: #1d4f88 !important;
+    background-color: #1d4f88 !important;
+
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+
+    border-color: #4ea1ff !important;
+
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* ==========================================================
+   RESPONSE ACTIONS — COPY + REGENERATE
+========================================================== */
+
+/* Compact shared row below the source section. */
+div[class*="st-key-docubot_actions_"] {
+    width: 205px !important;
+    max-width: 205px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    margin: 2px 0 4px !important;
+    padding: 0 0 0 5px !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Force Streamlit's column row to remain horizontal. */
+div[class*="st-key-docubot_actions_"]
+[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+
+    width: 198px !important;
+    max-width: 198px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    gap: 4px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Fixed column widths prevent wrapping and large spacing. */
+div[class*="st-key-docubot_actions_"]
+[data-testid="stHorizontalBlock"]
+> [data-testid="stColumn"]:nth-child(1) {
+    flex: 0 0 74px !important;
+
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+}
+
+div[class*="st-key-docubot_actions_"]
+[data-testid="stHorizontalBlock"]
+> [data-testid="stColumn"]:nth-child(2) {
+    flex: 0 0 120px !important;
+
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+}
+
+/* Remove internal column spacing. */
+div[class*="st-key-docubot_actions_"]
+[data-testid="stColumn"],
+div[class*="st-key-docubot_actions_"]
+[data-testid="stColumn"] > div,
+div[class*="st-key-docubot_actions_"]
+[data-testid="stColumn"] [data-testid="stVerticalBlock"] {
+    min-height: 28px !important;
+    height: 28px !important;
+
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* ----------------------------------------------------------
+   COPY
+---------------------------------------------------------- */
+
+div[class*="st-key-docubot_copy_"] {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+div[class*="st-key-docubot_copy_"] > div,
+div[class*="st-key-docubot_copy_"] [data-testid="stElementContainer"],
+div[class*="st-key-docubot_copy_"] [data-testid="stCustomComponentV1"] {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+div[class*="st-key-docubot_copy_"] iframe {
+    display: block !important;
+
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+}
+
+/* ----------------------------------------------------------
+   REGENERATE
+---------------------------------------------------------- */
+
+div[class*="st-key-docubot_regenerate_"] {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+div[class*="st-key-docubot_regenerate_"] > div,
+div[class*="st-key-docubot_regenerate_"] [data-testid="stVerticalBlock"],
+div[class*="st-key-docubot_regenerate_"] [data-testid="stElementContainer"],
+div[class*="st-key-docubot_regenerate_"] [data-testid="stButton"] {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+
+    min-height: 28px !important;
+    height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Regenerate: text-only action, matching Copy. */
+div[class*="st-key-docubot_regenerate_"] button,
+div[class*="st-key-docubot_regenerate_"] button[kind],
+div[class*="st-key-docubot_regenerate_"] [data-testid^="stBaseButton"] {
+    width: auto !important;
+    min-width: 0 !important;
+
+    height: 26px !important;
+    min-height: 26px !important;
+
+    margin: 0 !important;
+    padding: 3px 8px !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    color: #8d98aa !important;
+    -webkit-text-fill-color: #8d98aa !important;
+
+    border: none !important;
+    border-color: transparent !important;
+    border-radius: 6px !important;
+
+    outline: none !important;
+    box-shadow: none !important;
+
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+    transform: none !important;
+
+    transition: color .16s ease !important;
+}
+
+/* Keep every interaction state transparent. */
+div[class*="st-key-docubot_regenerate_"] button:hover,
+div[class*="st-key-docubot_regenerate_"] button:focus,
+div[class*="st-key-docubot_regenerate_"] button:focus-visible,
+div[class*="st-key-docubot_regenerate_"] button:active,
+div[class*="st-key-docubot_regenerate_"] [data-testid^="stBaseButton"]:hover,
+div[class*="st-key-docubot_regenerate_"] [data-testid^="stBaseButton"]:focus,
+div[class*="st-key-docubot_regenerate_"] [data-testid^="stBaseButton"]:focus-visible,
+div[class*="st-key-docubot_regenerate_"] [data-testid^="stBaseButton"]:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    color: #9cc9ff !important;
+    -webkit-text-fill-color: #9cc9ff !important;
+
+    border: none !important;
+    border-color: transparent !important;
+
+    outline: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Remove backgrounds inherited by the button label. */
+div[class*="st-key-docubot_regenerate_"] button p,
+div[class*="st-key-docubot_regenerate_"] button span {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    color: inherit !important;
+
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+}
+
+/* Disabled state remains text-only. */
+div[class*="st-key-docubot_regenerate_"] button:disabled,
+div[class*="st-key-docubot_regenerate_"] [data-testid^="stBaseButton"]:disabled {
+    opacity: .40 !important;
+    cursor: not-allowed !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+
+/* ==========================================================
+   REGENERATE — REMOVE ASSISTANT BUBBLE INHERITANCE
+========================================================== */
+
+/*
+The global assistant selector also reaches the MarkdownContainer
+inside Streamlit buttons. Reset it here so Regenerate does not
+inherit the answer bubble background and padding.
+*/
+div[class*="st-key-docubot_regenerate_"]
+button [data-testid="stMarkdownContainer"],
+div[class*="st-key-docubot_regenerate_"]
+[data-testid^="stBaseButton"] [data-testid="stMarkdownContainer"] {
+    width: auto !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Remove any inherited background from the button's inner wrappers. */
+div[class*="st-key-docubot_regenerate_"] button > div,
+div[class*="st-key-docubot_regenerate_"] button > span,
+div[class*="st-key-docubot_regenerate_"] button p {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    border: none !important;
+    box-shadow: none !important;
+}
+
+
+/* ==========================================================
+   RESPONSE ACTIONS — NO-SOURCE / NOT-FOUND SPACING
+========================================================== */
+
+/*
+When an assistant response has no source section, keep the
+Copy and Regenerate row visually separate from the answer box.
+*/
+[data-testid="stChatMessage"]:has(
+    [aria-label="Chat message from assistant"]
+):not(:has(div[class*="st-key-docubot_sources_"]))
+div[class*="st-key-docubot_actions_"] {
+    margin-top: 12px !important;
+}
+
+/*
+Keep the action row aligned with the answer text padding,
+whether a source exists or not.
+*/
+div[class*="st-key-docubot_actions_"] {
+    padding-left: 18px !important;
+}
+
+
+/* ==========================================================
+   REGENERATION — HIDE STALE SOURCE AND ACTIONS
+========================================================== */
+
+/*
+Streamlit can temporarily keep the previous widgets visible in a
+faded state while the regenerated answer is still processing.
+Hide those old source/action containers whenever the same assistant
+message contains the loading bubble.
+*/
+[data-testid="stChatMessage"]:has(.loading-bubble)
+div[class*="st-key-docubot_sources_"],
+[data-testid="stChatMessage"]:has(.loading-bubble)
+div[class*="st-key-docubot_actions_"],
+[data-testid="stChatMessage"]:has(.loading-bubble)
+div[class*="st-key-docubot_copy_"],
+[data-testid="stChatMessage"]:has(.loading-bubble)
+div[class*="st-key-docubot_regenerate_"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
 /* ==========================================================
    END OF FILE
 ========================================================== */
-

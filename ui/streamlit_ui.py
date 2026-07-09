@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import base64
 from pathlib import Path
 #from urllib.parse import quote
@@ -69,22 +70,25 @@ class StreamlitUI:
     @staticmethod
     def initialize_session():
 
-        # Reserved for future UI state
-        # Uncomment when implementing features such as:
-        #   • Sidebar search
-        #   • Theme switch
-        #   • Sidebar collapse
-
-        #defaults = {
-        #    "sidebar_search": "",
-        #    "theme": "dark"
-        #}
+        # UI state for controlled chat submission.
         #
-        #for key, value in defaults.items():
-        #    if key not in st.session_state:
-        #        st.session_state[key] = value
+        # The textbox remains editable while DocuBot
+        # is generating an answer, but the send action
+        # is blocked until processing is finished.
+        defaults = {
+            "is_processing": False,
+            "pending_question": None,
+            "chat_draft": "",
+            "clear_chat_draft": False,
+            "regenerate_message_index": None,
+            "regenerate_chat_id": None
+        }
 
-        pass
+        for key, value in defaults.items():
+
+            if key not in st.session_state:
+
+                st.session_state[key] = value
 
     # =====================================================
     # SIDEBAR
@@ -280,6 +284,18 @@ class StreamlitUI:
         if not messages:
             return
 
+        active_regeneration_index = None
+
+        if (
+            st.session_state.is_processing
+            and st.session_state.regenerate_chat_id
+            == ChatManager.current_chat_id()
+        ):
+
+            active_regeneration_index = (
+                st.session_state.regenerate_message_index
+            )
+
         for message_index, message in enumerate(messages):
 
             role = message.get(
@@ -310,10 +326,40 @@ class StreamlitUI:
 
                 if role == "assistant":
 
-                    st.markdown(content)
+                    is_regenerating_this_response = (
+                        message_index
+                        == active_regeneration_index
+                    )
 
-                    if sources:
-                        StreamlitUI.render_sources(sources, message_index)
+                    if is_regenerating_this_response:
+
+                        st.markdown(
+                            """
+                            <div class="loading-bubble">
+                                <div class="loading-spinner"></div>
+                                <div>Searching knowledge base...</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    else:
+
+                        st.markdown(content)
+
+                        if sources:
+
+                            StreamlitUI.render_sources(
+                                sources,
+                                message_index
+                            )
+
+                        # Keep response actions on one horizontal row.
+                        StreamlitUI.render_response_actions(
+                            content=content,
+                            message_index=message_index,
+                            allow_regenerate=True
+                        )
 
                 else:
 
@@ -369,6 +415,310 @@ class StreamlitUI:
 #        return html
 
     # =====================================================
+    # RESPONSE ACTIONS
+    # =====================================================
+
+    @staticmethod
+    def render_response_actions(
+        content,
+        message_index,
+        allow_regenerate=False
+    ):
+        """
+        Render Copy and Regenerate on one horizontal row.
+
+        Real Streamlit columns are used so the actions cannot
+        fall into a vertical stack.
+        """
+
+        with st.container(
+            key=f"docubot_actions_{message_index}"
+        ):
+
+            if allow_regenerate:
+
+                copy_column, regenerate_column = st.columns(
+                    [74, 108],
+                    gap="small"
+                )
+
+                with copy_column:
+
+                    StreamlitUI.render_copy_action(
+                        content,
+                        message_index
+                    )
+
+                with regenerate_column:
+
+                    StreamlitUI.render_regenerate_action(
+                        message_index
+                    )
+
+            else:
+
+                StreamlitUI.render_copy_action(
+                    content,
+                    message_index
+                )
+
+    # =====================================================
+    # COPY RESPONSE
+    # =====================================================
+
+    @staticmethod
+    def render_copy_action(
+        content,
+        message_index=0
+    ):
+        """
+        Render a client-side Copy button for an assistant answer.
+
+        Only the answer text is copied. Sources and file paths
+        are not included. Copying does not rerun the Streamlit app.
+        """
+
+        if not content:
+            return
+
+        message_key = (
+            "live"
+            if message_index < 0
+            else str(message_index)
+        )
+
+        encoded_content = base64.b64encode(
+            content.encode("utf-8")
+        ).decode("ascii")
+
+        component_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                html,
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    background: transparent;
+                    overflow: hidden;
+                    font-family:
+                        Inter,
+                        system-ui,
+                        -apple-system,
+                        BlinkMacSystemFont,
+                        "Segoe UI",
+                        sans-serif;
+                }}
+
+                .copy-button {{
+                    height: 26px;
+                    padding: 3px 8px;
+
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+
+                    background: transparent;
+                    color: #8d98aa;
+
+                    border: 1px solid transparent;
+                    border-radius: 6px;
+
+                    font-size: 11px;
+                    font-weight: 500;
+                    line-height: 1;
+
+                    cursor: pointer;
+
+                    transition:
+                        color .16s ease,
+                        background .16s ease,
+                        border-color .16s ease;
+                }}
+
+                .copy-button:hover {{
+                    background: rgba(78, 161, 255, .10);
+                    color: #9cc9ff;
+                    border-color: rgba(78, 161, 255, .20);
+                }}
+
+                .copy-button:focus,
+                .copy-button:active {{
+                    outline: none;
+                    box-shadow: none;
+                }}
+
+                .copy-button.copied {{
+                    color: #9cc9ff;
+                }}
+            </style>
+        </head>
+
+        <body>
+            <button
+                id="copy-button"
+                class="copy-button"
+                type="button"
+                aria-label="Copy response"
+                title="Copy response"
+            >
+                <span id="copy-icon">⧉</span>
+                <span id="copy-label">Copy</span>
+            </button>
+
+            <script>
+                const encodedContent = "{encoded_content}";
+
+                const decodedBytes = Uint8Array.from(
+                    atob(encodedContent),
+                    character => character.charCodeAt(0)
+                );
+
+                const answerText = new TextDecoder(
+                    "utf-8"
+                ).decode(decodedBytes);
+
+                const copyButton = document.getElementById(
+                    "copy-button"
+                );
+
+                const copyIcon = document.getElementById(
+                    "copy-icon"
+                );
+
+                const copyLabel = document.getElementById(
+                    "copy-label"
+                );
+
+                async function copyWithFallback(text) {{
+                    try {{
+                        await navigator.clipboard.writeText(text);
+                        return true;
+                    }}
+                    catch (clipboardError) {{
+                        const textArea = document.createElement(
+                            "textarea"
+                        );
+
+                        textArea.value = text;
+                        textArea.setAttribute(
+                            "readonly",
+                            ""
+                        );
+
+                        textArea.style.position = "fixed";
+                        textArea.style.opacity = "0";
+                        textArea.style.pointerEvents = "none";
+
+                        document.body.appendChild(textArea);
+
+                        textArea.focus();
+                        textArea.select();
+
+                        const copied = document.execCommand(
+                            "copy"
+                        );
+
+                        document.body.removeChild(textArea);
+
+                        return copied;
+                    }}
+                }}
+
+                copyButton.addEventListener(
+                    "click",
+                    async () => {{
+                        const copied = await copyWithFallback(
+                            answerText
+                        );
+
+                        if (!copied) {{
+                            copyLabel.textContent = "Copy failed";
+                            return;
+                        }}
+
+                        copyButton.classList.add("copied");
+                        copyIcon.textContent = "✓";
+                        copyLabel.textContent = "Copied";
+
+                        window.setTimeout(
+                            () => {{
+                                copyButton.classList.remove(
+                                    "copied"
+                                );
+
+                                copyIcon.textContent = "⧉";
+                                copyLabel.textContent = "Copy";
+                            }},
+                            1400
+                        );
+                    }}
+                );
+            </script>
+        </body>
+        </html>
+        """
+
+        with st.container(
+            key=f"docubot_copy_{message_key}"
+        ):
+
+            components.html(
+                component_html,
+                height=28,
+                scrolling=False
+            )
+
+    # =====================================================
+    # REGENERATE RESPONSE
+    # =====================================================
+
+    @staticmethod
+    def render_regenerate_action(
+        message_index
+    ):
+        """
+        Render a Regenerate button for the latest assistant reply.
+
+        Only the selected assistant reply is regenerated in place.
+        Other earlier and later conversation messages remain unchanged.
+        """
+
+        with st.container(
+            key=f"docubot_regenerate_{message_index}"
+        ):
+
+            regenerate_clicked = st.button(
+                "↻ Regenerate",
+                key=f"regenerate_button_{message_index}",
+                disabled=st.session_state.is_processing
+            )
+
+        if not regenerate_clicked:
+            return
+
+        question = ChatManager.get_regeneration_question(
+            message_index
+        )
+
+        if not question:
+            return
+
+        st.session_state.is_processing = True
+        st.session_state.pending_question = question
+        st.session_state.regenerate_message_index = (
+            message_index
+        )
+        st.session_state.regenerate_chat_id = (
+            ChatManager.current_chat_id()
+        )
+        st.session_state.clear_chat_draft = False
+
+        StreamlitUI.rerun()
+
+    # =====================================================
     # SOURCES
     # =====================================================
 
@@ -379,35 +729,85 @@ class StreamlitUI:
             return
 
         unique_sources = []
-        seen = set()
+        seen_paths = set()
 
         for source in sources:
 
-            key = source["path"]
+            source_path = source.get("path")
 
-            if key not in seen:
-                seen.add(key)
-                unique_sources.append(source)
+            if not source_path:
+                continue
 
-        #st.markdown(
-        #    '<div class="docubot-sources">',
-        #    unsafe_allow_html=True
-        #)
+            if source_path in seen_paths:
+                continue
 
-        st.markdown("#### 📄 Source")
+            seen_paths.add(source_path)
 
-        for i, source in enumerate(unique_sources):
+            source_name = (
+                source.get("name")
+                or Path(source_path).name
+                or "Source file"
+            )
 
-            if st.button(
+            unique_sources.append({
+                "name": source_name,
+                "path": source_path
+            })
+
+        if not unique_sources:
+            return
+
+        source_count = len(unique_sources)
+
+        source_label = (
+            "Source"
+            if source_count == 1
+            else f"Sources · {source_count}"
+        )
+
+        message_key = (
+            "live"
+            if message_index < 0
+            else str(message_index)
+        )
+
+        sources_container = st.container(
+            key=f"docubot_sources_{message_key}"
+        )
+
+        sources_container.markdown(
+                f"""
+                <div class="docubot-sources-heading">
+                    {source_label}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        for source_index, source in enumerate(
+                unique_sources
+        ):
+
+            source_chip = sources_container.container(
+                    key=(
+                        "docubot_source_chip_"
+                        f"{message_key}_{source_index}"
+                    )
+                )
+
+            source_clicked = source_chip.button(
                 f"📄 {source['name']}",
-                key=f"source_{message_index}_{i}"
-            ):
-                os.startfile(source["path"])
+                key=(
+                    "source_button_"
+                    f"{message_key}_{source_index}"
+                )
+            )
 
-        #st.markdown(
-        #    "</div>",
-        #    unsafe_allow_html=True
-        #)
+            if source_clicked:
+
+                            os.startfile(
+                                source["path"]
+                            )
 
     # =======================
     # ==============================
