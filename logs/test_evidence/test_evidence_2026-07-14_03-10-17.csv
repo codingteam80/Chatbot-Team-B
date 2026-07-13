@@ -1,0 +1,5 @@
+﻿run_id,test_case_id,category,description,question,expected_result,actual_result,status,run_number,total_runs,started_at,finished_at,duration_seconds,accepted_chunks,final_chunks,fallback_used,sources,error,evidence_log
+QA-20260714-031042-FF2C15,Q-016,Answer Quality Regression,Verify Tagalog compound answer for Philippine Independence Day.,Kailan ipinagdiriwang ang Araw ng Kalayaan ng Pilipinas at anong pangyayari ang ginugunita nito?,The answer states June 12 and the 1898 declaration of Philippine independence.,"* June 12
+- Pagpapakilala ng Philippine flag
+- Pagbasa ng Acta de la Proclamacion de la Independencia del Pueblo Filipino
+- Paglakbay ni Emilio Aguinaldo patungo sa Pamitinan Cave",FAIL,1,4,2026-07-14 03:10:42,2026-07-14 03:11:05,23.4606,1,1,False,"[{""name"": ""Independence Day (Philippines) - Wikipedia.pdf"", ""path"": ""C:\\user_dev\\company-chatbot\\data\\all_documents\\Independence Day (Philippines) - Wikipedia.pdf""}]",,C:\user_dev\company-chatbot\logs\test_evidence\test_evidence_2026-07-14_03-10-17.log

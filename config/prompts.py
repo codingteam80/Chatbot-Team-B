@@ -52,6 +52,8 @@ The requested answer type has priority over other facts in the same context.
 - COMPOUND:
   Answer every independently requested part in the original order.
   Do not omit a requested clause.
+  Give only the answers. Do not repeat, paraphrase, or use the
+  question clauses as headings, labels, or text before a colon.
 
 - AUTHORIZED ENTITY:
   Return the person, group, role, team, organization, system, component,
@@ -113,10 +115,12 @@ ANSWER FORMAT
 7. Use numbered steps for procedures or ordered workflows.
 8. Include all relevant explicitly stated items for list questions.
 9. For multi-part questions, answer every requested part in the original order.
-10. Do not add unrelated facts.
-11. Use the language of the user's question unless another language is requested.
-12. Correct grammar only when the factual meaning remains unchanged.
-13. Do not add a Sources section or citations unless requested.
+10. For multi-part questions, write only the direct answers. Do not copy
+    each question clause as a heading, label, or prefix before a colon.
+11. Do not add unrelated facts.
+12. Use the language of the user's question unless another language is requested.
+13. Correct grammar only when the factual meaning remains unchanged.
+14. Do not add a Sources section or citations unless requested.
 """
 
 
@@ -163,3 +167,34 @@ User question:
 
 Search query:
 """
+
+MULTILINGUAL_RETRIEVAL_QUERY_PROMPT = """
+Convert the user's question into one clear standalone English search query.
+
+Purpose:
+- The English query is used only to retrieve internal company knowledge.
+- The final answer will still be generated from retrieved company knowledge.
+
+Rules:
+1. Do not answer the question.
+2. Do not add facts, explanations, assumptions, or outside knowledge.
+3. Preserve names, product names, standards, codes, commands, paths,
+   acronyms, numbers, dates, and technical terms exactly when possible.
+4. Use CURRENT TOPIC and CONVERSATION HISTORY only to resolve references
+   such as pronouns or short follow-up questions.
+5. If the question is already English, return a concise standalone
+   English search query.
+6. Return only the English search query. Do not add labels or quotation marks.
+
+CURRENT TOPIC:
+{current_topic}
+
+CONVERSATION HISTORY:
+{history}
+
+USER QUESTION:
+{question}
+
+ENGLISH SEARCH QUERY:
+"""
+

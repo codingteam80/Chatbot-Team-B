@@ -8,14 +8,21 @@ from config.prompts import (
     SYSTEM_PROMPT,
     ANSWER_TEMPLATE,
     NO_RESULT_MESSAGE,
-    REWRITE_QUERY_PROMPT
+    REWRITE_QUERY_PROMPT,
+    MULTILINGUAL_RETRIEVAL_QUERY_PROMPT
 )
 
-from config.settings import DEBUG_MODE
+from config.settings import (
+    DEBUG_MODE,
+    ENABLE_MULTILINGUAL_RETRIEVAL,
+    MULTILINGUAL_RETRY_ON_EMPTY,
+    MULTILINGUAL_QUERY_MAX_CHARS
+)
 from chat.chat_manager import ChatManager
 from chat.query_normalizer import QueryNormalizer
 from chat.conversation_resolver import ConversationResolver
 from chat.query_enricher import QueryEnricher
+from qa.evidence_logger import evidence_logger
 
 
 class AnswerService:
@@ -44,6 +51,10 @@ class AnswerService:
         self.query_enricher = (
             QueryEnricher()
         )
+
+        # Cache canonical English retrieval queries so repeated
+        # QA runs do not require another translation call.
+        self._multilingual_query_cache = {}
 
     def _build_chat_history(self):
 
@@ -1477,28 +1488,31 @@ Rules:
     ):
 
         """
-        Remove cases where the LLM repeats the user's question
-        as the first line of the answer.
+        Remove exact or partial restatements of the user's question
+        from the beginning of the answer.
+
+        This works across languages because it compares Unicode words
+        instead of relying on English or Tagalog keywords.
         """
 
         if not answer or not question:
 
             return answer
 
-        question_clean = question.strip()
+        def normalize_text(
+            text: str
+        ):
 
-        if not question_clean:
-
-            return answer
-
-        def normalize_line(text):
-
-            text = text.strip().lower()
+            text = str(
+                text
+                or ""
+            ).strip().lower()
 
             text = re.sub(
                 r"[^\w\s]",
-                "",
-                text
+                " ",
+                text,
+                flags=re.UNICODE
             )
 
             text = re.sub(
@@ -1509,36 +1523,163 @@ Rules:
 
             return text
 
-        normalized_question = normalize_line(
-            question_clean
+        def get_tokens(
+            text: str
+        ):
+
+            return [
+                token
+                for token in normalize_text(
+                    text
+                ).split()
+                if token
+            ]
+
+        normalized_question = normalize_text(
+            question
         )
+
+        question_tokens = set(
+            get_tokens(
+                question
+            )
+        )
+
+        if not normalized_question:
+
+            return answer
 
         lines = answer.splitlines()
 
         cleaned_lines = []
 
-        for index, line in enumerate(lines):
+        # Only inspect the first few non-empty lines.
+        # This prevents legitimate later content from being changed.
+        inspected_non_empty_lines = 0
 
-            normalized_line = normalize_line(
+        for line in lines:
+
+            stripped_line = line.strip()
+
+            if not stripped_line:
+
+                cleaned_lines.append(
+                    line
+                )
+
+                continue
+
+            inspected_non_empty_lines += 1
+
+            if inspected_non_empty_lines > 4:
+
+                cleaned_lines.append(
+                    line
+                )
+
+                continue
+
+            # Preserve the original Markdown marker when a
+            # repeated question prefix has a direct answer after ":".
+            marker_match = re.match(
+                r"^(\s*(?:[-*+]|\d+[.)])\s+)(.*)$",
                 line
             )
 
-            # Remove only if the repeated question appears
-            # at the beginning of the answer.
+            if marker_match:
+
+                marker = marker_match.group(1)
+                content = marker_match.group(2).strip()
+
+            else:
+
+                marker = ""
+                content = stripped_line
+
+            normalized_content = normalize_text(
+                content
+            )
+
+            # Exact repeated question.
             if (
-                index <= 1
-                and normalized_line == normalized_question
+                normalized_content
+                == normalized_question
             ):
 
                 continue
+
+            # Detect:
+            # "<question wording>: <direct answer>"
+            # or:
+            # "<question wording>:"
+            if ":" in content:
+
+                prefix, suffix = content.split(
+                    ":",
+                    1
+                )
+
+                prefix_tokens = get_tokens(
+                    prefix
+                )
+
+                prefix_token_set = set(
+                    prefix_tokens
+                )
+
+                overlap_ratio = 0.0
+
+                if prefix_token_set:
+
+                    overlap_ratio = (
+                        len(
+                            prefix_token_set.intersection(
+                                question_tokens
+                            )
+                        )
+                        / len(
+                            prefix_token_set
+                        )
+                    )
+
+                # Conservative rule:
+                # - at least four words;
+                # - nearly all prefix words came from the question.
+                is_question_restatement = (
+                    len(prefix_tokens) >= 4
+                    and overlap_ratio >= 0.80
+                )
+
+                if is_question_restatement:
+
+                    direct_answer = suffix.strip()
+
+                    # Heading-like repetition with no answer.
+                    if not direct_answer:
+
+                        continue
+
+                    # Keep only the direct answer after the colon.
+                    cleaned_lines.append(
+                        f"{marker}{direct_answer}"
+                        if marker
+                        else direct_answer
+                    )
+
+                    continue
 
             cleaned_lines.append(
                 line
             )
 
-        return "\n".join(
+        cleaned_answer = "\n".join(
             cleaned_lines
         ).strip()
+
+        return (
+            cleaned_answer
+            or answer.strip()
+        )
 
     def _is_multi_answer_question(
         self,
@@ -1838,6 +1979,314 @@ Instructions:
 
         return topic
 
+    def _clean_retrieval_query(
+        self,
+        query: str
+    ):
+
+        """
+        Clean a generated retrieval query without changing meaning.
+        """
+
+        if not query:
+
+            return ""
+
+        query = str(
+            query
+        ).strip()
+
+        query = re.sub(
+            r"(?im)^\s*(?:english\s+search\s+query|search\s+query|query)\s*:\s*",
+            "",
+            query,
+            count=1
+        )
+
+        query = query.strip(
+            " `\"'"
+        )
+
+        query = re.sub(
+            r"\s+",
+            " ",
+            query
+        ).strip()
+
+        return query[
+            :MULTILINGUAL_QUERY_MAX_CHARS
+        ].strip()
+
+    def _is_clearly_english_query(
+        self,
+        question: str
+    ):
+
+        """
+        Detect questions that are clearly English.
+
+        Ambiguous or non-English text is allowed to use the
+        multilingual English-query adapter.
+        """
+
+        if not question:
+
+            return True
+
+        clean = re.sub(
+            r"\s+",
+            " ",
+            question.lower().strip()
+        )
+
+        # Any letter outside the Latin script is treated as
+        # potentially non-English.
+        for character in clean:
+
+            if not character.isalpha():
+
+                continue
+
+            try:
+
+                import unicodedata
+
+                character_name = unicodedata.name(
+                    character
+                )
+
+            except Exception:
+
+                return False
+
+            if (
+                "LATIN" not in character_name
+                and "COMBINING" not in character_name
+            ):
+
+                return False
+
+        english_starters = (
+            "who",
+            "what",
+            "when",
+            "where",
+            "why",
+            "how",
+            "which",
+            "is",
+            "are",
+            "was",
+            "were",
+            "do",
+            "does",
+            "did",
+            "can",
+            "could",
+            "would",
+            "should",
+            "will",
+            "tell",
+            "explain",
+            "describe",
+            "define",
+            "list",
+            "name",
+            "give",
+            "show",
+            "please",
+        )
+
+        first_word_match = re.match(
+            r"^[a-z]+",
+            clean
+        )
+
+        if (
+            first_word_match
+            and first_word_match.group(0)
+            in english_starters
+        ):
+
+            return True
+
+        english_function_words = {
+            "the",
+            "of",
+            "and",
+            "or",
+            "for",
+            "from",
+            "with",
+            "about",
+            "into",
+            "during",
+            "before",
+            "after",
+            "through",
+            "between",
+            "against",
+            "this",
+            "that",
+            "these",
+            "those",
+            "his",
+            "her",
+            "their",
+            "its",
+        }
+
+        words = set(
+            re.findall(
+                r"[a-z]+",
+                clean
+            )
+        )
+
+        return bool(
+            words.intersection(
+                english_function_words
+            )
+        )
+
+    def _build_english_retrieval_query(
+        self,
+        question: str,
+        history: str = "",
+        current_topic: str = ""
+    ):
+
+        """
+        Build a standalone English retrieval query for a
+        non-English or ambiguous-language question.
+
+        This method does not answer the question.
+        """
+
+        if (
+            not ENABLE_MULTILINGUAL_RETRIEVAL
+            or not question
+        ):
+
+            return ""
+
+        cache_key = (
+            str(
+                current_topic
+                or ""
+            ).strip().lower(),
+            str(
+                history
+                or ""
+            ).strip().lower(),
+            str(
+                question
+                or ""
+            ).strip().lower(),
+        )
+
+        cached = self._multilingual_query_cache.get(
+            cache_key
+        )
+
+        if cached is not None:
+
+            return cached
+
+        prompt = (
+            MULTILINGUAL_RETRIEVAL_QUERY_PROMPT.format(
+                current_topic=(
+                    current_topic
+                    or "None"
+                ),
+                history=(
+                    history
+                    or "None"
+                ),
+                question=question
+            )
+        )
+
+        try:
+
+            english_query = self.llm.generate(
+                prompt
+            )
+
+            english_query = self._clean_retrieval_query(
+                english_query
+            )
+
+        except Exception as error:
+
+            evidence_logger.record_error(
+                location=(
+                    "AnswerService."
+                    "_build_english_retrieval_query"
+                ),
+                error=error,
+                details={
+                    "question":
+                        question,
+                }
+            )
+
+            english_query = ""
+
+        self._multilingual_query_cache[
+            cache_key
+        ] = english_query
+
+        return english_query
+
+    def _combine_retrieval_queries(
+        self,
+        original_query: str,
+        english_query: str
+    ):
+
+        """
+        Combine original-language and English retrieval queries
+        while avoiding exact duplicates.
+        """
+
+        queries = []
+
+        for query in (
+            original_query,
+            english_query,
+        ):
+
+            clean_query = re.sub(
+                r"\s+",
+                " ",
+                str(
+                    query
+                    or ""
+                )
+            ).strip()
+
+            if not clean_query:
+
+                continue
+
+            if any(
+                clean_query.lower()
+                == existing.lower()
+                for existing in queries
+            ):
+
+                continue
+
+            queries.append(
+                clean_query
+            )
+
+        return " | ".join(
+            queries
+        )
+
+
     def ask(
         self,
         question
@@ -1890,11 +2339,84 @@ Instructions:
         # ======================================
         # Enrich Question for Retrieval Only
         # ======================================
-        search_question = (
+        original_search_question = (
             self.query_enricher.enrich(
                 resolved_question,
                 intent_question=question
             )
+        )
+
+        english_retrieval_query = ""
+
+        if (
+            ENABLE_MULTILINGUAL_RETRIEVAL
+            and not self._is_clearly_english_query(
+                question
+            )
+        ):
+
+            english_retrieval_query = (
+                self._build_english_retrieval_query(
+                    question=question,
+                    history=history,
+                    current_topic=(
+                        ChatManager.get_current_topic()
+                        or ""
+                    )
+                )
+            )
+
+        english_search_question = ""
+
+        if english_retrieval_query:
+
+            normalized_english_query = (
+                self.query_normalizer.normalize(
+                    english_retrieval_query
+                )
+            )
+
+            english_search_question = (
+                self.query_enricher.enrich(
+                    normalized_english_query,
+                    intent_question=english_retrieval_query
+                )
+            )
+
+            evidence_logger.record_event(
+                event_name=(
+                    "MULTILINGUAL RETRIEVAL QUERY"
+                ),
+                details={
+                    "original_question":
+                        question,
+
+                    "english_query":
+                        english_retrieval_query,
+
+                    "enriched_english_query":
+                        english_search_question,
+                },
+                status="CREATED"
+            )
+
+        search_question = (
+            self._combine_retrieval_queries(
+                original_search_question,
+                english_search_question
+            )
+        )
+
+        evidence_logger.record_question_pipeline(
+            original_question=question,
+            normalized_question=normalized_question,
+            resolved_question=resolved_question,
+            search_question=search_question,
+            current_topic=(
+                ChatManager.get_current_topic()
+                or ""
+            ),
+            history=history
         )
 
         # ======================================
@@ -1948,6 +2470,63 @@ Instructions:
             )
         )
 
+        # A bilingual query may occasionally dilute reranker relevance.
+        # When it returns no accepted context, retry using only the
+        # canonical English query. This keeps English performance stable
+        # while allowing non-English questions to retrieve English documents.
+        if (
+            not context
+            and MULTILINGUAL_RETRY_ON_EMPTY
+            and english_search_question
+            and english_search_question.lower()
+            != search_question.lower()
+        ):
+
+            evidence_logger.record_event(
+                event_name=(
+                    "MULTILINGUAL RETRIEVAL RETRY"
+                ),
+                details={
+                    "first_query":
+                        search_question,
+
+                    "retry_query":
+                        english_search_question,
+                },
+                status="STARTED"
+            )
+
+            context, results = (
+                self.query_service
+                .retrieve_context(
+                    english_search_question
+                )
+            )
+
+            if context:
+
+                evidence_logger.record_event(
+                    event_name=(
+                        "MULTILINGUAL RETRIEVAL RETRY"
+                    ),
+                    details=(
+                        "English-only retrieval returned context."
+                    ),
+                    status="SUCCESS"
+                )
+
+            else:
+
+                evidence_logger.record_event(
+                    event_name=(
+                        "MULTILINGUAL RETRIEVAL RETRY"
+                    ),
+                    details=(
+                        "English-only retrieval also returned no context."
+                    ),
+                    status="NO CONTEXT"
+                )
+
         # ======================================
         # DEBUG
         # ======================================
@@ -1992,6 +2571,12 @@ Instructions:
                     "No context found."
                 )
 
+            evidence_logger.record_answer(
+                final_answer=NO_RESULT_MESSAGE,
+                fallback_used=True,
+                sources=[]
+            )
+
             return {
 
                 "answer":
@@ -2017,6 +2602,12 @@ Instructions:
                 final_question,
                 resolved_question
             )
+        )
+
+        evidence_logger.record_event(
+            event_name="ANSWER FOCUS",
+            details=answer_focus,
+            status="DETECTED"
         )
 
         prompt = self._build_prompt(
@@ -2050,6 +2641,11 @@ Instructions:
         # ======================================
         # Generate Answer
         # ======================================
+        draft_answer = ""
+        verified_answer = ""
+        prompt_leak_detected = False
+        generation_error = ""
+
         try:
 
             answer = (
@@ -2062,6 +2658,8 @@ Instructions:
                 answer,
                 final_question
             )
+
+            draft_answer = answer
 
             # Correct cases where a true fact answers the wrong
             # type of question.
@@ -2113,14 +2711,38 @@ Instructions:
                 answer_focus
             )
 
+            verified_answer = answer
+
             # Final deterministic safety gate.
             # This must run after every LLM generation and verification pass.
+            prompt_leak_detected = (
+                self._contains_prompt_leak(
+                    answer
+                )
+            )
+
             answer = self._apply_output_safety_gate(
                 answer,
                 final_question
             )
 
-        except Exception:
+        except Exception as error:
+
+            generation_error = str(
+                error
+            )
+
+            evidence_logger.record_error(
+                location="AnswerService.ask",
+                error=error,
+                details={
+                    "question":
+                        final_question,
+
+                    "resolved_question":
+                        resolved_question,
+                }
+            )
 
             answer = (
                 "An error occurred while generating the answer."
@@ -2159,6 +2781,16 @@ Instructions:
                     "[FALLBACK SOURCES REMOVED]"
                 )
 
+            evidence_logger.record_answer(
+                draft_answer=draft_answer,
+                verified_answer=verified_answer,
+                final_answer=NO_RESULT_MESSAGE,
+                fallback_used=True,
+                prompt_leak_detected=prompt_leak_detected,
+                sources=[],
+                error=generation_error
+            )
+
             # Important:
             # Do not return unrelated retrieved sources
             # when the answer is not found.
@@ -2196,6 +2828,16 @@ Instructions:
         # Extract sources only for a valid answer.
         sources = self._extract_sources(
             results
+        )
+
+        evidence_logger.record_answer(
+            draft_answer=draft_answer,
+            verified_answer=verified_answer,
+            final_answer=answer,
+            fallback_used=False,
+            prompt_leak_detected=prompt_leak_detected,
+            sources=sources,
+            error=generation_error
         )
 
         return {

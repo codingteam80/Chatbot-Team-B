@@ -1,0 +1,11 @@
+﻿run_id,test_case_id,category,description,question,expected_result,actual_result,status,run_number,total_runs,started_at,finished_at,duration_seconds,accepted_chunks,final_chunks,fallback_used,sources,error,evidence_log
+QA-20260714-024704-B26BB0,Q-016,Answer Quality Regression,Verify Tagalog compound answer for Philippine Independence Day.,Kailan ipinagdiriwang ang Araw ng Kalayaan ng Pilipinas at anong pangyayari ang ginugunita nito?,The answer states June 12 and the 1898 declaration of Philippine independence.,"* Kailan ipinagdiriwang ang Araw ng Kalayaan ng Pilipinas: June 12
+* Anong pangyayari ang ginugunita nito:
+- Pagproklama ni Aguinaldo ng pagkakaisa ng Pilipinas
+- Pag-unawat ng Philippine flag
+- Pag-antala ng Marcha Nacional Filipina",FAIL,1,4,2026-07-14 02:47:04,2026-07-14 02:48:21,77.1233,1,1,False,"[{""name"": ""Independence Day (Philippines) - Wikipedia.pdf"", ""path"": ""C:\\user_dev\\company-chatbot\\data\\all_documents\\Independence Day (Philippines) - Wikipedia.pdf""}]",,C:\user_dev\company-chatbot\logs\test_evidence\test_evidence_2026-07-14_02-46-55.log
+QA-20260714-024851-DF0625,Q-016,Answer Quality Regression,Verify Tagalog compound answer for Philippine Independence Day.,Kailan ipinagdiriwang ang Araw ng Kalayaan ng Pilipinas at anong pangyayari ang ginugunita nito?,The answer states June 12 and the 1898 declaration of Philippine independence.,"* Kailan ipinagdiriwang ang Araw ng Kalayaan ng Pilipinas: June 12
+* Anong pangyayari ang ginugunita nito:
+  - Pagpapakilala ng Philippine flag
+  - Pagbasa ng Acta de la Proclamacion de la Independencia del Pueblo Filipino
+  - Paglakbay ni Emilio Aguinaldo patungo sa Cavite",FAIL,1,4,2026-07-14 02:48:51,2026-07-14 02:49:02,10.4638,1,1,False,"[{""name"": ""Independence Day (Philippines) - Wikipedia.pdf"", ""path"": ""C:\\user_dev\\company-chatbot\\data\\all_documents\\Independence Day (Philippines) - Wikipedia.pdf""}]",,C:\user_dev\company-chatbot\logs\test_evidence\test_evidence_2026-07-14_02-46-55.log

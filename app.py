@@ -8,12 +8,28 @@ from scripts.smart_build import (
     smart_build,
     check_changes
 )
+from config.settings import (
+    TEST_EVIDENCE_MODE,
+    OLLAMA_MODEL,
+    EMBED_MODEL_NAME,
+    RERANKER_MODEL,
+    ENABLE_RERANKER,
+    FINAL_TOP_K,
+    MIN_RETRIEVAL_SCORE
+)
+from qa.evidence_logger import evidence_logger
+from qa.test_case_registry import (
+    evaluate_answer,
+    get_next_run_number,
+    get_test_case
+)
 
 # ======================================
 # SETTINGS
 # ======================================
 
 DEBUG_MODE = False
+
 
 # ======================================
 # INITIALIZE
@@ -64,6 +80,21 @@ assistant = AnswerService()
 # ======================================
 
 StreamlitUI.render_sidebar()
+
+# ======================================
+# AUTOMATIC QA EVIDENCE
+# ======================================
+# No manual test-case input is required.
+# Known QA questions are matched automatically.
+# Unknown questions are still recorded as ad-hoc evidence.
+
+if (
+    TEST_EVIDENCE_MODE
+    and "qa_auto_run_counts"
+    not in st.session_state
+):
+
+    st.session_state.qa_auto_run_counts = {}
 
 # ======================================
 # MAIN PAGE
@@ -243,7 +274,82 @@ if (
                 unsafe_allow_html=True
             )
 
+        qa_run_started = False
+
         try:
+
+            qa_test_case = None
+            qa_cycle_number = 1
+
+            if TEST_EVIDENCE_MODE:
+
+                qa_test_case = get_test_case(
+                    question
+                )
+
+                (
+                    qa_run_number,
+                    qa_total_runs,
+                    qa_cycle_number
+                ) = get_next_run_number(
+                    question,
+                    st.session_state.qa_auto_run_counts
+                )
+
+                evidence_logger.start_run(
+                    test_case_id=qa_test_case[
+                        "test_case_id"
+                    ],
+                    category=qa_test_case[
+                        "category"
+                    ],
+                    description=qa_test_case[
+                        "description"
+                    ],
+                    question=question,
+                    expected_result=qa_test_case[
+                        "expected_result"
+                    ],
+                    run_number=qa_run_number,
+                    total_runs=qa_total_runs,
+                    environment={
+                        "Ollama Model":
+                            OLLAMA_MODEL,
+
+                        "Embedding Model":
+                            EMBED_MODEL_NAME,
+
+                        "Reranker Enabled":
+                            ENABLE_RERANKER,
+
+                        "Reranker Model":
+                            (
+                                RERANKER_MODEL
+                                if ENABLE_RERANKER
+                                else "Disabled"
+                            ),
+
+                        "Final Top-K":
+                            FINAL_TOP_K,
+
+                        "Minimum Retrieval Score":
+                            MIN_RETRIEVAL_SCORE,
+
+                        "Regeneration":
+                            is_regeneration,
+
+                        "Automatic QA Match":
+                            qa_test_case.get(
+                                "matched",
+                                False
+                            ),
+
+                        "QA Cycle":
+                            qa_cycle_number,
+                    }
+                )
+
+                qa_run_started = True
 
             response = assistant.ask(
                 question
@@ -270,6 +376,26 @@ if (
                 "chunks",
                 []
             )
+
+            if (
+                TEST_EVIDENCE_MODE
+                and qa_run_started
+            ):
+
+                qa_status, qa_notes = (
+                    evaluate_answer(
+                        answer,
+                        qa_test_case
+                    )
+                )
+
+                evidence_logger.finish_run(
+                    status=qa_status,
+                    actual_result=answer,
+                    notes=qa_notes
+                )
+
+                qa_run_started = False
 
             if not is_regeneration:
 
@@ -340,6 +466,19 @@ if (
             error_message = (
                 f"Error: {str(e)}"
             )
+
+            if (
+                TEST_EVIDENCE_MODE
+                and qa_run_started
+            ):
+
+                evidence_logger.finish_run(
+                    status="ERROR",
+                    actual_result=error_message,
+                    error=str(e)
+                )
+
+                qa_run_started = False
 
             if is_regeneration:
 

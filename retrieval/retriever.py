@@ -6,6 +6,7 @@ import unicodedata
 from retrieval.bm25_index import BM25Searcher
 from retrieval.chroma_search import ChromaSearcher
 from retrieval.hybrid_search import HybridRetriever
+from qa.evidence_logger import evidence_logger
 
 from config.settings import (
     BM25_TOP_K,
@@ -35,6 +36,82 @@ class CompanyRetriever:
 
             from retrieval.reranker import CrossEncoderReranker
             self.reranker = CrossEncoderReranker()
+
+    def _record_qa_stage(
+        self,
+        stage,
+        items,
+        limit=10,
+        accepted=None,
+        rejection_reason=""
+    ):
+
+        """
+        Record retrieval evidence without modifying candidates.
+        """
+
+        if not evidence_logger.enabled:
+
+            return
+
+        qa_items = []
+
+        for item in list(
+            items
+            or []
+        )[:limit]:
+
+            qa_item = dict(
+                item
+            )
+
+            qa_item["metadata"] = dict(
+                item.get(
+                    "metadata",
+                    {}
+                )
+            )
+
+            score = item.get(
+                "score",
+                ""
+            )
+
+            if stage == "BM25":
+
+                qa_item["bm25_score"] = score
+
+            elif stage == "VECTOR":
+
+                qa_item["vector_score"] = score
+
+            else:
+
+                qa_item["hybrid_score"] = score
+
+            qa_item["informative_score"] = (
+                item.get(
+                    "_info_score",
+                    ""
+                )
+            )
+
+            qa_items.append(
+                qa_item
+            )
+
+        for position, item in enumerate(
+            qa_items,
+            start=1
+        ):
+
+            evidence_logger.record_chunk(
+                stage=stage,
+                position=position,
+                item=item,
+                accepted=accepted,
+                rejection_reason=rejection_reason
+            )
 
     def _normalize_text(self, text):
 
@@ -1754,7 +1831,17 @@ class CompanyRetriever:
 
         if not query:
 
+            evidence_logger.record_event(
+                event_name="RETRIEVAL",
+                details="Empty query",
+                status="SKIPPED"
+            )
+
             return []
+
+        reranker_candidates_count = 0
+        accepted_chunks_count = 0
+        rejected_chunks_count = 0
 
         is_list_mode = self._is_list_or_relationship_query(
             query
@@ -1794,6 +1881,52 @@ class CompanyRetriever:
         merged = self.hybrid.merge(
             vector_results,
             bm25_results
+        )
+
+        evidence_logger.record_event(
+            event_name="RETRIEVAL CANDIDATE COUNTS",
+            status="COLLECTED",
+            details={
+                "BM25 Candidates":
+                    len(
+                        bm25_results
+                    ),
+
+                "Vector Candidates":
+                    len(
+                        vector_results
+                    ),
+
+                "Hybrid Candidates":
+                    len(
+                        merged
+                    ),
+
+                "Configured Top-K":
+                    final_top_k,
+
+                "Confidence Threshold":
+                    (
+                        MIN_RETRIEVAL_SCORE
+                        if ENABLE_RERANKER
+                        else None
+                    ),
+            }
+        )
+
+        self._record_qa_stage(
+            "BM25",
+            bm25_results
+        )
+
+        self._record_qa_stage(
+            "VECTOR",
+            vector_results
+        )
+
+        self._record_qa_stage(
+            "HYBRID",
+            merged
         )
 
         if DEBUG_RETRIEVAL:
@@ -1861,12 +1994,26 @@ class CompanyRetriever:
             and not is_list_mode
         ):
 
+            reranker_candidates_count = len(
+                candidates
+            )
+
             ranked = self.reranker.rerank(
                 query,
                 candidates
             )
 
             ranked = ranked[:final_top_k]
+
+            pre_confidence_ranked = list(
+                ranked
+            )
+
+            self._record_qa_stage(
+                "RERANKED",
+                pre_confidence_ranked,
+                limit=final_top_k
+            )
 
             # ======================================
             # RERANKER CONFIDENCE GATE
@@ -1914,6 +2061,45 @@ class CompanyRetriever:
                         "=====================================\n"
                     )
 
+                rejected_chunks_count = len(
+                    pre_confidence_ranked
+                )
+
+                self._record_qa_stage(
+                    "REJECTED",
+                    pre_confidence_ranked,
+                    limit=final_top_k,
+                    accepted=False,
+                    rejection_reason=(
+                        "Best reranker score is below "
+                        "the confidence threshold."
+                    )
+                )
+
+                evidence_logger.record_retrieval_summary(
+                    bm25_candidates=len(
+                        bm25_results
+                    ),
+                    vector_candidates=len(
+                        vector_results
+                    ),
+                    hybrid_candidates=len(
+                        merged
+                    ),
+                    reranker_candidates=(
+                        reranker_candidates_count
+                    ),
+                    accepted_chunks=0,
+                    rejected_chunks=(
+                        rejected_chunks_count
+                    ),
+                    final_chunks=0,
+                    configured_top_k=final_top_k,
+                    confidence_threshold=(
+                        MIN_RETRIEVAL_SCORE
+                    )
+                )
+
                 return []
 
             # Keep only chunks that individually pass the
@@ -1933,6 +2119,47 @@ class CompanyRetriever:
                     )
                 ) >= MIN_RETRIEVAL_SCORE
             ]
+
+            accepted_ids = {
+                id(
+                    item
+                )
+                for item in ranked
+            }
+
+            rejected_ranked = [
+                item
+                for item in pre_confidence_ranked
+                if id(
+                    item
+                ) not in accepted_ids
+            ]
+
+            accepted_chunks_count = len(
+                ranked
+            )
+
+            rejected_chunks_count = len(
+                rejected_ranked
+            )
+
+            self._record_qa_stage(
+                "ACCEPTED",
+                ranked,
+                limit=final_top_k,
+                accepted=True
+            )
+
+            self._record_qa_stage(
+                "REJECTED",
+                rejected_ranked,
+                limit=final_top_k,
+                accepted=False,
+                rejection_reason=(
+                    "Reranker score is below "
+                    "the confidence threshold."
+                )
+            )
 
             if DEBUG_RETRIEVAL:
 
@@ -1979,6 +2206,26 @@ class CompanyRetriever:
         else:
 
             ranked = candidates[:final_top_k]
+
+            accepted_chunks_count = len(
+                ranked
+            )
+
+            rejected_chunks_count = max(
+                0,
+                len(
+                    candidates
+                ) - len(
+                    ranked
+                )
+            )
+
+            self._record_qa_stage(
+                "ACCEPTED",
+                ranked,
+                limit=final_top_k,
+                accepted=True
+            )
 
             if DEBUG_RETRIEVAL:
 
@@ -2056,6 +2303,47 @@ class CompanyRetriever:
 
             print("===============================\n")
 
+        self._record_qa_stage(
+            "FINAL",
+            diversified,
+            limit=final_top_k,
+            accepted=True
+        )
+
+        evidence_logger.record_retrieval_summary(
+            bm25_candidates=len(
+                bm25_results
+            ),
+            vector_candidates=len(
+                vector_results
+            ),
+            hybrid_candidates=len(
+                merged
+            ),
+            reranker_candidates=(
+                reranker_candidates_count
+            ),
+            accepted_chunks=(
+                accepted_chunks_count
+            ),
+            rejected_chunks=(
+                rejected_chunks_count
+            ),
+            final_chunks=len(
+                diversified
+            ),
+            configured_top_k=final_top_k,
+            confidence_threshold=(
+                MIN_RETRIEVAL_SCORE
+                if (
+                    ENABLE_RERANKER
+                    and self.reranker
+                    and not is_list_mode
+                )
+                else None
+            )
+        )
+
         return diversified
     
     def build_context(self, query):
@@ -2082,6 +2370,13 @@ class CompanyRetriever:
                 f"===== DOCUMENT {index} =====\n"
                 f"{item['text']}"
             )
+
+        evidence_logger.record_context(
+            context=context,
+            chunk_count=len(
+                results
+            )
+        )
 
         if DEBUG_RETRIEVAL:
 

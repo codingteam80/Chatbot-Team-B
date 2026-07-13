@@ -48,6 +48,23 @@ RERANKER_MODEL = "BAAI/bge-reranker-base"
 #RERANK_MAX_CHARS = 900 # Maximum characters per chunk before reranking.
 #RERANK_BATCH_SIZE = 8  # Number of query-document pairs processed at once.
 
+
+# =====================================================
+# MULTILINGUAL RETRIEVAL
+# =====================================================
+# English remains the primary retrieval language.
+# Non-English questions can be converted into a standalone
+# English retrieval query while the final answer still uses
+# the language of the user's original question.
+ENABLE_MULTILINGUAL_RETRIEVAL = True
+
+# When the bilingual query returns no accepted context,
+# retry retrieval using only the canonical English query.
+MULTILINGUAL_RETRY_ON_EMPTY = True
+
+# Prevent excessively long translated retrieval queries.
+MULTILINGUAL_QUERY_MAX_CHARS = 500
+
 # =====================================================
 # OLLAMA
 # =====================================================
@@ -166,3 +183,18 @@ for path in [
 # 0.55 - 0.75
 #MIN_RETRIEVAL_SCORE = 0.65
 MIN_RETRIEVAL_SCORE = 0.10
+
+# ======================================
+# TEMPORARY QA EVIDENCE LOGGING
+# ======================================
+
+# Enable detailed QA test logs.
+# Set to False for normal or official builds.
+TEST_EVIDENCE_MODE = True
+
+# False = chunk previews only.
+# True = complete chunk text in the QA log.
+TEST_EVIDENCE_FULL_CHUNKS = False
+
+# Maximum chunk preview length when full chunks are disabled.
+TEST_EVIDENCE_PREVIEW_LENGTH = 700

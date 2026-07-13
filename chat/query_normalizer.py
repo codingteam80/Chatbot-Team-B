@@ -9,7 +9,7 @@ class QueryNormalizer:
     Responsibilities:
     - Lowercase text
     - Remove accents
-    - Remove punctuation safely
+    - Remove punctuation safely while preserving Unicode letters
     - Preserve technical rule numbers like 10.1
     - Remove common question prefixes
     - Expand common abbreviations
@@ -137,14 +137,58 @@ class QueryNormalizer:
     @staticmethod
     def _remove_accents(text: str) -> str:
 
-        normalized = unicodedata.normalize(
-            "NFKD",
-            text
-        )
+        """
+        Remove accents from Latin characters while preserving
+        meaningful marks in non-Latin scripts.
+
+        Example:
+        - José -> Jose
+        - です -> です
+        """
+
+        output = []
+
+        for original_character in text:
+
+            character_name = ""
+
+            try:
+
+                character_name = unicodedata.name(
+                    original_character
+                )
+
+            except ValueError:
+
+                output.append(
+                    original_character
+                )
+
+                continue
+
+            if "LATIN" not in character_name:
+
+                output.append(
+                    original_character
+                )
+
+                continue
+
+            decomposed = unicodedata.normalize(
+                "NFKD",
+                original_character
+            )
+
+            output.extend(
+                character
+                for character in decomposed
+                if not unicodedata.combining(
+                    character
+                )
+            )
 
         return "".join(
-            char for char in normalized
-            if not unicodedata.combining(char)
+            output
         )
 
     def normalize(
@@ -212,9 +256,10 @@ class QueryNormalizer:
         # Replace punctuation/symbols with space,
         # but preserve underscores for __dot__ marker.
         query = re.sub(
-            r"[^a-z0-9\s_]",
+            r"[^\w\s]",
             " ",
-            query
+            query,
+            flags=re.UNICODE
         )
 
         # Restore decimal dots

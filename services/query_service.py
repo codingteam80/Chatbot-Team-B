@@ -1,6 +1,7 @@
 from retrieval.retriever import (
     CompanyRetriever
 )
+from qa.evidence_logger import evidence_logger
 
 
 class QueryService:
@@ -20,9 +21,30 @@ class QueryService:
                 "[RETRIEVER] Initializing..."
             )
 
-            self.retriever = (
-                CompanyRetriever()
+            evidence_logger.record_event(
+                event_name="RETRIEVER INITIALIZATION",
+                status="STARTED"
             )
+
+            try:
+
+                self.retriever = (
+                    CompanyRetriever()
+                )
+
+                evidence_logger.record_event(
+                    event_name="RETRIEVER INITIALIZATION",
+                    status="READY"
+                )
+
+            except Exception as error:
+
+                evidence_logger.record_error(
+                    location="QueryService._get_retriever",
+                    error=error
+                )
+
+                raise
 
             print(
                 "[RETRIEVER] Ready."
