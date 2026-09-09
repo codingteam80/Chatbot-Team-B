@@ -1,0 +1,3 @@
+   DocuBot v6.2 incremental indexing validation document.
+   The internal project code is V62-TEST-BETA.
+   This file exists only to validate new-file incremental indexing.

@@ -3,45 +3,37 @@ from datetime import datetime
 
 
 class MetadataBuilder:
-    """
-    Add searchable file information to every chunk.
-    """
+    """Add searchable file and structure information to every chunk."""
+
+    @staticmethod
+    def _sanitize_value(value):
+        # Chroma metadata values must be scalar and cannot be None.
+        if isinstance(value, (str, int, float, bool)):
+            return value
+        return str(value)
 
     @staticmethod
     def build(
         file_path: str,
         chunk_id: int,
-        total_chunks: int
+        total_chunks: int,
+        extra_metadata=None,
     ):
+        path = Path(file_path).resolve()
 
-        path = Path(
-            file_path
-        ).resolve()
-
-        return {
-            # Original filename
+        metadata = {
             "file_name": path.name,
-
-            # Canonical absolute path used for source opening
-            # and targeted Chroma deletion.
             "file_path": str(path),
-
-            # Parent folder
             "folder_name": path.parent.name,
-
-            # File extension
             "extension": path.suffix.lower(),
-
-            # Current chunk number
             "chunk_id": chunk_id,
-
-            # Total chunks generated
             "total_chunks": total_chunks,
-
-            # When this chunk was indexed
-            "indexed_at": (
-                datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
-            )
+            "indexed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
+
+        for key, value in (extra_metadata or {}).items():
+            if value is None or value == "":
+                continue
+            metadata[str(key)] = MetadataBuilder._sanitize_value(value)
+
+        return metadata

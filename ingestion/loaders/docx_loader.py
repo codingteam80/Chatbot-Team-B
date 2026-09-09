@@ -1,39 +1,23 @@
-import fitz
+from docx import Document
 
-from ingestion.document import ParsedDocument
 from ingestion.loaders.base_loader import BaseLoader
+from ingestion.parsed_document import ParsedDocument
 
 
-class PDFLoader(BaseLoader):
+class DOCXLoader(BaseLoader):
+    """Optional DOCX loader kept import-safe for future structured routing."""
 
     def load(self, file_path):
+        document = Document(file_path)
+        blocks = []
 
-        pdf = fitz.open(file_path)
+        for paragraph in document.paragraphs:
+            text = paragraph.text.strip()
+            if text:
+                blocks.append(text)
 
-        documents = []
+        text = "\n".join(blocks).strip()
+        if not text:
+            return []
 
-        for page_index in range(len(pdf)):
-
-            page = pdf[page_index]
-
-            text = page.get_text()
-
-            text = text.strip()
-
-            if not text:
-                continue
-
-            documents.append(
-
-                ParsedDocument(
-                    text=text,
-                    page_number=page_index + 1
-                )
-
-            )
-
-        print(
-            f"[PDF] Pages created: {len(documents)}"
-        )
-
-        return documents
+        return [ParsedDocument(text=text)]

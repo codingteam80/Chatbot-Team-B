@@ -1,0 +1,38 @@
+DOCUBOT v6 MANUAL / LLM A-B TEST QUESTIONS
+
+Use the exact same questions, documents, index, embedding model, reranker,
+and retrieval settings for both LLM runs.
+
+CORE DIRECT / STRUCTURED
+1. What does Rule 1.2 say?
+2. What does Rule 10.6 say?
+3. What is Dir 4.12?
+4. What is Section 6?
+5. What does Rule 99.99 say?
+
+EXPLANATION DEPTH
+6. Explain Rule 1.2.
+7. Explain Directive 4.12.
+8. Explain Section 6.
+9. Explain MISRA C.
+10. Explain the employee leave policy.
+
+FOLLOW-UP CONTEXT - run in one New Chat in this exact order
+11. What is MISRA C?
+12. What does Rule 1.2 say?
+13. Why is that rule important?
+14. Explain that rule.
+
+GENERAL / NON-MISRA REGRESSION
+15. Who is Jose Rizal?
+16. Explain who Jose Rizal was and why he was significant.
+
+MANUAL CHECKS
+- Direct questions stay concise and precise.
+- Explain/Describe questions cover the important relevant supported content,
+  not only a one-line definition.
+- Explanations remain grounded; no unsupported outside facts.
+- Follow-ups retain the exact structured reference.
+- Rule 99.99 returns exactly: Information not found in company knowledge base.
+- No internal answer-focus labels appear in the UI.
+- Record answer text and Duration for LLM A/B comparison.

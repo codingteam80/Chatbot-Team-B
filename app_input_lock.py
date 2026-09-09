@@ -5,7 +5,7 @@ from services.answer_service import AnswerService
 from chat.chat_manager import ChatManager
 from scripts.smart_build import (
     smart_build,
-    check_changes
+    get_update_plan,
 )
 
 # ======================================
@@ -26,33 +26,48 @@ StreamlitUI.initialize_session()
 # KNOWLEDGE BASE STATUS
 # ======================================
 
-if "kb_checked" not in st.session_state:
-
-    st.session_state.kb_outdated = (
-        check_changes()
-    )
-
+if not st.session_state.get("kb_checked", False):
+    kb_plan = get_update_plan()
+    st.session_state.kb_outdated = kb_plan["mode"] != "noop"
+    st.session_state.kb_update_mode = kb_plan["mode"]
+    st.session_state.kb_update_reason = kb_plan.get("reason")
     st.session_state.kb_checked = True
 
 if st.session_state.kb_outdated:
-
-    st.warning(
-        "Knowledge base has changed. Rebuild is required."
+    full_rebuild_required = (
+        st.session_state.get("kb_update_mode") == "full_rebuild"
     )
 
-    if st.button(
-        "Rebuild Knowledge Base"
-    ):
-
-        smart_build()
-
-        st.session_state.kb_outdated = False
-
-        st.success(
-            "Knowledge base updated."
+    if full_rebuild_required:
+        st.warning(
+            "Knowledge base maintenance is required before new source changes can be used safely. "
+            + (st.session_state.get("kb_update_reason") or "A full rebuild is required.")
         )
+        rebuild_confirmed = st.checkbox(
+            "I understand that Update Knowledge Base will safely rebuild all source documents this time.",
+            key="kb_smart_full_rebuild_confirm",
+        )
+    else:
+        st.warning(
+            "Knowledge base changes detected. Update Knowledge Base will process only new, modified, or deleted files."
+        )
+        rebuild_confirmed = True
 
-        st.rerun()
+    if st.button(
+        "Update Knowledge Base",
+        key="kb_smart_update",
+        disabled=not rebuild_confirmed,
+    ):
+        update_ok = smart_build()
+
+        if update_ok:
+            st.session_state.kb_checked = False
+            st.success("Knowledge base updated.")
+            st.rerun()
+        else:
+            st.error(
+                "Knowledge base update failed. The previous working index was preserved; review the console/log details."
+            )
 
 ChatManager.initialize()
 

@@ -2,6 +2,7 @@ import re
 
 from chat.topic_extractor import TopicExtractor
 from chat.chat_manager import ChatManager
+from utils.structured_reference import extract_structured_reference
 
 
 class ConversationResolver:
@@ -240,6 +241,23 @@ class ConversationResolver:
         )
 
         # ======================================
+        # Structured-reference follow-up
+        #
+        # Preserve the most recent exact Rule / Directive / Section
+        # identifier when the user says "that rule", "this directive",
+        # "that section", etc. This takes priority over the broader
+        # document topic (for example, MISRA) so the referent is not lost.
+        # ======================================
+        structured_followup = self._resolve_structured_reference_followup(
+            history_messages,
+            question
+        )
+
+        if structured_followup != question:
+
+            return structured_followup
+
+        # ======================================
         # Pronoun-based follow-up
         #
         # Examples:
@@ -337,6 +355,92 @@ class ConversationResolver:
             )
 
         return question
+
+
+    def _resolve_structured_reference_followup(
+        self,
+        history_messages,
+        question
+    ):
+
+        """Resolve phrases such as ``that rule`` to the latest exact ID.
+
+        The lookup is generic for Rule, Directive/Dir, and Section references
+        and scans only prior user messages. It does not infer an identifier
+        when the conversation never contained one.
+        """
+
+        if not question or not history_messages:
+            return question
+
+        clean = question.strip()
+
+        reference_terms = {
+            "rule": ("rule",),
+            "directive": ("directive", "dir"),
+            "section": ("section",),
+        }
+
+        requested_kind = None
+
+        for kind, terms in reference_terms.items():
+            term_pattern = "|".join(
+                re.escape(term)
+                for term in terms
+            )
+
+            if re.search(
+                rf"\b(?:that|this|the|same|previous)\s+(?:{term_pattern})\b",
+                clean,
+                flags=re.IGNORECASE
+            ):
+                requested_kind = kind
+                break
+
+        if requested_kind is None:
+            return question
+
+        latest_reference = None
+
+        for message in reversed(history_messages):
+            if not isinstance(message, dict):
+                continue
+
+            if message.get("role") != "user":
+                continue
+
+            reference = extract_structured_reference(
+                str(message.get("content", ""))
+            )
+
+            if reference and reference.kind == requested_kind:
+                latest_reference = reference
+                break
+
+        if latest_reference is None:
+            return question
+
+        if latest_reference.kind == "directive":
+            replacement = f"Directive {latest_reference.identifier}"
+        else:
+            replacement = latest_reference.display_name
+
+        term_pattern = "|".join(
+            re.escape(term)
+            for term in reference_terms[requested_kind]
+        )
+
+        resolved = re.sub(
+            rf"\b(?:that|this|the|same|previous)\s+(?:{term_pattern})\b",
+            replacement,
+            clean,
+            count=1,
+            flags=re.IGNORECASE
+        )
+
+        return self._clean_resolved_question(
+            resolved
+        )
 
     def _get_current_or_history_topic(
         self,

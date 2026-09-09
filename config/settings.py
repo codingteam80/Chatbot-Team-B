@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 # =====================================================
@@ -18,6 +19,7 @@ STORAGE_DIR = ROOT_DIR / "storage"
 CHROMA_DIR = STORAGE_DIR / "chroma_db"
 BM25_DIR = STORAGE_DIR / "bm25"
 METADATA_DIR = STORAGE_DIR / "metadata"
+INGESTION_CACHE_DIR = STORAGE_DIR / "cache" / "ingestion"
 
 # =====================================================
 # CHROMA
@@ -36,6 +38,39 @@ EMBED_MODEL_NAME = "intfloat/multilingual-e5-base"
 DEFAULT_NORMALIZE_EMBEDDINGS = True
 # Number of texts embedded per batch (Mostly affects indexing speed)
 DEFAULT_BATCH_SIZE = 32
+
+# Number of prepared vectors written to Chroma per upsert.
+# Larger writes reduce database overhead without changing retrieval quality.
+try:
+    CHROMA_WRITE_BATCH_SIZE = max(
+        16,
+        int(os.getenv("DOCUBOT_CHROMA_WRITE_BATCH_SIZE", "128")),
+    )
+except (TypeError, ValueError):
+    CHROMA_WRITE_BATCH_SIZE = 128
+
+# Independent source files can be parsed/chunked concurrently. Keep the
+# default conservative for Windows deployments and CPU/RAM stability.
+try:
+    INGESTION_MAX_WORKERS = max(
+        1,
+        min(
+            8,
+            int(
+                os.getenv(
+                    "DOCUBOT_INGEST_WORKERS",
+                    str(min(4, max(1, os.cpu_count() or 1))),
+                )
+            ),
+        ),
+    )
+except (TypeError, ValueError):
+    INGESTION_MAX_WORKERS = min(4, max(1, os.cpu_count() or 1))
+
+# Cache format version for parsed/cleaned/prepared chunks. Changing only the
+# cache format does not invalidate the vector index; changing parsing/chunking
+# semantics must still increment INDEX_SCHEMA_VERSION below.
+INGESTION_CACHE_SCHEMA_VERSION = "prepared-chunks-v1"
 
 # =====================================================
 # RERANKER
@@ -68,12 +103,36 @@ MULTILINGUAL_QUERY_MAX_CHARS = 500
 # =====================================================
 # OLLAMA
 # =====================================================
-OLLAMA_MODEL = "llama3.2:3b"
-OLLAMA_TIMEOUT = 120
+# Default remains llama3.2:3b so upgrading to this package does not
+# silently change runtime behavior. For controlled A/B tests, set
+# DOCUBOT_OLLAMA_MODEL before starting Streamlit (for example qwen2.5:7b).
+# Model switching affects answer generation only; it does not require a KB rebuild.
+OLLAMA_MODEL = os.getenv(
+    "DOCUBOT_OLLAMA_MODEL",
+    "llama3.2:3b"
+).strip() or "llama3.2:3b"
+
+try:
+    OLLAMA_TIMEOUT = max(
+        1,
+        int(
+            os.getenv(
+                "DOCUBOT_OLLAMA_TIMEOUT",
+                "120"
+            )
+        )
+    )
+except (TypeError, ValueError):
+    # Invalid optional overrides must not prevent DocuBot from starting.
+    OLLAMA_TIMEOUT = 120
 
 # =====================================================
 # CHUNKING
 # =====================================================
+# Increment this when parsing/chunking semantics change. It is stored in
+# the manifest so Smart Build automatically re-indexes existing files.
+INDEX_SCHEMA_VERSION = "structure-aware-pdf-v2"
+
 CHUNK_SIZE = 900
 CHUNK_OVERLAP = 150
 
@@ -166,7 +225,8 @@ for path in [
     STORAGE_DIR,
     CHROMA_DIR,
     BM25_DIR,
-    METADATA_DIR
+    METADATA_DIR,
+    INGESTION_CACHE_DIR
 ]:
     path.mkdir(parents=True, exist_ok=True)
 
@@ -181,8 +241,11 @@ for path in [
 #
 # Recommended range:
 # 0.55 - 0.75
-#MIN_RETRIEVAL_SCORE = 0.65
-MIN_RETRIEVAL_SCORE = 0.10
+# BAAI/bge-reranker-base returns scores close to 1.0 for strong matches in
+# this project. 0.10 was too permissive and allowed weak evidence to reach
+# answer generation. Keep this conservative enough to avoid false negatives
+# while rejecting clearly unrelated chunks.
+MIN_RETRIEVAL_SCORE = 0.55
 
 # ======================================
 # TEMPORARY QA EVIDENCE LOGGING

@@ -1,0 +1,109 @@
+DOCUBOT v6.2.1 – SMART KB UPDATE / SHORT-FACT VALIDATION
+================================================================
+
+Purpose
+-------
+Validate that v6.2.1 keeps the v6.2 incremental/cached/batched indexing
+behavior, removes the permanent Full Rebuild UI panel, and correctly retrieves
+compact factual documents that are under 25 words when retrieval evidence is
+strong.
+
+IMPORTANT
+---------
+- No pip install is required from v6.2.
+- No forced full rebuild is required from v6.2.
+- Keep the current storage/index.
+- Use only the normal "Update Knowledge Base" action in the UI.
+- A full-rebuild confirmation should appear ONLY if DocuBot detects an
+  incompatible/missing vector index.
+
+A. FIRST START
+-------------
+1. Replace the v6.2 project files with v6.2.1.
+2. Start DocuBot normally.
+3. Confirm the permanent "Knowledge Base Maintenance" / "Full Rebuild
+   Knowledge Base" panel is gone.
+4. Existing questions should still work with the current index.
+
+B. ADD ONE COMPACT TEST FILE
+----------------------------
+1. Create data\all_documents\v62_incremental_test.txt
+2. Put exactly this compact content inside:
+
+   DocuBot v6.2 incremental indexing validation document.
+   The internal project code is V62-TEST-ALPHA.
+   This file exists only to validate new-file incremental indexing.
+
+   Note: this is intentionally only about 21 whitespace-separated words.
+
+3. Refresh/restart DocuBot so the source change is detected.
+4. Click "Update Knowledge Base".
+5. Expected update summary pattern:
+   Added           : 1
+   Updated         : 0
+   Deleted         : 0
+   Unchanged/skip  : all existing files
+6. Confirm only the new test file is parsed/chunked/embedded.
+7. Ask:
+   What is the internal project code in the v6.2 incremental test document?
+8. Expected grounded answer: V62-TEST-ALPHA
+9. The correct compact test chunk should survive the low-information filter and
+   reach reranking/final context when its retrieval evidence is strong.
+
+C. NO-CHANGE FAST PATH
+----------------------
+Run inside the active project venv:
+
+   python -m scripts.smart_build
+
+Expected:
+- Mode: noop
+- No document changes detected.
+- All unchanged files skipped.
+- No parsing.
+- No embedding model load.
+- No Chroma vector rewrite.
+
+D. MODIFY ONLY THE TEST FILE
+----------------------------
+1. Change V62-TEST-ALPHA to V62-TEST-BETA.
+2. Refresh/restart DocuBot and click "Update Knowledge Base".
+3. Expected:
+   Added           : 0
+   Updated         : 1
+   Deleted         : 0
+4. Ask the same question.
+5. Expected grounded answer: V62-TEST-BETA
+
+E. DELETE ONLY THE TEST FILE
+----------------------------
+1. Delete data\all_documents\v62_incremental_test.txt
+2. Refresh/restart DocuBot and click "Update Knowledge Base".
+3. Expected:
+   Added           : 0
+   Updated         : 0
+   Deleted         : 1
+4. Ask the same test question again.
+5. Expected: Information not found in company knowledge base.
+
+F. SMART FULL-REBUILD UI CHECK
+------------------------------
+Normal add/modify/delete changes must NOT show a permanent maintenance panel.
+The same "Update Knowledge Base" action remains the user-facing control.
+
+A full-rebuild confirmation is expected only if DocuBot detects a condition
+such as:
+- incompatible embedding/index identity,
+- tracked source documents but missing/empty active vector index,
+- active Chroma index cannot be opened safely.
+
+Do not intentionally corrupt the production test index just to trigger this.
+The automatic full-rebuild decision path is covered by packaged tests.
+
+WHAT TO SEND BACK
+-----------------
+Please send:
+- the console/app log around B, C, D, and E,
+- QA evidence for the ALPHA/BETA question if available,
+- rough update duration,
+- any warning/error text.

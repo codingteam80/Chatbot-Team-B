@@ -1,3 +1,7 @@
+param(
+    [string]$Model = ""
+)
+
 # ============================================================
 # DocuBot Streamlit Runner with UTF-8 Logging
 # ============================================================
@@ -15,6 +19,13 @@ $OutputEncoding = $utf8
 # Force Python to use UTF-8 for stdout, stderr, files, and subprocess output.
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
+
+# Optional process-local LLM override for controlled A/B testing.
+# Example: .\run_docubot_with_log.ps1 -Model "qwen2.5:7b"
+# Omitting -Model preserves the default configured model (llama3.2:3b).
+if (-not [string]::IsNullOrWhiteSpace($Model)) {
+    $env:DOCUBOT_OLLAMA_MODEL = $Model.Trim()
+}
 
 # Switch the active Windows console code page to UTF-8.
 chcp 65001 | Out-Null
@@ -42,6 +53,9 @@ $logFile = Join-Path `
 )
 
 Write-Host "Starting DocuBot..."
+if (-not [string]::IsNullOrWhiteSpace($env:DOCUBOT_OLLAMA_MODEL)) {
+    Write-Host "LLM model: $env:DOCUBOT_OLLAMA_MODEL"
+}
 Write-Host "Log file: $logFile"
 Write-Host ""
 

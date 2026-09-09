@@ -1,6 +1,6 @@
 from pptx import Presentation
 
-from ingestion.document import ParsedDocument
+from ingestion.parsed_document import ParsedDocument
 from ingestion.loaders.base_loader import BaseLoader
 
 

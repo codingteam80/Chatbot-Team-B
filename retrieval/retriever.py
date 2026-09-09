@@ -8,6 +8,11 @@ from retrieval.chroma_search import ChromaSearcher
 from retrieval.hybrid_search import HybridRetriever
 from qa.evidence_logger import evidence_logger
 
+from utils.structured_reference import (
+    StructuredReference,
+    extract_structured_reference,
+)
+
 from config.settings import (
     BM25_TOP_K,
     VECTOR_TOP_K,
@@ -143,6 +148,490 @@ class CompanyRetriever:
         ).strip()
 
         return text
+
+    @staticmethod
+    def _normalize_structured_identifier(value):
+
+        return str(
+            value or ""
+        ).strip().casefold()
+
+    def _metadata_matches_structured_reference(
+        self,
+        metadata,
+        reference: StructuredReference
+    ):
+
+        """Return True only for an exact structured metadata match."""
+
+        if not metadata:
+            return False
+
+        section_type = str(
+            metadata.get(
+                "section_type",
+                ""
+            )
+        ).strip().casefold()
+
+        identifier = self._normalize_structured_identifier(
+            metadata.get(
+                reference.metadata_id_key,
+                ""
+            )
+        )
+
+        return (
+            section_type == reference.section_type
+            and identifier == reference.identifier
+        )
+
+    def _text_starts_with_structured_reference(
+        self,
+        text,
+        reference: StructuredReference
+    ):
+
+        """Strict textual fallback for legacy or incomplete metadata."""
+
+        if not text:
+            return False
+
+        escaped_id = re.escape(
+            reference.identifier
+        )
+
+        if reference.kind == "rule":
+            prefix = r"rule"
+        elif reference.kind == "directive":
+            prefix = r"(?:dir|directive)"
+        else:
+            prefix = r"section"
+
+        pattern = (
+            rf"^\s*{prefix}\s*"
+            rf"(?:no\.?\s*|number\s*)?"
+            rf"{escaped_id}(?=\s|$|[:\-–—])"
+        )
+
+        return bool(
+            re.search(
+                pattern,
+                text,
+                re.IGNORECASE
+            )
+        )
+
+    def _structured_reference_consistent(
+        self,
+        item,
+        reference: StructuredReference
+    ):
+
+        """Reject a high-scoring chunk when it is not the requested ID."""
+
+        metadata = item.get(
+            "metadata",
+            {}
+        )
+
+        if self._metadata_matches_structured_reference(
+            metadata,
+            reference
+        ):
+            return True
+
+        return self._text_starts_with_structured_reference(
+            item.get(
+                "text",
+                ""
+            ),
+            reference
+        )
+
+    def _same_file_records_sorted(
+        self,
+        file_key
+    ):
+
+        records = getattr(
+            self.bm25,
+            "records",
+            []
+        ) or []
+
+        same_file = []
+
+        for record in records:
+
+            metadata = record.get(
+                "metadata",
+                {}
+            )
+
+            record_file_key = (
+                metadata.get("file_path")
+                or metadata.get("file_name")
+            )
+
+            if record_file_key != file_key:
+                continue
+
+            try:
+                chunk_id = int(
+                    metadata.get(
+                        "chunk_id",
+                        -1
+                    )
+                )
+            except (TypeError, ValueError):
+                continue
+
+            same_file.append(
+                (
+                    chunk_id,
+                    record
+                )
+            )
+
+        same_file.sort(
+            key=lambda pair: pair[0]
+        )
+
+        return same_file
+
+    def _collect_rule_or_directive_group(
+        self,
+        seed_record,
+        reference: StructuredReference,
+        max_chunks=8
+    ):
+
+        """
+        Collect an exact Rule/Directive plus its subordinate continuation chunks.
+
+        MISRA commonly stores Rationale, Amplification, Example, Exception,
+        and See also as visually separate sections after the rule heading. Those
+        chunks intentionally have section_type=section, so the safest boundary
+        is the next Rule/Directive heading in the same source file.
+        """
+
+        metadata = seed_record.get(
+            "metadata",
+            {}
+        )
+
+        file_key = (
+            metadata.get("file_path")
+            or metadata.get("file_name")
+        )
+
+        if not file_key:
+            return [seed_record]
+
+        try:
+            seed_chunk_id = int(
+                metadata.get(
+                    "chunk_id"
+                )
+            )
+        except (TypeError, ValueError):
+            return [seed_record]
+
+        ordered = self._same_file_records_sorted(
+            file_key
+        )
+
+        collected = []
+        started = False
+
+        for chunk_id, record in ordered:
+
+            if chunk_id < seed_chunk_id:
+                continue
+
+            if chunk_id == seed_chunk_id:
+                started = True
+
+            if not started:
+                continue
+
+            current_metadata = record.get(
+                "metadata",
+                {}
+            )
+
+            if (
+                chunk_id != seed_chunk_id
+                and str(
+                    current_metadata.get(
+                        "section_type",
+                        ""
+                    )
+                ).strip().casefold()
+                in {"rule", "directive"}
+                and self._normalize_structured_identifier(
+                    current_metadata.get(
+                        "rule_id",
+                        ""
+                    )
+                )
+                != reference.identifier
+            ):
+                break
+
+            collected.append(
+                record
+            )
+
+            if len(collected) >= max_chunks:
+                break
+
+        return collected or [seed_record]
+
+    def _collect_section_group(
+        self,
+        seed_record,
+        reference: StructuredReference,
+        max_chunks=8
+    ):
+
+        """Collect all split parts belonging to one exact Section identifier."""
+
+        metadata = seed_record.get(
+            "metadata",
+            {}
+        )
+
+        file_key = (
+            metadata.get("file_path")
+            or metadata.get("file_name")
+        )
+
+        if not file_key:
+            return [seed_record]
+
+        matches = []
+
+        for _, record in self._same_file_records_sorted(
+            file_key
+        ):
+
+            if self._metadata_matches_structured_reference(
+                record.get(
+                    "metadata",
+                    {}
+                ),
+                reference
+            ):
+                matches.append(
+                    record
+                )
+
+            if len(matches) >= max_chunks:
+                break
+
+        return matches or [seed_record]
+
+    def _merge_exact_structured_records(
+        self,
+        records,
+        reference: StructuredReference
+    ):
+
+        texts = []
+        seen_text = set()
+
+        first_metadata = dict(
+            records[0].get(
+                "metadata",
+                {}
+            )
+        )
+
+        chunk_ids = []
+        page_starts = []
+        page_ends = []
+
+        for record in records:
+
+            text = str(
+                record.get(
+                    "text",
+                    ""
+                )
+            ).strip()
+
+            if text and text not in seen_text:
+                texts.append(text)
+                seen_text.add(text)
+
+            metadata = record.get(
+                "metadata",
+                {}
+            )
+
+            try:
+                chunk_ids.append(
+                    int(
+                        metadata.get(
+                            "chunk_id"
+                        )
+                    )
+                )
+            except (TypeError, ValueError):
+                pass
+
+            for key, target in (
+                ("page_start", page_starts),
+                ("page_end", page_ends),
+            ):
+                try:
+                    target.append(
+                        int(
+                            metadata.get(key)
+                        )
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+        if chunk_ids:
+            first_metadata["exact_chunk_start"] = min(chunk_ids)
+            first_metadata["exact_chunk_end"] = max(chunk_ids)
+
+        if page_starts:
+            first_metadata["page_start"] = min(page_starts)
+
+        if page_ends:
+            first_metadata["page_end"] = max(page_ends)
+
+        first_metadata["exact_structured_match"] = True
+        first_metadata["exact_reference"] = reference.display_name
+        first_metadata["exact_group_chunks"] = len(records)
+
+        return {
+            "text": "\n\n".join(texts),
+            "metadata": first_metadata,
+            "score": 1.0,
+            "rerank_score": 1.0,
+            "_exact_structured_match": True,
+        }
+
+    def _retrieve_exact_structured_reference(
+        self,
+        reference: StructuredReference
+    ):
+
+        """Metadata-first lookup for Rule/Dir/Section identifiers."""
+
+        records = getattr(
+            self.bm25,
+            "records",
+            []
+        ) or []
+
+        seed_records = [
+            record
+            for record in records
+            if self._metadata_matches_structured_reference(
+                record.get(
+                    "metadata",
+                    {}
+                ),
+                reference
+            )
+        ]
+
+        if not seed_records:
+            return []
+
+        # One logical result per source file/reference. If a section was split
+        # into several parts, only its first chunk becomes a seed.
+        def seed_sort_key(record):
+
+            metadata = record.get(
+                "metadata",
+                {}
+            )
+
+            try:
+                chunk_id = int(
+                    metadata.get(
+                        "chunk_id",
+                        0
+                    )
+                )
+            except (TypeError, ValueError):
+                chunk_id = 0
+
+            return (
+                str(
+                    metadata.get(
+                        "file_path",
+                        ""
+                    )
+                ),
+                chunk_id,
+            )
+
+        seed_records.sort(
+            key=seed_sort_key
+        )
+
+        results = []
+        seen_files = set()
+
+        for seed in seed_records:
+
+            metadata = seed.get(
+                "metadata",
+                {}
+            )
+
+            file_key = (
+                metadata.get("file_path")
+                or metadata.get("file_name")
+            )
+
+            if file_key in seen_files:
+                continue
+
+            seen_files.add(file_key)
+
+            if reference.kind in {"rule", "directive"}:
+                group = self._collect_rule_or_directive_group(
+                    seed,
+                    reference
+                )
+            else:
+                group = self._collect_section_group(
+                    seed,
+                    reference
+                )
+
+            results.append(
+                self._merge_exact_structured_records(
+                    group,
+                    reference
+                )
+            )
+
+        return results
+
+    def _filter_for_structured_reference(
+        self,
+        items,
+        reference: StructuredReference
+    ):
+
+        return [
+            item
+            for item in (items or [])
+            if self._structured_reference_consistent(
+                item,
+                reference
+            )
+        ]
 
     def _is_short_lookup_query(self, query):
 
@@ -950,6 +1439,105 @@ class CompanyRetriever:
 
         return score
 
+    def _query_requests_reference_material(self, query):
+
+        if not query:
+            return False
+
+        normalized = f" {self._normalize_text(query)} "
+
+        reference_terms = (
+            " citation ",
+            " citations ",
+            " reference ",
+            " references ",
+            " bibliography ",
+            " external links ",
+            " source list ",
+            " sources list ",
+            " works cited ",
+        )
+
+        return any(
+            term in normalized
+            for term in reference_terms
+        )
+
+    def _is_reference_section(self, item):
+
+        """Return True only for chunks that are clearly reference material.
+
+        This deliberately uses section metadata when available and a
+        conservative first-line fallback. URLs inside a real biography or
+        policy paragraph do not automatically make that paragraph a
+        reference section.
+        """
+
+        if not item:
+            return False
+
+        metadata = item.get(
+            "metadata",
+            {}
+        ) or {}
+
+        section_title = self._normalize_text(
+            str(
+                metadata.get(
+                    "section_title",
+                    ""
+                )
+            )
+        )
+
+        text = str(
+            item.get(
+                "text",
+                ""
+            )
+        ).strip()
+
+        first_line = ""
+
+        if text:
+            first_line = self._normalize_text(
+                text.splitlines()[0]
+            )
+
+        reference_headings = {
+            "citation",
+            "citations",
+            "reference",
+            "references",
+            "bibliography",
+            "external links",
+            "further reading",
+            "sources",
+            "source",
+            "notes",
+            "works cited",
+        }
+
+        def is_heading(value):
+
+            if not value:
+                return False
+
+            if value in reference_headings:
+                return True
+
+            return any(
+                value.startswith(
+                    heading + " "
+                )
+                for heading in reference_headings
+            )
+
+        return (
+            is_heading(section_title)
+            or is_heading(first_line)
+        )
+
     def _citation_marker_score(self, text):
 
         if not text:
@@ -1498,7 +2086,54 @@ class CompanyRetriever:
 
         return score
 
-    def _looks_like_low_value_chunk(self, text):
+    def _short_chunk_has_strong_query_evidence(self, query, item):
+        """Preserve short factual chunks only when retrieval evidence is unusually strong.
+
+        This prevents a legitimate compact company record from being discarded only
+        because it contains fewer than 25 words, while keeping the existing noise and
+        confidence guardrails intact.
+        """
+        if not query or not item:
+            return False
+
+        text = str(item.get("text", "")).strip()
+        if not text or len(text.split()) >= 60:
+            return False
+
+        if (
+            self._is_reference_section(item)
+            and not self._query_requests_reference_material(query)
+        ):
+            return False
+
+        if self._reference_noise_score(text) >= 4:
+            return False
+
+        if self._citation_marker_score(text) >= 6:
+            return False
+
+        retrieval_score = float(item.get("score", 0.0) or 0.0)
+        query_match_score = self._query_match_score(query, text)
+
+        meaningful_tokens = self._meaningful_query_tokens(query)
+        normalized_text = self._normalize_text(text)
+        matched_tokens = sum(
+            1 for token in meaningful_tokens
+            if token in normalized_text
+        )
+        token_coverage = (
+            matched_tokens / len(meaningful_tokens)
+            if meaningful_tokens
+            else 0.0
+        )
+
+        return (
+            retrieval_score >= 0.75
+            and query_match_score >= 0.50
+            and token_coverage >= 0.50
+        )
+
+    def _looks_like_low_value_chunk(self, text, query=None, item=None):
 
         if not text:
             return True
@@ -1509,23 +2144,32 @@ class CompanyRetriever:
         noise_score = self._reference_noise_score(clean_text)
         citation_score = self._citation_marker_score(clean_text)
         has_definition = self._has_definition_signal(clean_text)
+        strong_short_evidence = self._short_chunk_has_strong_query_evidence(
+            query,
+            item,
+        )
 
         # Reject strong reference / URL chunks,
         # but do not reject real intro/definition paragraphs.
-        if noise_score >= 8:
+        if noise_score >= 8 and not has_definition:
             return True
 
         # Reject chunks that start like citation/reference list items.
         if citation_score >= 8 and re.match(r"^\[\d+\]", clean_text):
             return True
 
-        if len(words) < 25 and not has_definition:
+        if (
+            len(words) < 25
+            and not has_definition
+            and not strong_short_evidence
+        ):
             return True
 
         if (
             len(words) < 60
             and self._sentence_count(clean_text) == 0
             and not has_definition
+            and not strong_short_evidence
         ):
             return True
 
@@ -1555,6 +2199,16 @@ class CompanyRetriever:
 
         is_identity_lookup = self._is_identity_lookup_query(
             query
+        )
+
+        is_reference_section = self._is_reference_section(
+            item
+        )
+
+        reference_requested = (
+            self._query_requests_reference_material(
+                query
+            )
         )
 
         info_score = base_score
@@ -1611,6 +2265,22 @@ class CompanyRetriever:
                 2.10
             )
 
+        # Reference sections can contain the subject name many times and
+        # therefore score well lexically, but they are normally poor evidence
+        # for identity/overview questions. Penalize confirmed reference
+        # sections before reranking while still allowing explicit citation or
+        # bibliography queries to retrieve them.
+        if (
+            is_reference_section
+            and not reference_requested
+        ):
+
+            info_score -= (
+                6.00
+                if is_identity_lookup
+                else 2.50
+            )
+
         # Citation markers are normal in Wikipedia intro paragraphs.
         # Penalize lightly when the chunk has a real definition.
         if has_definition:
@@ -1627,7 +2297,11 @@ class CompanyRetriever:
                 1.50
             )
 
-        if self._looks_like_low_value_chunk(text):
+        if self._looks_like_low_value_chunk(
+            text,
+            query=query,
+            item=item,
+        ):
 
             info_score -= 1.00
 
@@ -1637,6 +2311,9 @@ class CompanyRetriever:
         item["_citation_score"] = citation_score
         item["_identity_noise_score"] = identity_noise_score
         item["_has_definition"] = has_definition
+        item["_is_reference_section"] = (
+            is_reference_section
+        )
 
         return info_score
 
@@ -1685,25 +2362,59 @@ class CompanyRetriever:
 
         return ranked
 
-    def _remove_low_information_chunks(self, results):
+    def _remove_low_information_chunks(
+        self,
+        query,
+        results
+    ):
 
         if not results:
             return results
 
-        useful_results = [
-            item for item in results
-            if not self._looks_like_low_value_chunk(
+        reference_requested = (
+            self._query_requests_reference_material(
+                query
+            )
+        )
+
+        useful_results = []
+
+        for item in results:
+
+            if (
+                not reference_requested
+                and self._is_reference_section(
+                    item
+                )
+            ):
+
+                continue
+
+            if self._looks_like_low_value_chunk(
                 item.get(
                     "text",
                     ""
-                )
+                ),
+                query=query,
+                item=item,
+            ):
+
+                continue
+
+            useful_results.append(
+                item
             )
-        ]
 
         # If everything is filtered out,
         # do not return empty. Keep the best sorted candidates.
         if useful_results:
             return useful_results
+
+        if self._is_identity_lookup_query(
+            query
+        ):
+
+            return []
 
         return results
 
@@ -1724,6 +2435,17 @@ class CompanyRetriever:
         useful_results = []
 
         for item in results:
+
+            if (
+                self._is_reference_section(
+                    item
+                )
+                and not self._query_requests_reference_material(
+                    query
+                )
+            ):
+
+                continue
 
             identity_noise_score = item.get(
                 "_identity_noise_score",
@@ -1794,9 +2516,83 @@ class CompanyRetriever:
         if useful_results:
             return useful_results
 
-        # Safety fallback:
-        # Return the best original candidate only.
-        return results[:1]
+        # For an identity lookup, returning a known noisy/reference chunk is
+        # worse than returning no context because it invites a hallucinated
+        # biography. Let the normal no-context fallback handle this safely.
+        return []
+
+    def _prepare_identity_reranker_candidates(
+        self,
+        query,
+        ranked_candidates,
+        filtered_candidates,
+        limit=8,
+        minimum_pool=6
+    ):
+
+        """Keep a useful multi-candidate pool for identity reranking.
+
+        Earlier filtering could collapse a biography lookup to one reference
+        chunk before the CrossEncoder had a chance to compare alternatives.
+        This method keeps filtered candidates first, then backfills from the
+        informative ranking while excluding confirmed reference sections.
+        """
+
+        selected = []
+        selected_ids = set()
+
+        def add_candidate(item):
+
+            item_id = id(item)
+
+            if item_id in selected_ids:
+                return
+
+            if (
+                self._is_reference_section(
+                    item
+                )
+                and not self._query_requests_reference_material(
+                    query
+                )
+            ):
+
+                return
+
+            selected_ids.add(
+                item_id
+            )
+
+            selected.append(
+                item
+            )
+
+        for item in filtered_candidates:
+
+            add_candidate(
+                item
+            )
+
+            if len(selected) >= limit:
+                return selected[:limit]
+
+        target_pool = min(
+            minimum_pool,
+            limit
+        )
+
+        if len(selected) < target_pool:
+
+            for item in ranked_candidates:
+
+                add_candidate(
+                    item
+                )
+
+                if len(selected) >= target_pool:
+                    break
+
+        return selected[:limit]
 
     def _apply_diversity_filter(
         self,
@@ -1839,6 +2635,95 @@ class CompanyRetriever:
 
             return []
 
+        structured_reference = extract_structured_reference(
+            query
+        )
+
+        if structured_reference:
+
+            exact_results = (
+                self._retrieve_exact_structured_reference(
+                    structured_reference
+                )
+            )
+
+            if exact_results:
+
+                if DEBUG_RETRIEVAL:
+
+                    print(
+                        "\n===== EXACT STRUCTURED LOOKUP ====="
+                    )
+                    print(
+                        f"Requested : "
+                        f"{structured_reference.display_name}"
+                    )
+                    print(
+                        f"Matches   : {len(exact_results)}"
+                    )
+
+                    for item in exact_results:
+
+                        metadata = item.get(
+                            "metadata",
+                            {}
+                        )
+
+                        print(
+                            f"- "
+                            f"{metadata.get('file_name', 'Unknown')} "
+                            f"chunks "
+                            f"{metadata.get('exact_chunk_start', metadata.get('chunk_id', '?'))}"
+                            f"-"
+                            f"{metadata.get('exact_chunk_end', metadata.get('chunk_id', '?'))}"
+                        )
+
+                    print(
+                        "===================================\n"
+                    )
+
+                self._record_qa_stage(
+                    "EXACT STRUCTURED",
+                    exact_results,
+                    limit=len(exact_results),
+                    accepted=True
+                )
+
+                evidence_logger.record_event(
+                    event_name="EXACT STRUCTURED RETRIEVAL",
+                    status="MATCHED",
+                    details={
+                        "reference": (
+                            structured_reference.display_name
+                        ),
+                        "matches": len(exact_results),
+                    }
+                )
+
+                evidence_logger.record_retrieval_summary(
+                    bm25_candidates=0,
+                    vector_candidates=0,
+                    hybrid_candidates=0,
+                    reranker_candidates=0,
+                    accepted_chunks=len(exact_results),
+                    rejected_chunks=0,
+                    final_chunks=len(exact_results),
+                    configured_top_k=len(exact_results),
+                    confidence_threshold=None
+                )
+
+                return exact_results
+
+            evidence_logger.record_event(
+                event_name="EXACT STRUCTURED RETRIEVAL",
+                status="NO METADATA MATCH",
+                details={
+                    "reference": (
+                        structured_reference.display_name
+                    ),
+                }
+            )
+
         reranker_candidates_count = 0
         accepted_chunks_count = 0
         rejected_chunks_count = 0
@@ -1847,11 +2732,29 @@ class CompanyRetriever:
             query
         )
 
+        is_identity_mode = self._is_identity_lookup_query(
+            query
+        )
+
         final_top_k = self._final_top_k_for_query(
             query
         )
 
-        if is_list_mode:
+        if structured_reference:
+
+            # Legacy/incomplete metadata fallback: search a wider pool, then
+            # keep only chunks that explicitly begin with the requested ID.
+            bm25_top_k = max(
+                BM25_TOP_K,
+                40
+            )
+
+            vector_top_k = max(
+                VECTOR_TOP_K,
+                40
+            )
+
+        elif is_list_mode:
 
             bm25_top_k = max(
                 BM25_TOP_K,
@@ -1861,6 +2764,22 @@ class CompanyRetriever:
             vector_top_k = max(
                 VECTOR_TOP_K,
                 60
+            )
+
+        elif is_identity_mode:
+
+            # Identity/overview questions need a slightly wider initial pool.
+            # Wikipedia-like sources can otherwise fill the first ten hits
+            # with citations/references before the biography introduction is
+            # seen by the reranker.
+            bm25_top_k = max(
+                BM25_TOP_K,
+                20
+            )
+
+            vector_top_k = max(
+                VECTOR_TOP_K,
+                20
             )
 
         else:
@@ -1950,6 +2869,68 @@ class CompanyRetriever:
                 print(f"Final Top K : {final_top_k}")
                 print("=============================\n")
 
+        if structured_reference:
+
+            structured_fallback_candidate_count = len(
+                merged
+            )
+
+            merged = self._filter_for_structured_reference(
+                merged,
+                structured_reference
+            )
+
+            if not merged:
+
+                if DEBUG_RETRIEVAL:
+                    print(
+                        "\n===== STRUCTURED ID CONSISTENCY ====="
+                    )
+                    print(
+                        f"Requested : "
+                        f"{structured_reference.display_name}"
+                    )
+                    print(
+                        "Result    : NO CONSISTENT FALLBACK CHUNK"
+                    )
+                    print(
+                        "=====================================\n"
+                    )
+
+                evidence_logger.record_event(
+                    event_name="STRUCTURED ID CONSISTENCY",
+                    status="REJECTED",
+                    details={
+                        "reference": (
+                            structured_reference.display_name
+                        ),
+                        "reason": (
+                            "No fallback chunk explicitly starts with "
+                            "the requested structured identifier."
+                        ),
+                    }
+                )
+
+                evidence_logger.record_retrieval_summary(
+                    bm25_candidates=len(bm25_results),
+                    vector_candidates=len(vector_results),
+                    hybrid_candidates=0,
+                    reranker_candidates=0,
+                    accepted_chunks=0,
+                    rejected_chunks=(
+                        structured_fallback_candidate_count
+                    ),
+                    final_chunks=0,
+                    configured_top_k=final_top_k,
+                    confidence_threshold=(
+                        MIN_RETRIEVAL_SCORE
+                        if ENABLE_RERANKER
+                        else None
+                    )
+                )
+
+                return []
+
         candidates = self._focus_top_source_for_short_query(
             query,
             merged
@@ -1957,6 +2938,10 @@ class CompanyRetriever:
 
         candidates = self._prioritize_informative_chunks(
             query,
+            candidates
+        )
+
+        informative_candidates = list(
             candidates
         )
 
@@ -1970,6 +2955,7 @@ class CompanyRetriever:
         else:
 
             candidates = self._remove_low_information_chunks(
+                query,
                 candidates
             )
 
@@ -1977,6 +2963,18 @@ class CompanyRetriever:
                 query,
                 candidates
             )
+
+            if is_identity_mode:
+
+                candidates = (
+                    self._prepare_identity_reranker_candidates(
+                        query=query,
+                        ranked_candidates=informative_candidates,
+                        filtered_candidates=candidates,
+                        limit=8,
+                        minimum_pool=6
+                    )
+                )
 
         # List questions need more candidates because answers
         # may be spread across several chunks.

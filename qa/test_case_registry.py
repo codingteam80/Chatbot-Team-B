@@ -787,16 +787,40 @@ def _contains_any(
     alternatives: Iterable[str]
 ) -> bool:
 
-    return any(
-        _normalize_text(
+    for alternative in alternatives:
+
+        if not str(alternative).strip():
+            continue
+
+        normalized_alternative = _normalize_text(
             alternative
         )
-        in normalized_answer
-        for alternative in alternatives
-        if str(
-            alternative
-        ).strip()
-    )
+
+        if not normalized_alternative:
+            continue
+
+        if normalized_alternative in normalized_answer:
+            return True
+
+        # Allow one or two inserted name tokens, e.g. "Jose Rizal" should
+        # match "José Protasio Rizal". Keep this deliberately narrow so
+        # ordinary expected phrases do not become fuzzy semantic matches.
+        tokens = normalized_alternative.split()
+
+        if (
+            len(tokens) == 2
+            and all(len(token) >= 3 for token in tokens)
+        ):
+            pattern = (
+                rf"\b{re.escape(tokens[0])}\b"
+                rf"(?:\s+[a-z0-9]+){{0,2}}\s+"
+                rf"\b{re.escape(tokens[1])}\b"
+            )
+
+            if re.search(pattern, normalized_answer):
+                return True
+
+    return False
 
 
 def _count_markdown_bullets(

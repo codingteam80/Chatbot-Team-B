@@ -1,5 +1,7 @@
 import re
 
+from utils.structured_reference import extract_structured_reference
+
 
 class QueryEnricher:
     """
@@ -248,6 +250,13 @@ class QueryEnricher:
 
         original_question = question.strip()
         lowered_question = original_question.lower()
+
+        # Exact structured references must remain precise.
+        # Generic policy/standard enrichment terms can dilute identifiers
+        # such as Rule 1.2 or Dir 4.12 and pull retrieval toward unrelated
+        # sections. The retriever has a metadata-first exact lookup path.
+        if extract_structured_reference(original_question):
+            return original_question
 
         intent_text = (
             intent_question

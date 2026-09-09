@@ -89,8 +89,18 @@ The requested answer type has priority over other facts in the same context.
   Return the method or ordered steps.
 
 - DEFINITION OR DETAIL:
-  Return the direct definition, explanation, rule, requirement, behavior,
-  configuration, or requested detail.
+  Return the direct definition, rule, requirement, behavior, configuration,
+  or specifically requested detail.
+
+- GROUNDED EXPLANATION:
+  Explain the requested subject sufficiently for the user to understand the
+  relevant information that COMPANY KNOWLEDGE provides. Cover the important
+  supported parts of the requested topic, such as what it is or requires,
+  why or rationale, scope or conditions, important actions or implications,
+  and examples only when they materially help. Do not force categories that
+  are not present in COMPANY KNOWLEDGE. Prefer 2 to 5 concise sentences or
+  a short bullet list when the source contains several distinct points.
+  Never add background knowledge or bridge gaps with assumptions.
 
 - LIST:
   Return all relevant explicitly stated items.
@@ -117,10 +127,13 @@ ANSWER FORMAT
 9. For multi-part questions, answer every requested part in the original order.
 10. For multi-part questions, write only the direct answers. Do not copy
     each question clause as a heading, label, or prefix before a colon.
-11. Do not add unrelated facts.
-12. Use the language of the user's question unless another language is requested.
-13. Correct grammar only when the factual meaning remains unchanged.
-14. Do not add a Sources section or citations unless requested.
+11. For Explain or Describe requests, do not reduce a supported multi-point
+    explanation to a one-line definition. Cover the important relevant content
+    needed to understand the requested topic, while staying concise and grounded.
+12. Do not add unrelated facts.
+13. Use the language of the user's question unless another language is requested.
+14. Correct grammar only when the factual meaning remains unchanged.
+15. Do not add a Sources section or citations unless requested.
 """
 
 

@@ -23,6 +23,7 @@ numpy==2.3.1
 python-docx==1.2.0
 openpyxl==3.1.5
 pypdf==5.7.0
+PyMuPDF==1.26.7
 
 tqdm==4.67.1
 
@@ -31,6 +32,8 @@ python-dotenv==1.1.1
 joblib==1.5.1
 
 requests==2.32.4
+chardet==5.2.0
+pydantic==2.11.10
 
 einops==0.8.1
 hf_xet==1.2.0

@@ -23,6 +23,7 @@ from chat.query_normalizer import QueryNormalizer
 from chat.conversation_resolver import ConversationResolver
 from chat.query_enricher import QueryEnricher
 from qa.evidence_logger import evidence_logger
+from utils.structured_reference import extract_structured_reference
 
 
 class AnswerService:
@@ -319,6 +320,52 @@ class AnswerService:
             "relation or target in COMPANY KNOWLEDGE."
         )
 
+        structured_reference = extract_structured_reference(
+            resolved_question or question
+        )
+
+        if structured_reference:
+
+            if re.search(
+                r"^(?:explain|describe)\b",
+                clean
+            ):
+
+                return (
+                    "STRUCTURED EXPLANATION: Explain the exact requested "
+                    "Rule, Directive, or Section using the important supported "
+                    "content tied to that same identifier. For a Rule or "
+                    "Directive, state the exact requirement first, then cover "
+                    "relevant amplification or scope and the rationale when "
+                    "available. Keep the explanation complete enough to "
+                    "understand the requested item without adding unsupported "
+                    "information, unrelated neighboring identifiers, or "
+                    "cross-reference content as a substitute for the target."
+                    + target_instruction
+                )
+
+            if (
+                structured_reference.kind in {"rule", "directive"}
+                and (
+                    re.search(
+                        r"^what\s+does\b.+\bsay\b",
+                        clean
+                    )
+                    or re.search(
+                        r"^what\s+is\s+(?:rule|dir(?:ective)?)\b",
+                        clean
+                    )
+                )
+            ):
+
+                return (
+                    "STRUCTURED STATEMENT: Return the exact requested Rule "
+                    "or Directive statement itself. The first direct "
+                    "requirement/title line has priority over rationale, "
+                    "examples, cross-references, or applicability details."
+                    + target_instruction
+                )
+
         if self._is_compound_question(
             question
         ):
@@ -528,14 +575,31 @@ class AnswerService:
             )
 
         if re.search(
-            r"^(?:what is|what was|define|explain|describe)\b",
+            r"^(?:explain|describe)\b",
             clean
         ):
 
             return (
-                "DEFINITION OR DETAIL: Return the direct definition, "
-                "explanation, rule, requirement, behavior, configuration, "
-                "or requested detail."
+                "GROUNDED EXPLANATION: Explain the requested subject using "
+                "the important relevant information explicitly supported by "
+                "COMPANY KNOWLEDGE. Cover what it is or requires, and include "
+                "the relevant rationale, scope, conditions, actions, "
+                "implications, or examples when those are present and help "
+                "the user understand the topic. Prefer 2 to 5 concise "
+                "sentences or a short bullet list for several distinct "
+                "points. Do not force missing categories, add outside "
+                "knowledge, or pad the answer with unrelated details."
+                + target_instruction
+            )
+
+        if re.search(
+            r"^(?:what is|what was|define)\b",
+            clean
+        ):
+
+            return (
+                "DEFINITION OR DETAIL: Return the direct definition, rule, "
+                "requirement, behavior, configuration, or requested detail."
                 + target_instruction
             )
 
@@ -704,25 +768,38 @@ Rules:
    Do not merely state that approval is required.
 10. If the REQUIRED ANSWER FOCUS is an entity type, return the entity directly.
 11. Do not start with Yes or No unless the REQUIRED ANSWER FOCUS is YES OR NO.
-12. If the draft already has the correct focus and facts, return it unchanged.
-13. If the draft has the wrong focus, return a corrected direct answer using
+12. If the REQUIRED ANSWER FOCUS is STRUCTURED STATEMENT, return the exact
+    requested Rule or Directive statement itself; do not replace it with its
+    rationale, applicability, category, or a nearby cross-reference.
+13. If the REQUIRED ANSWER FOCUS is STRUCTURED EXPLANATION, state the exact
+    requested Rule or Directive first, then add a concise explanation or
+    rationale explicitly tied to that same identifier when available.
+14. If the draft already has the correct focus and facts, return it unchanged.
+15. If the draft has the wrong focus, return a corrected direct answer using
     only explicitly stated COMPANY KNOWLEDGE.
-14. Return a complete grammatical answer.
-15. Correct singular/plural agreement when the factual meaning stays unchanged.
-16. If the requested focused answer is not explicitly supported, return exactly:
+16. Return a complete grammatical answer.
+17. Correct singular/plural agreement when the factual meaning stays unchanged.
+18. If the requested focused answer is not explicitly supported, return exactly:
 {fallback}
-17. Return only the final answer.
+19. Return only the final answer.
+20. Never output labels or commentary such as DRAFT ANSWER,
+    MATCHED ANSWER FOCUS, REQUIRED ANSWER FOCUS, VERIFICATION,
+    CORRECTED ANSWER, or ANSWER:.
+21. Your entire output must be either the final direct answer text or the
+    exact fallback sentence from rule 18.
 """
 
         try:
 
-            verified_answer = self.llm.generate(
+            verifier_output = self.llm.generate(
                 verify_prompt
             )
 
-            verified_answer = self._postprocess_answer(
-                verified_answer,
-                question
+            verified_answer = (
+                self._extract_verifier_answer(
+                    verifier_output,
+                    draft_answer
+                )
             )
 
             if not verified_answer:
@@ -759,6 +836,83 @@ Rules:
         except Exception:
 
             return draft_answer
+
+    def _extract_verifier_answer(
+        self,
+        verifier_output: str,
+        draft_answer: str = ""
+    ):
+
+        """Extract only the answer text from an over-verbose verifier.
+
+        Small local models sometimes ignore the verifier instruction and
+        return a transcript such as ``DRAFT ANSWER: ...`` followed by
+        ``MATCHED ANSWER FOCUS`` and ``ANSWER: ...``. That internal
+        commentary must never reach the safety gate or UI.
+        """
+
+        if not verifier_output:
+            return draft_answer
+
+        fallback = NO_RESULT_MESSAGE.strip()
+        raw = verifier_output.strip()
+
+        if raw.lower() == fallback.lower():
+            return fallback
+
+        # Prefer the last explicit final-answer marker because verifier
+        # transcripts often repeat the draft before the corrected answer.
+        answer_matches = list(
+            re.finditer(
+                r"(?im)^\s*(?:final\s+answer|corrected\s+answer|answer)\s*:\s*",
+                raw
+            )
+        )
+
+        if answer_matches:
+
+            candidate = raw[
+                answer_matches[-1].end():
+            ].strip()
+
+            # Stop if another known verifier metadata label somehow follows.
+            candidate = re.split(
+                r"(?im)^\s*(?:draft\s+answer|matched\s+answer\s+focus|"
+                r"required\s+answer\s+focus|verification)\s*:\s*",
+                candidate,
+                maxsplit=1
+            )[0].strip()
+
+            candidate = self._postprocess_answer(
+                candidate
+            )
+
+            if candidate:
+                return candidate
+
+        verifier_labels = (
+            r"(?im)^\s*draft\s+answer\s*:",
+            r"(?im)^\s*matched\s+answer\s+focus\s*:",
+            r"(?im)^\s*required\s+answer\s+focus\s*:",
+            r"(?im)^\s*verification\s*:",
+        )
+
+        if any(
+            re.search(
+                pattern,
+                raw
+            )
+            for pattern in verifier_labels
+        ):
+
+            # Metadata-only verifier output is not a trustworthy corrected
+            # answer. Preserve the already generated draft rather than
+            # passing internal labels into the output safety gate.
+            return draft_answer
+
+        return self._postprocess_answer(
+            raw
+        )
 
     def _remove_invalid_yes_no_prefix(
         self,
@@ -1252,6 +1406,18 @@ Rules:
         )
 
         answer = re.sub(
+            r"(?im)^\s*(?:structured\s+statement|structured\s+explanation|"
+            r"grounded\s+explanation|definition\s+or\s+detail|identity\s+or\s+overview|"
+            r"short\s+topic\s+overview|reason|procedure|list|time|location|"
+            r"quantity|entity\s+or\s+choice|person\s+or\s+entity|"
+            r"authorized\s+entity|responsible\s+entity|approver|"
+            r"eligible\s+or\s+entitled\s+entity|compound|general)\s*:\s*",
+            "",
+            answer,
+            count=1
+        )
+
+        answer = re.sub(
             r"(?im)^\s*```(?:markdown|text)?\s*$",
             "",
             answer
@@ -1264,6 +1430,822 @@ Rules:
         )
 
         return answer.strip()
+
+    def _structured_statement_from_context(
+        self,
+        context: str,
+        reference
+    ):
+
+        """Extract the first direct statement for an exact Rule/Directive.
+
+        Exact structured retrieval already returns the requested block first.
+        This deterministic extraction prevents a small local model from
+        answering with the rationale instead of the rule statement.
+        """
+
+        if (
+            not context
+            or reference is None
+            or reference.kind not in {"rule", "directive"}
+        ):
+            return ""
+
+        lines = [
+            line.strip()
+            for line in context.splitlines()
+        ]
+
+        if reference.kind == "rule":
+            heading_re = re.compile(
+                rf"^Rule\s+{re.escape(reference.identifier)}(?:\s*[:\-–—].*)?$",
+                re.IGNORECASE
+            )
+        else:
+            heading_re = re.compile(
+                rf"^(?:Dir|Directive)\s+{re.escape(reference.identifier)}(?:\s*[:\-–—].*)?$",
+                re.IGNORECASE
+            )
+
+        start_index = None
+
+        for index, line in enumerate(lines):
+            if heading_re.match(line):
+                start_index = index
+                break
+
+        if start_index is None:
+            return ""
+
+        statement_lines = []
+        stop_labels = re.compile(
+            r"^(?:Category|Analysis|Applies\s+to|Rationale|Amplification|"
+            r"Example|Examples|Exception|Exceptions|See\s+also|Notes?)\b",
+            re.IGNORECASE
+        )
+
+        for line in lines[start_index + 1:]:
+            if not line:
+                if statement_lines:
+                    break
+                continue
+
+            if line.startswith("=====") or stop_labels.match(line):
+                break
+
+            statement_lines.append(line)
+
+        return re.sub(
+            r"\s+",
+            " ",
+            " ".join(statement_lines)
+        ).strip()
+
+    def _structured_rationale_from_context(
+        self,
+        context: str
+    ):
+
+        """Return the first complete rationale sentence when present."""
+
+        if not context:
+            return ""
+
+        match = re.search(
+            r"(?ims)^\s*Rationale\s*$\s*(.+?)(?=^\s*(?:Amplification|Example|"
+            r"Exception|See\s+also|Category|Analysis|Applies\s+to|Rule\s+\d|"
+            r"Dir(?:ective)?\s+\d|Section\s+\d|={3,})\b|\Z)",
+            context
+        )
+
+        if not match:
+            return ""
+
+        rationale = re.sub(
+            r"\s+",
+            " ",
+            match.group(1)
+        ).strip()
+
+        if not rationale:
+            return ""
+
+        sentence_match = re.match(
+            r"(.+?[.!?])(?:\s|$)",
+            rationale
+        )
+
+        if sentence_match:
+            return sentence_match.group(1).strip()
+
+        return rationale
+
+    def _structured_labeled_block_from_context(
+        self,
+        context: str,
+        label: str
+    ):
+
+        """Return one named subsection from an exact structured block.
+
+        This keeps explanation enrichment deterministic and source-grounded.
+        It never searches outside the already selected exact structured context.
+        """
+
+        if not context or not label:
+            return ""
+
+        boundary = (
+            r"(?:Category|Analysis|Applies\s+to|Rationale|Amplification|"
+            r"Example|Examples|Exception|Exceptions|See\s+also|Notes?|"
+            r"Rule\s+\d|Dir(?:ective)?\s+\d|Section\s+\d|={3,})"
+        )
+
+        match = re.search(
+            rf"(?ims)^\s*{re.escape(label)}\s*$\s*(.+?)(?=^\s*{boundary}\b|\Z)",
+            context
+        )
+
+        if not match:
+            return ""
+
+        return re.sub(
+            r"\s+",
+            " ",
+            match.group(1)
+        ).strip()
+
+    def _limit_grounded_explanation_text(
+        self,
+        text: str,
+        max_sentences: int = 3,
+        max_chars: int = 900
+    ):
+
+        """Keep a supported explanation useful without dumping a whole section."""
+
+        clean = re.sub(
+            r"\s+",
+            " ",
+            (text or "")
+        ).strip()
+
+        if not clean:
+            return ""
+
+        sentences = re.split(
+            r"(?<=[.!?])\s+(?=[A-Z0-9])",
+            clean
+        )
+
+        selected = " ".join(
+            sentence.strip()
+            for sentence in sentences[:max_sentences]
+            if sentence.strip()
+        ).strip()
+
+        if not selected:
+            selected = clean
+
+        if len(selected) <= max_chars:
+            return selected
+
+        shortened = selected[:max_chars].rsplit(" ", 1)[0].rstrip(" ,;:")
+
+        # A trailing ellipsis marks presentation truncation only; all returned
+        # words still come directly from the exact structured context.
+        return shortened + "..."
+
+    def _structured_explanation_from_context(
+        self,
+        context: str,
+        reference,
+        display_name: str
+    ):
+
+        """Build a fuller exact Rule/Directive explanation from its own block."""
+
+        statement = self._structured_statement_from_context(
+            context,
+            reference
+        )
+
+        if not statement:
+            return ""
+
+        pieces = [
+            f"{display_name}: {statement.rstrip('.')}."
+        ]
+
+        amplification = self._structured_labeled_block_from_context(
+            context,
+            "Amplification"
+        )
+
+        if amplification:
+            pieces.append(
+                self._limit_grounded_explanation_text(
+                    amplification,
+                    max_sentences=2,
+                    max_chars=550
+                )
+            )
+
+        rationale = self._structured_labeled_block_from_context(
+            context,
+            "Rationale"
+        )
+
+        if rationale:
+            pieces.append(
+                self._limit_grounded_explanation_text(
+                    rationale,
+                    max_sentences=3,
+                    max_chars=900
+                )
+            )
+
+        return " ".join(
+            piece
+            for piece in pieces
+            if piece
+        ).strip()
+
+    def _section_heading_and_intro_from_context(
+        self,
+        context: str,
+        reference
+    ):
+
+        """Return the exact Section title and its opening explanation."""
+
+        if (
+            not context
+            or reference is None
+            or reference.kind != "section"
+        ):
+            return "", ""
+
+        lines = [
+            line.strip()
+            for line in context.splitlines()
+            if line.strip()
+            and not line.strip().startswith("=====")
+        ]
+
+        identifier = re.escape(reference.identifier)
+        heading_re = re.compile(
+            rf"^(?:Section\s+)?{identifier}\s*(?::|[-–—])?\s*(.*)$",
+            re.IGNORECASE
+        )
+        subsection_re = re.compile(
+            rf"^{identifier}\.\d+(?:\s+.*)?$",
+            re.IGNORECASE
+        )
+
+        start_index = None
+        title = ""
+
+        for index, line in enumerate(lines):
+            match = heading_re.match(line)
+            if not match:
+                continue
+
+            # Do not confuse 6.1 / 6.2 with the Section 6 heading.
+            if subsection_re.match(line):
+                continue
+
+            start_index = index
+            title = match.group(1).strip(" :-–—")
+            break
+
+        if start_index is None:
+            return "", ""
+
+        intro_lines = []
+
+        for line in lines[start_index + 1:]:
+            if subsection_re.match(line):
+                break
+
+            repeated = heading_re.match(line)
+            if repeated and not subsection_re.match(line):
+                break
+
+            intro_lines.append(line)
+
+        intro = self._limit_grounded_explanation_text(
+            " ".join(intro_lines),
+            max_sentences=2,
+            max_chars=650
+        )
+
+        return title, intro
+
+    def _section_subtopic_titles_from_context(
+        self,
+        context: str,
+        reference,
+        max_topics: int = 6
+    ):
+
+        """Extract direct child subsection titles from one exact Section."""
+
+        if (
+            not context
+            or reference is None
+            or reference.kind != "section"
+        ):
+            return []
+
+        lines = [
+            line.strip()
+            for line in context.splitlines()
+            if line.strip()
+            and not line.strip().startswith("=====")
+        ]
+
+        identifier = re.escape(reference.identifier)
+        child_re = re.compile(
+            rf"^{identifier}\.(\d+)(?:\s+(.*))?$",
+            re.IGNORECASE
+        )
+
+        topics = []
+        seen = set()
+
+        for index, line in enumerate(lines):
+            match = child_re.match(line)
+            if not match:
+                continue
+
+            title = (match.group(2) or "").strip(" :-–—")
+
+            if not title and index + 1 < len(lines):
+                candidate = lines[index + 1].strip()
+                if (
+                    candidate
+                    and len(candidate) <= 100
+                    and not re.match(r"^\d+(?:\.\d+)+\b", candidate)
+                    and not re.match(
+                        rf"^Section\s+{identifier}\b",
+                        candidate,
+                        re.IGNORECASE
+                    )
+                    and not candidate.endswith((".", "!", "?"))
+                ):
+                    title = candidate
+
+            normalized = re.sub(r"\s+", " ", title).strip().casefold()
+
+            if not normalized or normalized in seen:
+                continue
+
+            seen.add(normalized)
+            topics.append(re.sub(r"\s+", " ", title).strip())
+
+            if len(topics) >= max_topics:
+                break
+
+        return topics
+
+    def _section_subtopic_summaries_from_context(
+        self,
+        context: str,
+        reference,
+        max_topics: int = 4
+    ):
+
+        """Return direct child subsection titles with one grounded key sentence."""
+
+        if (
+            not context
+            or reference is None
+            or reference.kind != "section"
+        ):
+            return []
+
+        lines = [
+            line.strip()
+            for line in context.splitlines()
+            if line.strip()
+            and not line.strip().startswith("=====")
+        ]
+
+        identifier = re.escape(reference.identifier)
+        child_re = re.compile(
+            rf"^{identifier}\.(\d+)(?:\s+(.*))?$",
+            re.IGNORECASE
+        )
+        repeated_section_re = re.compile(
+            rf"^Section\s+{identifier}\b",
+            re.IGNORECASE
+        )
+        any_subsection_re = re.compile(
+            rf"^{identifier}\.\d+(?:\.\d+)*\b",
+            re.IGNORECASE
+        )
+
+        summaries = []
+        seen = set()
+        index = 0
+
+        while index < len(lines):
+            match = child_re.match(lines[index])
+            if not match:
+                index += 1
+                continue
+
+            title = (match.group(2) or "").strip(" :-–—")
+            content_start = index + 1
+
+            if not title and content_start < len(lines):
+                candidate = lines[content_start]
+                if (
+                    candidate
+                    and len(candidate) <= 100
+                    and not any_subsection_re.match(candidate)
+                    and not repeated_section_re.match(candidate)
+                    and not candidate.endswith((".", "!", "?"))
+                ):
+                    title = candidate
+                    content_start += 1
+
+            if not title:
+                index += 1
+                continue
+
+            content_lines = []
+            cursor = content_start
+
+            while cursor < len(lines):
+                candidate = lines[cursor]
+                if child_re.match(candidate) or repeated_section_re.match(candidate):
+                    break
+                if any_subsection_re.match(candidate):
+                    break
+                content_lines.append(candidate)
+                cursor += 1
+
+            raw_content = re.sub(
+                r"\s+",
+                " ",
+                " ".join(content_lines)
+            ).strip()
+
+            colon_index = raw_content.find(":")
+            if (
+                0 < colon_index <= 220
+                and not re.search(r"[.!?]", raw_content[:colon_index])
+            ):
+                key_text = raw_content[:colon_index].strip()
+                key_text = re.sub(
+                    r",?\s+for\s+example$",
+                    "",
+                    key_text,
+                    flags=re.IGNORECASE
+                ).strip()
+                if key_text:
+                    key_text += "."
+            else:
+                key_text = self._limit_grounded_explanation_text(
+                    raw_content,
+                    max_sentences=1,
+                    max_chars=240
+                )
+
+            normalized = re.sub(r"\s+", " ", title).strip().casefold()
+
+            if normalized not in seen:
+                seen.add(normalized)
+                summaries.append((
+                    re.sub(r"\s+", " ", title).strip(),
+                    key_text
+                ))
+
+            if len(summaries) >= max_topics:
+                break
+
+            index = max(cursor, index + 1)
+
+        return summaries
+
+    def _structured_section_explanation_from_context(
+        self,
+        context: str,
+        reference,
+        current_answer: str = ""
+    ):
+
+        """Build a safe fallback when a model explains only a Section title."""
+
+        clean_answer = re.sub(
+            r"\s+",
+            " ",
+            (current_answer or "")
+        ).strip()
+
+        # Preserve a model answer that is already a substantive explanation.
+        if (
+            len(clean_answer) >= 140
+            and (
+                len(re.findall(r"[.!?](?:\s|$)", clean_answer)) >= 2
+                or "\n- " in (current_answer or "")
+            )
+        ):
+            return current_answer
+
+        title, intro = self._section_heading_and_intro_from_context(
+            context,
+            reference
+        )
+        topics = self._section_subtopic_titles_from_context(
+            context,
+            reference
+        )
+        topic_summaries = self._section_subtopic_summaries_from_context(
+            context,
+            reference
+        )
+
+        if not title and not intro and not topics:
+            return current_answer
+
+        pieces = []
+        display = f"Section {reference.identifier}"
+
+        if title:
+            pieces.append(f"{display}: {title.rstrip('.')}")
+        elif clean_answer:
+            pieces.append(clean_answer.rstrip("."))
+        else:
+            pieces.append(display)
+
+        if intro:
+            pieces.append(intro.rstrip())
+
+        if topic_summaries:
+            detail_items = []
+            for topic_title, key_text in topic_summaries:
+                cleaned_key_text = (key_text or "").strip()
+                if (
+                    cleaned_key_text.endswith(".")
+                    and not cleaned_key_text.endswith("...")
+                ):
+                    cleaned_key_text = cleaned_key_text[:-1]
+
+                if cleaned_key_text:
+                    detail_items.append(
+                        f"- {topic_title}: {cleaned_key_text}"
+                    )
+                else:
+                    detail_items.append(f"- {topic_title}")
+
+            pieces.append(
+                "Key points:\n"
+                + "\n".join(detail_items)
+            )
+        elif topics:
+            if len(topics) == 1:
+                topic_text = topics[0]
+            elif len(topics) == 2:
+                topic_text = f"{topics[0]} and {topics[1]}"
+            else:
+                topic_text = ", ".join(topics[:-1]) + f", and {topics[-1]}"
+
+            pieces.append(
+                "The section covers topics including "
+                + topic_text
+                + "."
+            )
+
+        prose_pieces = []
+        bullet_piece = ""
+
+        for piece in pieces:
+            if not piece:
+                continue
+            if "\n- " in piece:
+                bullet_piece = piece.strip()
+            else:
+                prose_pieces.append(piece.rstrip("."))
+
+        answer = ". ".join(prose_pieces).strip()
+
+        if answer and not answer.endswith("."):
+            answer += "."
+
+        if bullet_piece:
+            answer = (answer + "\n\n" + bullet_piece).strip()
+
+        return answer or current_answer
+
+    def _compact_label_value_pairs_from_context(
+        self,
+        context: str,
+        max_chars: int = 1600
+    ):
+
+        """Find compact label/value facts such as policy eligibility fields."""
+
+        if not context or len(context) > max_chars:
+            return []
+
+        lines = [
+            line.strip()
+            for line in context.splitlines()
+            if line.strip()
+            and not line.strip().startswith("=====")
+        ]
+
+        def looks_like_label(value: str) -> bool:
+            if not value or len(value) > 70:
+                return False
+            if value.endswith((".", "!", "?", ";")):
+                return False
+            if re.match(r"^(?:[-*•]|\d+[.)])\s+", value):
+                return False
+            words = value.split()
+            return 1 <= len(words) <= 8
+
+        pairs = []
+
+        for index in range(len(lines) - 1):
+            label = lines[index]
+            value = lines[index + 1]
+
+            if not looks_like_label(label):
+                continue
+            if looks_like_label(value):
+                continue
+            if len(value.split()) < 4:
+                continue
+
+            pairs.append((label, value))
+
+        return pairs
+
+    def _compact_pair_is_covered(
+        self,
+        answer: str,
+        label: str,
+        value: str
+    ):
+
+        normalized_answer = re.sub(
+            r"[^a-z0-9\s]",
+            " ",
+            (answer or "").lower()
+        )
+        normalized_answer = re.sub(r"\s+", " ", normalized_answer).strip()
+
+        label_tokens = [
+            token
+            for token in re.findall(r"[a-z0-9]+", label.lower())
+            if token not in {"the", "a", "an", "of", "and", "or", "leave", "policy"}
+            and len(token) >= 3
+        ]
+
+        if any(
+            re.search(rf"\b{re.escape(token)}\b", normalized_answer)
+            for token in label_tokens
+        ):
+            return True
+
+        value_stopwords = {
+            "the", "a", "an", "of", "and", "or", "to", "is",
+            "are", "all", "this", "that", "employee", "employees",
+            "leave", "policy", "listed", "above", "provides", "provided"
+        }
+        value_tokens = [
+            token
+            for token in re.findall(r"[a-z0-9]+", value.lower())
+            if token not in value_stopwords
+            and len(token) >= 4
+        ]
+
+        matches = sum(
+            1
+            for token in set(value_tokens)
+            if re.search(rf"\b{re.escape(token)}\b", normalized_answer)
+        )
+
+        return matches >= min(2, len(set(value_tokens))) if value_tokens else False
+
+    def _apply_grounded_explanation_coverage(
+        self,
+        context: str,
+        answer_focus: str,
+        current_answer: str
+    ):
+
+        """Add only omitted explicit facts from compact structured sources."""
+
+        if not answer_focus.startswith("GROUNDED EXPLANATION:"):
+            return current_answer
+
+        pairs = self._compact_label_value_pairs_from_context(context)
+
+        if len(pairs) < 3:
+            return current_answer
+
+        missing = [
+            (label, value)
+            for label, value in pairs
+            if not self._compact_pair_is_covered(
+                current_answer,
+                label,
+                value
+            )
+        ]
+
+        if not missing:
+            return current_answer
+
+        additions = [
+            f"{label}: {value}"
+            for label, value in missing[:3]
+        ]
+
+        base = (current_answer or "").strip()
+
+        if base and not base.endswith((".", "!", "?")):
+            base += "."
+
+        return " ".join(
+            part
+            for part in [base] + additions
+            if part
+        ).strip()
+
+    def _apply_structured_answer_focus(
+        self,
+        context: str,
+        question: str,
+        resolved_question: str,
+        answer_focus: str,
+        current_answer: str
+    ):
+
+        """Deterministically enforce exact structured answer intent."""
+
+        reference = extract_structured_reference(
+            resolved_question or question
+        )
+
+        if reference is None:
+            return current_answer
+
+        if reference.kind == "section":
+            if answer_focus.startswith("STRUCTURED EXPLANATION:"):
+                return self._structured_section_explanation_from_context(
+                    context=context,
+                    reference=reference,
+                    current_answer=current_answer
+                )
+            return current_answer
+
+        if reference.kind not in {"rule", "directive"}:
+            return current_answer
+
+        statement = self._structured_statement_from_context(
+            context,
+            reference
+        )
+
+        if not statement:
+            return current_answer
+
+        display_name = (
+            f"Directive {reference.identifier}"
+            if reference.kind == "directive"
+            and re.search(r"\bdirective\b", question or "", re.IGNORECASE)
+            else reference.display_name
+        )
+
+        if answer_focus.startswith("STRUCTURED STATEMENT:"):
+            return f"{display_name}: {statement}"
+
+        rationale = self._structured_rationale_from_context(
+            context
+        )
+
+        if answer_focus.startswith("STRUCTURED EXPLANATION:"):
+            explanation = self._structured_explanation_from_context(
+                context=context,
+                reference=reference,
+                display_name=display_name
+            )
+
+            if explanation:
+                return explanation
+
+            return f"{display_name}: {statement}"
+
+        if answer_focus.startswith("REASON:") and rationale:
+            return rationale
+
+        return current_answer
 
     def _contains_prompt_leak(
         self,
@@ -1358,8 +2340,17 @@ Rules:
 
         fallback = NO_RESULT_MESSAGE.strip()
 
+        # If a verifier ignored its output contract, recover the explicit
+        # final ANSWER section before checking for prompt leakage. This keeps
+        # internal verifier labels from causing a false fallback while still
+        # rejecting genuine prompt/instruction leakage.
+        cleaned = self._extract_verifier_answer(
+            answer,
+            ""
+        )
+
         cleaned = self._strip_output_wrappers(
-            answer
+            cleaned
         )
 
         cleaned = self._postprocess_answer(
@@ -2669,6 +3660,20 @@ Instructions:
                 draft_answer=answer,
                 answer_focus=answer_focus,
                 resolved_question=resolved_question
+            )
+
+            answer = self._apply_structured_answer_focus(
+                context=context,
+                question=final_question,
+                resolved_question=resolved_question,
+                answer_focus=answer_focus,
+                current_answer=answer
+            )
+
+            answer = self._apply_grounded_explanation_coverage(
+                context=context,
+                answer_focus=answer_focus,
+                current_answer=answer
             )
 
             if (
