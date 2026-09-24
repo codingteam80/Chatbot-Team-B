@@ -1,0 +1,30 @@
+DocuBot v6.5.5.5 Final Quality Check Harness
+============================================
+
+Purpose
+-------
+One controlled run for the four remaining project goals:
+1. Retrieval correctness / Recall / Precision / semantic consistency
+2. Answer-generation correctness after verified retrieval
+3. Normal-question combined latency target (<=25 seconds)
+4. Actual transactional add/modify/delete lifecycle
+
+Production behavior
+-------------------
+No generation model, embedding model, reranker, chunking, Top-K, retrieval
+threshold, MultiQuery production behavior, or KB transactional update policy is
+changed by this harness.
+
+QA harness hardening
+--------------------
+- Corrects the static validator for the current v6.5.5.4 notification-card build.
+- Makes retrieval/LLM/lifecycle diagnostics robust to direct execution from the project.
+- Strengthens delete lifecycle verification to require probe absence from Manifest,
+  Qdrant, and BM25 and exact restoration of baseline manifest/counts.
+- Verifies MISRA semantic Rule-index files remain byte-identical across the lifecycle.
+- Produces one evidence ZIP plus SHA256 for review.
+
+Run
+---
+Close DocuBot/Streamlit, then run:
+Run_Final_Quality_Check_v6.5.5.5.bat

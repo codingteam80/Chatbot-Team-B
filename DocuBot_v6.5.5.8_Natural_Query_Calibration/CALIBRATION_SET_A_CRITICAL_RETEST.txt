@@ -1,0 +1,42 @@
+DocuBot v6.5.5.8 — Critical Natural-Question Retest
+===================================================
+Run these in the normal DocuBot UI AFTER the patch validator passes.
+Do not tell DocuBot the expected Rule.
+
+1. List rules related to goto statements.
+   EXPECTED: Rules 15.1, 15.2, 15.3, 15.4; no Rule 20.14.
+
+2. Can I have an empty else block?
+   EXPECTED: Rule 15.7 context. It should qualify that Rule 15.7 applies to the terminating else of an if/else-if chain; that else needs a side effect or comment. It should NOT answer using Rule 15.6 as the primary rule.
+
+3. I have a helper function used only inside one .c file. Should it still be externally visible?
+   EXPECTED: Rule 8.7. Must NOT be rejected as an external-knowledge request.
+
+4. Kung isang translation unit lang gumagamit ng function, ano ang MISRA guidance sa linkage nito?
+   EXPECTED: Rule 8.7.
+
+5. I add two uint16_t values and store the result in a uint32_t. Is the wider destination enough?
+   EXPECTED: Rule 10.6.
+
+6. Kung 16-bit operands ang addition pero 32-bit variable ang destination, may MISRA concern ba?
+   EXPECTED: Rule 10.6.
+
+7. Does assigning a narrow arithmetic expression to a wider variable make the calculation itself wider?
+   EXPECTED: Rule 10.6.
+
+8. Can I write if (counter) under MISRA?
+   EXPECTED: Rule 14.4 is relevant; because counter's essential type is not stated, answer should not claim Rule 15.6 and should qualify that compliance depends on whether counter is essentially Boolean.
+
+9. Kelangan bang explicit comparison ang integer sa condition ng if?
+   EXPECTED: Rule 14.4; integer/non-Boolean scalar cannot be used directly as the controlling expression.
+
+10. A loop uses a pointer directly as its condition: while (ptr). Which rule is relevant?
+    EXPECTED: Rule 14.4.
+
+11. List mandatory MISRA rules.
+    EXPECTED includes: 9.1, 12.5, 13.6, 17.3, 17.4, 17.6, 19.1, 21.13, 21.17, 21.18, 21.19, 21.20, 22.2, 22.4, 22.5, 22.6.
+
+12. What does Rule 22.2 state?
+    EXPECTED: "A block of memory shall only be freed if it was allocated by means of a Standard Library function"; Category Mandatory.
+
+Record actual answer + response time for each.

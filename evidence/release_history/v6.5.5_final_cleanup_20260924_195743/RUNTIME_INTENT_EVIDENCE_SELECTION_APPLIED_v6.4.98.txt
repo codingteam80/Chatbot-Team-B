@@ -1,0 +1,23 @@
+DocuBot v6.4.98 Runtime Intent + Evidence Selection Hardening
+========================================================================================
+Applied: 2026-09-24T05:02:58
+Base: exact verified v6.4.97 Structured MultiQuery Output Hardening
+Technical permission authorization-noise guard: ENABLED
+Generic MISRA Yes/No before compliance assessment: ENABLED
+MISRA source-language rerank canonicalization: ENABLED
+Strict anaphora-only follow-up binding: ENABLED
+Why/Bakit source-rationale pairing: ENABLED
+Natural requirement lookup finalization: ENABLED
+Rescued/exact evidence pinning through diversity: ENABLED
+Exact concept intersection before broad family rendering: ENABLED
+Structured MultiQuery v6.4.97 design: UNCHANGED
+MultiQuery: original + 2 alternatives (UNCHANGED)
+Fusion: RRF (UNCHANGED)
+BGE reranker: UNCHANGED
+MIN_RETRIEVAL_SCORE: 0.55 (UNCHANGED)
+Vector/BM25/Final Top-K: 10/10/3 (UNCHANGED)
+Chunking: 900/150 v4 (UNCHANGED)
+Models changed: NO
+KB rebuild performed by patch: NO
+Existing test evidence deleted: NO
+Pre-patch files preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.97_pre_v6.4.98_20260924_050258

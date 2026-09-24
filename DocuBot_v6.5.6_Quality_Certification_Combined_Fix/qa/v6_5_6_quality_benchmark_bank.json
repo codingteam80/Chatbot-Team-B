@@ -1,0 +1,166 @@
+{
+  "version": "v6.5.6",
+  "name": "Quality Certification Benchmark Bank",
+  "purpose": "Test-only benchmark for retrieval recall/precision/semantic consistency, verified-context answer grounding, and normal-question latency. Never imported by production runtime.",
+  "default_pairs": 6,
+  "cases": [
+    {
+      "concept_id": "rule_13_5_persistent_side_effect_rhs",
+      "expected_reference": "Rule 13.5",
+      "variant": "en",
+      "question": "In `enabled && update_state()`, the function on the right changes persistent state. Which MISRA requirement applies?"
+    },
+    {
+      "concept_id": "rule_13_5_persistent_side_effect_rhs",
+      "expected_reference": "Rule 13.5",
+      "variant": "taglish",
+      "question": "Kung may `cond || write_status()` at may persistent side effect yung right-hand call, anong MISRA rule ang relevant?"
+    },
+    {
+      "concept_id": "rule_14_4_boolean_control",
+      "expected_reference": "Rule 14.4",
+      "expected_prefix": "No.",
+      "variant": "en",
+      "question": "Can an ordinary integer expression be used directly as an if condition when its essential type is not Boolean?"
+    },
+    {
+      "concept_id": "rule_14_4_boolean_control",
+      "expected_reference": "Rule 14.4",
+      "expected_prefix": "No.",
+      "variant": "tagalog",
+      "question": "Sa MISRA, okay ba na numeric value lang ang controlling expression ng while kung hindi essentially Boolean ang type?"
+    },
+    {
+      "concept_id": "rule_16_4_switch_default",
+      "expected_reference": "Rule 16.4",
+      "expected_prefix": "No.",
+      "variant": "en",
+      "question": "A switch handles every currently known enum value but has no default label. Is that acceptable under MISRA C?"
+    },
+    {
+      "concept_id": "rule_16_4_switch_default",
+      "expected_reference": "Rule 16.4",
+      "expected_prefix": "No.",
+      "variant": "taglish",
+      "question": "Kung kumpleto naman ang listed cases ng switch pero walang `default`, compliant ba iyon sa MISRA?"
+    },
+    {
+      "concept_id": "rule_17_2_recursion",
+      "expected_reference": "Rule 17.2",
+      "variant": "en",
+      "question": "A function reaches itself again through another helper function. Which MISRA rule covers that call pattern?"
+    },
+    {
+      "concept_id": "rule_17_2_recursion",
+      "expected_reference": "Rule 17.2",
+      "variant": "tagalog",
+      "question": "Anong MISRA rule ang applicable kapag bumabalik sa parehong function ang call chain kahit dumaan muna sa ibang function?"
+    },
+    {
+      "concept_id": "rule_17_7_return_value_used",
+      "expected_reference": "Rule 17.7",
+      "variant": "en",
+      "question": "If a non-void function is called only for its side effects and its returned value is discarded, which MISRA requirement is relevant?"
+    },
+    {
+      "concept_id": "rule_17_7_return_value_used",
+      "expected_reference": "Rule 17.7",
+      "variant": "taglish",
+      "question": "May function na may return value pero tinawag lang siya at hindi ginamit ang ibinalik na value. Anong MISRA rule ang dapat tingnan?"
+    },
+    {
+      "concept_id": "rule_18_6_automatic_address_escape",
+      "expected_reference": "Rule 18.6",
+      "expected_prefix": "No.",
+      "variant": "en",
+      "question": "Is it acceptable to save the address of a local automatic variable into storage that remains valid after the function returns?"
+    },
+    {
+      "concept_id": "rule_18_6_automatic_address_escape",
+      "expected_reference": "Rule 18.6",
+      "expected_prefix": "No.",
+      "variant": "tagalog",
+      "question": "Pwede bang itago sa persistent object ang address ng local automatic variable kahit tapos na ang lifetime ng local object?"
+    },
+    {
+      "concept_id": "rule_20_7_macro_parameter_parentheses",
+      "expected_reference": "Rule 20.7",
+      "variant": "en",
+      "question": "A function-like macro expands one of its parameters inside an expression without enclosing that parameter expansion in parentheses. Which MISRA rule applies?"
+    },
+    {
+      "concept_id": "rule_20_7_macro_parameter_parentheses",
+      "expected_reference": "Rule 20.7",
+      "variant": "taglish",
+      "question": "Sa macro expression, ginagamit ang expanded parameter nang walang sariling parentheses. Anong MISRA requirement ang relevant?"
+    },
+    {
+      "concept_id": "rule_21_17_string_bounds",
+      "expected_reference": "Rule 21.17",
+      "variant": "en",
+      "question": "A string-handling library call may write beyond the destination object's bounds. Which MISRA requirement addresses that risk?"
+    },
+    {
+      "concept_id": "rule_21_17_string_bounds",
+      "expected_reference": "Rule 21.17",
+      "variant": "tagalog",
+      "question": "Anong MISRA rule ang relevant kung puwedeng lumampas sa bounds ng destination object ang paggamit ng string handling function?"
+    },
+    {
+      "concept_id": "rule_21_19_library_pointer_const",
+      "expected_reference": "Rule 21.19",
+      "expected_prefix": "No.",
+      "variant": "en",
+      "question": "May code modify data through a pointer returned by `getenv`, or should that pointer be treated as read-only under MISRA?"
+    },
+    {
+      "concept_id": "rule_21_19_library_pointer_const",
+      "expected_reference": "Rule 21.19",
+      "expected_prefix": "No.",
+      "variant": "taglish",
+      "question": "Pwede bang sulatan ang memory gamit ang pointer na galing sa `setlocale` o kailangan itong ituring na const ayon sa MISRA?"
+    },
+    {
+      "concept_id": "rule_21_20_library_pointer_lifetime",
+      "expected_reference": "Rule 21.20",
+      "variant": "en",
+      "question": "The program keeps a pointer returned by `localtime`, calls `localtime` again, then continues using the old pointer. Which MISRA rule is concerned?"
+    },
+    {
+      "concept_id": "rule_21_20_library_pointer_lifetime",
+      "expected_reference": "Rule 21.20",
+      "variant": "taglish",
+      "question": "May pointer mula sa `strerror`, tapos tumawag ulit sa `strerror` bago gamitin ulit ang lumang pointer. Anong MISRA rule ang applicable?"
+    },
+    {
+      "concept_id": "directive_4_7_error_return_checked",
+      "expected_reference": "Directive 4.7",
+      "variant": "en",
+      "question": "A function communicates failure through its return value, but the caller ignores that error information. Which MISRA directive applies?"
+    },
+    {
+      "concept_id": "directive_4_7_error_return_checked",
+      "expected_reference": "Directive 4.7",
+      "variant": "tagalog",
+      "question": "Anong MISRA directive ang relevant kapag may error information ang return value ng function pero hindi ito tine-test ng caller?"
+    },
+    {
+      "concept_id": "rule_10_6_wider_essential_type",
+      "expected_reference": "Rule 10.6",
+      "variant": "en",
+      "question": "A composite arithmetic expression is assigned to an object whose essential type is wider than the expression. Which MISRA rule covers this?"
+    },
+    {
+      "concept_id": "rule_10_6_wider_essential_type",
+      "expected_reference": "Rule 10.6",
+      "variant": "taglish",
+      "question": "Kung ang result ng composite expression ay ina-assign sa object na mas wide ang essential type, anong MISRA rule ang applicable?"
+    }
+  ],
+  "normal_question_target_seconds": 25.0,
+  "notes": [
+    "Expected Rule/Directive references exist only in this test bank; production retrieval contains no phrase-to-Rule benchmark mapping.",
+    "Each concept has multiple meaning-equivalent phrasings to measure semantic consistency.",
+    "Answer correctness is checked only after retrieval passes, using expected reference/polarity plus the production deterministic claim-grounding guard."
+  ]
+}

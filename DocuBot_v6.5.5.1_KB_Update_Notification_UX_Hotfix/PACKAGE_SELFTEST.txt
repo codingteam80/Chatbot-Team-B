@@ -1,0 +1,9 @@
+DocuBot v6.5.5.1 Package Self-Test
+=================================
+Payload integrity: PASS (4/4 files)
+app.py syntax: PASS
+Notification helper validation: PASS (26/26 checks)
+Exact v6.5.5 baseline simulation: PASS
+Forced post-copy validation failure rollback: PASS (exit 7; exact app.py + v6.5.5 manifest restored)
+Production KB rebuild during installer: NO
+Scope: success notification only; incremental KB/retrieval runtime preserved

@@ -1,0 +1,10 @@
+DocuBot v6.5.5.3 Package Self-Test
+==================================
+Payload integrity           : PASS (4 files)
+Exact v6.5.5.2 baseline    : PASS (10 covered files)
+Validator                  : PASS (32/32)
+Installer simulation       : PASS
+Forced-failure rollback    : PASS (exact v6.5.5.2 hashes restored)
+Install-time KB rebuild    : NO
+Scope                      : top-right success toast readability only
+Preserved                  : chat-disable UX + incremental KB + retrieval/LLM architecture

@@ -1,0 +1,21 @@
+DocuBot v6.5.3 Answer Finalization + KB Update Portability + Latency Fix
+======================================================================================
+Applied: 2026-09-24T13:47:04
+Base: exact verified v6.5.2
+Chunk size/overlap changed: NO (900/150)
+Global retrieval threshold changed: NO (0.55)
+Vector/BM25/Final Top-K changed: NO (10/10/3)
+Models changed: NO
+Production Qdrant/BM25 rebuilt by installer: NO
+Yes/No tuple/string return contract fixed: YES
+Source-grounded required-presence Yes/No finalization: YES
+Self-contained question stale follow-up isolation: YES
+Conservative single-query semantic+BGE early accept: YES
+Query embedding + semantic Rule metadata prewarm: YES
+Update Knowledge Base isolated worker: YES
+Update Knowledge Base exact serving-Python/cwd pinning: YES
+Cross-process KB update lock: YES
+Filesystem/disk/Qdrant/dependency/Ollama preflight: YES
+Post-update semantic Rule index + KB Health verification: YES
+Retrieval-only / LLM-from-verified-context diagnostics: YES
+Backup: C:\user_dev\company-chatbot\evidence\release_history\v6.5.2_pre_v6.5.3_20260924_134704

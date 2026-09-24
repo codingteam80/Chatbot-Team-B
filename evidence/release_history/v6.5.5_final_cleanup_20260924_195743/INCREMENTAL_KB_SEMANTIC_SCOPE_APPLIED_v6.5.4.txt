@@ -1,0 +1,22 @@
+DocuBot v6.5.4 Incremental KB Lifecycle + Semantic Scope + Source Stability
+====================================================================================================
+Applied: 2026-09-24T16:56:54
+Base: verified v6.5.3/v6.5.3.1 compatible baseline
+UNCHANGED -> SKIP existing vectors: YES
+NEW -> process only new file: YES
+MODIFIED -> replace only modified file: YES
+DELETED -> remove only deleted file: YES
+Full rebuild reserved for incompatible/missing index state: YES
+Changed-file source snapshot: YES
+Precommit source stability guard: YES
+Full-rebuild source stability guard: YES
+MISRA semantic signature scoped to Rule profiles: YES
+Non-MISRA change avoids MISRA profile re-embedding: YES
+Worker-only KB lock handoff preserved: YES
+Semantic latency diagnostics preserved: YES
+Chunk size/overlap changed: NO (900/150)
+Global retrieval threshold changed: NO (0.55)
+Vector/BM25/Final Top-K changed: NO (10/10/3)
+Models changed: NO
+Production Qdrant/BM25 rebuilt by installer: NO
+Backup: C:\user_dev\company-chatbot\evidence\release_history\pre_v6.5.4_20260924_165654

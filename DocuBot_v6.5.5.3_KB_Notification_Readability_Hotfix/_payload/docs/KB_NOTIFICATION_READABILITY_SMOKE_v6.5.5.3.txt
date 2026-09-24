@@ -1,0 +1,20 @@
+DocuBot v6.5.5.3 — KB Notification Readability Smoke
+=====================================================
+
+Purpose
+-------
+Visual-only hotfix for the successful Update Knowledge Base toast.
+
+Expected success toast
+----------------------
+Knowledge Base is successfully updated.
+Added: <n> · Updated: <n> · Deleted: <n>
+
+Acceptance
+----------
+- Entire title is readable.
+- Added / Updated / Deleted counts are readable; no bottom clipping.
+- Toast remains top-right and does not move the welcome/chat layout.
+- Chat remains disabled while the KB update is in progress.
+- Incremental KB behavior is unchanged.
+- Technical details remain in KB update logs only.

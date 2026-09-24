@@ -1,0 +1,11 @@
+DocuBot v6.4.90.2 Generalized Rule/Directive Reason Intent
+============================================================================
+Applied: 2026-09-20T19:37:45
+Base: applied v6.4.90.1
+Runtime file changed: services/answer_service.py
+Retriever changed: NO
+Model stack changed: NO
+Retrieval threshold/Top-K changed: NO
+Chunking changed: NO
+KB rebuild performed: NO
+Pre-patch files preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.90.1_pre_reason_intent_hotfix_20260920_193745

@@ -1,0 +1,53 @@
+DocuBot v6.5.4 - Incremental KB Lifecycle + Semantic Scope + Source Stability
+================================================================================
+
+TARGET BEHAVIOR
+---------------
+UNCHANGED source -> SKIP existing Qdrant vectors; no parsing/embedding.
+NEW source       -> parse/chunk/embed/add only that source.
+MODIFIED source  -> remove old source vectors, then parse/chunk/embed/replace only that source.
+DELETED source   -> remove only that source vectors/manifest entry.
+FULL REBUILD     -> exceptional only: incompatible schema/embedding identity,
+                    missing/empty tracked Qdrant, or untracked existing index.
+
+SAFETY
+------
+- Changed/new source files are copied to a private transaction snapshot before parsing.
+- Active Qdrant is copied to a sibling staging directory; deltas are applied there.
+- Live source hashes are verified again before BM25/Qdrant/manifest commit.
+- BM25 is regenerated from final staging text only; unchanged chunks are NOT re-embedded.
+- Qdrant + BM25 + manifest remain rollback-capable.
+- Full rebuild path also checks source stability before active commit.
+
+SEMANTIC RULE INDEX
+-------------------
+The derived MISRA Rule semantic index is keyed to the extracted Rule/Directive
+profiles, not the SHA256 of the entire BM25 corpus. Adding/changing an unrelated
+policy document does not force all 173 MISRA profiles to be embedded again.
+Legacy v1 semantic metadata migrates to the new profile signature without model
+inference when the profile content is unchanged.
+
+PRESERVED
+---------
+- qwen2.5:7b generation
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- chunk 900 / overlap 150
+- threshold 0.55
+- Vector/BM25/Final Top-K 10/10/3
+- MultiQuery original + exactly 2 alternatives
+- v6.5.3.1 worker-only KB lock handoff
+- v6.5.3.1 semantic latency-decision diagnostics
+
+MANUAL FIELD TEST
+-----------------
+With MISRA_FromInternet.pdf already indexed, add one small DOCX/TXT and click
+Update Knowledge Base once. Expected console:
+  Mode             : incremental
+  Unchanged/skip   : 1
+  Action           : transactional incremental Qdrant update
+  [ADDED] <new file> (... chunks)
+  Unchanged skipped       : 1
+  Changed chunks embedded : <new file chunks only>
+
+MISRA's existing 951 chunks must remain in Qdrant but must NOT be re-embedded.

@@ -1,0 +1,22 @@
+DocuBot v6.5.5 Goal Completion - UI + Diagnostics + Safe Cleanup
+====================================================================================================
+Applied: 2026-09-24T19:57:44
+Base: exact verified v6.5.4
+KB incremental lifecycle preserved: YES
+UNCHANGED -> skip existing vectors: YES
+NEW/MODIFIED/DELETED -> process delta only: YES
+KB maintenance + chat/welcome layout stability fix: YES
+Confirmation checkbox for incremental + full rebuild: YES
+Retrieval-only recall/precision/semantic-consistency diagnostic: YES
+LLM-from-verified-context grounding/polarity diagnostic: YES
+Combined normal-question latency completion gate: 25 seconds
+Safe live add/modify/delete lifecycle probe: YES (manual, not installer)
+Known obsolete files cleanup policy: archive exact hashes only
+Historical test evidence preserved: YES
+Chunk size/overlap changed: NO (900/150)
+Global retrieval threshold changed: NO (0.55)
+Vector/BM25/Final Top-K changed: NO (10/10/3)
+MultiQuery alternative count changed: NO (2)
+Models changed: NO
+Production Qdrant/BM25 rebuilt by installer: NO
+Pre-install backup: C:\user_dev\company-chatbot\evidence\release_history\pre_v6.5.5_20260924_195743

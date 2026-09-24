@@ -1,0 +1,18 @@
+{
+  "baseline_version": "v6.5.5.1",
+  "required_existing_sha256": {
+    "app.py": "dca094b7ff3766c29360c1027b0076a4cfc271300204ce19d03dc6c8dd167f62",
+    "ui/styles.css": "c219749d80bb04491a4d7f05cb3e3aa9bf3b8192905950ca6dc5935074cf9eb3",
+    "FINAL_COMPONENT_MANIFEST_v6.5.5.1.json": "db2789428899ef2892c690fd752b830117e37c2c4d32003457449e23dd865c90",
+    "config/settings.py": "5ff1bceb435330036360e4200c0366ae064b774d12d953774fddf1140f9694eb",
+    "scripts/kb_update_runner.py": "0c313b4621920bb38b6db6f023015593c7d0856152a6499a69715f9bec99c210",
+    "scripts/smart_build.py": "737bb99e050d0725febe8aed65ec237516a63da0055a1fc457fecc6a2cee331d",
+    "scripts/update_qdrant_incremental.py": "547cafd09156ba51e39b2fb58236fa2db84a5969c0363e78d3b5d68b1c08c694",
+    "retrieval/retriever.py": "a744873b618c1ae806dda8a2192d42bc294c1a1ca9711b6cce2ae4b61d86f787",
+    "retrieval/semantic_rule_resolver.py": "04135bc5105f1eaaa15091380efe5ef90568ae4b2e8f60ddee0a0ca632f69b51",
+    "scripts/run_v6_5_5_completion_suite.py": "17c706f79c200ec9b03c7cebad6c93fb561509d4f877f304d5de80ec476d980a"
+  },
+  "required_absent": [
+    "FINAL_COMPONENT_MANIFEST_v6.5.5.2.json"
+  ]
+}

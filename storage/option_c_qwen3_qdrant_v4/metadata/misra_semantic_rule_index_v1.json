@@ -1,5 +1,5 @@
 {
-  "schema": "misra-semantic-rule-index-v1",
+  "schema": "misra-semantic-rule-index-v2-profile-signature",
   "embedding_model": "qwen3-embedding:8b",
   "corpus_sha256": "18403635694a8c0dca6a1414f2b1f44f52e881d64b80eb8e26eea5fce0e7eb27",
   "created_at": "2026-09-24T15:41:22",
@@ -2698,5 +2698,7 @@
         "rationale"
       ]
     }
-  ]
+  ],
+  "profile_sha256": "90bf71a849ec9aa79164f203808e52b7b4b0a9d9fe3541de02113b091a78ff4c",
+  "signature_migrated_at": "2026-09-24T16:56:59"
 }

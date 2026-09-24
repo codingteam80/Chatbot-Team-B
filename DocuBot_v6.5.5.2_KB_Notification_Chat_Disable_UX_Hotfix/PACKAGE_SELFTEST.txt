@@ -1,0 +1,19 @@
+DocuBot v6.5.5.2 Package Self-Test
+==================================
+Payload integrity                 : PASS (5/5 files)
+Exact v6.5.5.1 baseline simulation: PASS (10 covered baseline files)
+Static/runtime-safe validator      : PASS (42/42)
+Python syntax                      : PASS
+Forced validation failure rollback : PASS (exact app.py/styles.css/manifest restored)
+Installer KB rebuild               : NO
+Retrieval/LLM architecture changed : NO
+Incremental KB lifecycle changed   : NO
+
+UX changes under test:
+- success toast is a readable two-line Added/Updated/Deleted-only message;
+- success icon is shown;
+- toast width/markdown layout is polished;
+- chat textarea is disabled during KB update;
+- chat send is disabled during KB update;
+- server-side submit guard blocks chat during KB update;
+- composer position/dimensions are not changed by this hotfix.

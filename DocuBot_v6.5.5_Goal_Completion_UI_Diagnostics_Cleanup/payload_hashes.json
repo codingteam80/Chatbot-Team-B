@@ -1,0 +1,23 @@
+{
+  ".gitignore": "a65198d0eec50054e7c500ab79a4d8a5d82a14af8539994d624cb8de9b67a717",
+  "FINAL_COMPONENT_MANIFEST_v6.5.5.json": "1f744a345adb5a506c7818f7950200bcd3a688999a74302e12196a344417f251",
+  "app.py": "7f03c54c78bd970403ff0c7cc7d236753beeb7a01256b8859db20cab93cd8bdd",
+  "cleanup_plan_v6.5.5.json": "3208253d7176bf4ccb4223175580a7fbce17f04cc5beac6133428f79cd787d96",
+  "config/settings.py": "5ff1bceb435330036360e4200c0366ae064b774d12d953774fddf1140f9694eb",
+  "docs/FINAL_PROJECT_STRUCTURE_v6.5.5.txt": "7b798a8b588afbb20d9fc030643c25754f66bcc141904109befe6604bdbe310f",
+  "docs/GOAL_COMPLETION_SMOKE_v6.5.5.txt": "f0cc13cb40b668346c223a9ed1adcec20f84937a07e9eb514e79d432d533c42c",
+  "docs/PRODUCTION_COMPONENTS.md": "23220ef430ed84f70931701b170fcbd004a8ff15bcedea1e97e6d95ec3e144d6",
+  "docs/deployment/LAN_DEPLOYMENT_GUIDE.txt": "211f6544ef2417c669472372d73da876f616bc815e18c5b5c645a884561fc758",
+  "ingestion/metadata.py": "b43b1a17e6d747e30c450b05549e1994b6c6c63d2dd55e83d96942acb40aeb92",
+  "qa/v6_5_5_completion_benchmark_bank.json": "538f36c9a363122bd2415c266564cf04b49d820251ae94f7004bbfaba57ccd3b",
+  "retrieval/bm25_index.py": "ee581770973c689919b470f3da21aeaca54fb8ca842a09519f372e3c44fe94d5",
+  "scripts/generate_v6_5_5_completion_benchmark.py": "3039801274c49afd895fd4a494e72d18bd5ad6608b078485f348325eedaa5997",
+  "scripts/kb_update_runner.py": "0c313b4621920bb38b6db6f023015593c7d0856152a6499a69715f9bec99c210",
+  "scripts/run_v6_5_5_completion_suite.py": "17c706f79c200ec9b03c7cebad6c93fb561509d4f877f304d5de80ec476d980a",
+  "scripts/test_incremental_kb_lifecycle_live.py": "12a9003bfe0af277cdfb0de55f535d78930328af5201addb34082dad2aa10161",
+  "scripts/test_llm_from_verified_context.py": "ba3c8483d956af80ed341502134734ca213503287f9f8df17d30cfe2c38a1a39",
+  "scripts/test_retrieval_pipeline.py": "6e838ca778e0340ae4495863b6d3adb86c6493257aefaa6f17339ce4a99514a7",
+  "scripts/validate_v6_5_5_goal_completion.py": "06360bcff0535188a2ae57e3ecab710a8d691e9a997c2c485f7814cd03b2fd54",
+  "ui/streamlit_ui.py": "2fb4a852fff4a14a10129f0283d04c9d2384b5c53e93d07d9c5e623a8939becc",
+  "ui/styles.css": "c219749d80bb04491a4d7f05cb3e3aa9bf3b8192905950ca6dc5935074cf9eb3"
+}

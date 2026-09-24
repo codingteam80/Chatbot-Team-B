@@ -1,0 +1,53 @@
+DocuBot v6.5.5 — Final Active Project Structure Notes
+======================================================================
+
+ACTIVE PRODUCTION COMPONENTS
+----------------------------
+- app.py / run.py
+- config/
+- chat/
+- chains/
+- services/
+- retrieval/ (Qdrant + BM25 + RRF + BGE + semantic Rule resolver)
+- embeddings/ (Qwen3/Ollama)
+- llm/ (Qwen2.5/Ollama)
+- ingestion/
+- runtime/
+- ui/
+- utils/
+- scripts/kb_update_runner.py
+- scripts/smart_build.py
+- scripts/update_qdrant_incremental.py
+- scripts/build_qdrant_index.py (exceptional certified full-rebuild path)
+- scripts/kb_health.py
+- current v6.5.5 validation/diagnostic scripts
+
+ROOT OPERATIONAL BAT FILES KEPT
+-------------------------------
+- Update_DocuBot_Knowledge_Base.bat
+- Run_KB_Health_Check.bat
+- Setup_DocuBot_Production_Environment.bat
+- Start_DocuBot_LAN_Server.bat
+- Check_DocuBot_LAN_Server.bat
+- Configure_DocuBot_LAN_Firewall.bat / Remove_DocuBot_LAN_Firewall.bat
+
+OBSOLETE TEST/RELEASE ROOT CLUTTER
+----------------------------------
+Exact, unmodified old release markers, old component manifests, superseded
+validator scripts, the old v6.5.1 benchmark BAT/scripts/bank, and the obsolete
+rebuild_index.py entry point are archived by the installer under:
+
+    evidence\release_history\v6.5.5_final_cleanup_<timestamp>\
+
+If any historical file was manually modified, the installer leaves it in place
+instead of overwriting or moving unknown user changes.
+
+PRESERVED
+---------
+- logs / test evidence
+- qa historical evidence
+- evidence/release_history
+- active data/technical_documents
+- active storage/option_c_qwen3_qdrant_v4
+
+The installer never deletes production KB/storage data.

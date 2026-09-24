@@ -1,0 +1,15 @@
+{
+  "version": "v6.5.5",
+  "required_existing_sha256": {
+    "app.py": "7f03c54c78bd970403ff0c7cc7d236753beeb7a01256b8859db20cab93cd8bdd",
+    "scripts/kb_update_runner.py": "0c313b4621920bb38b6db6f023015593c7d0856152a6499a69715f9bec99c210",
+    "scripts/smart_build.py": "737bb99e050d0725febe8aed65ec237516a63da0055a1fc457fecc6a2cee331d",
+    "scripts/update_qdrant_incremental.py": "547cafd09156ba51e39b2fb58236fa2db84a5969c0363e78d3b5d68b1c08c694",
+    "ui/streamlit_ui.py": "2fb4a852fff4a14a10129f0283d04c9d2384b5c53e93d07d9c5e623a8939becc",
+    "FINAL_COMPONENT_MANIFEST_v6.5.5.json": "1f744a345adb5a506c7818f7950200bcd3a688999a74302e12196a344417f251"
+  },
+  "required_absent": [
+    "FINAL_COMPONENT_MANIFEST_v6.5.5.1.json",
+    "KB_UPDATE_NOTIFICATION_UX_HOTFIX_APPLIED_v6.5.5.1.txt"
+  ]
+}

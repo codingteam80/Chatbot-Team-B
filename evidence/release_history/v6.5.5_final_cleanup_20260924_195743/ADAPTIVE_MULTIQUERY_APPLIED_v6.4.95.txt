@@ -1,0 +1,19 @@
+DocuBot v6.4.95 Adaptive MultiQuery RAG / Generalization Hardening
+============================================================================
+Applied: 2026-09-23T18:54:55
+Base: verified v6.4.94 Operational Hardening
+MultiQuery default: ENABLED
+Alternative query count: 2 (original + up to 2 = max 3 searches)
+Fusion: reciprocal-rank fusion before existing hybrid/BGE reranking
+A/B disable switch: DOCUBOT_MULTI_QUERY=0
+MIN_RETRIEVAL_SCORE: 0.55 (UNCHANGED)
+Vector/BM25/Final Top-K: 10/10/3 (UNCHANGED)
+Chunking: 900/150 v4 (UNCHANGED)
+Models changed: NO
+KB rebuild performed by patch: NO
+Follow-up isolation hardening: ENABLED
+Permission Yes/No hardening: ENABLED
+Operator &&/|| preservation: ENABLED
+Structured topic specificity: ENABLED
+Near-threshold structured Rule rescue: ENABLED, global threshold unchanged
+Pre-patch files preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.94_pre_v6.4.95_20260923_185455

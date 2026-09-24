@@ -1,0 +1,13 @@
+DocuBot v6.5.5.3 KB Notification Readability Hotfix
+================================================================================
+Applied: 2026-09-24T20:47:53
+Base: exact verified v6.5.5.2
+Success toast full text visibility: YES
+Success toast counts full visibility: YES
+Success toast technical details exposed: NO
+Chat disable behavior changed: NO
+Incremental KB lifecycle changed: NO
+Retrieval/LLM/latency diagnostics changed: NO
+Models/config/chunking/Top-K changed: NO
+Production Qdrant/BM25 rebuilt by installer: NO
+Rollback backup: C:\user_dev\company-chatbot\evidence\release_history\pre_v6.5.5.3_20260924_204753
