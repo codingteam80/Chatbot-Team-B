@@ -1,9 +1,0 @@
-{
-  "FINAL_COMPONENT_MANIFEST_v6.5.3.1.json": "c557a01ce01384422ce18d9560f74980ca164de878cc297c86eb5a610d194fd9",
-  "app.py": "d2d270d581f6f87f94b3b55bf3ff138a10033ebfbab873640ba10b782fd70ede",
-  "docs/KB_LOCK_HANDOFF_LATENCY_SMOKE_v6.5.3.1.txt": "92bffed67d679327b1fb6d6b2e53bf5c50c672399494ed45bd38013e5095f3a0",
-  "retrieval/retriever.py": "a744873b618c1ae806dda8a2192d42bc294c1a1ca9711b6cce2ae4b61d86f787",
-  "scripts/kb_update_runner.py": "c6b918eb3edf6847e981ede91e038c7fff4b5dcf04f9f6b5bf439ea0c36cb4fa",
-  "scripts/test_kb_update_portability.py": "fb3dff305252c5e7b03a11ad321c2ae15d28627ee7ab068596a57669d03668ae",
-  "scripts/validate_v6_5_3_1_kb_lock_handoff_latency.py": "dec232a492696ca624d0c734fac3f0058f8434f0a409172e8613fd49307144e5"
-}
