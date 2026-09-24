@@ -1,0 +1,5 @@
+DocuBot v6.4.35 - Streamlit TextArea Minimum-Height Hotfix
+
+Trigger: actual Windows/Streamlit startup exception in v6.4.34: st.text_area height 52px is invalid; production Streamlit requires at least 68px.
+
+Fix: chat composer server-side widget height is now 68px. Existing CSS/JavaScript dynamic compact composer behavior remains unchanged after widget creation. No MISRA/retrieval/model behavior changed.

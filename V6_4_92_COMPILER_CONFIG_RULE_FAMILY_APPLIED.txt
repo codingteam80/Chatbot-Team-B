@@ -1,0 +1,12 @@
+DocuBot v6.4.92 - Compiler Configuration Routing & Rule Family UX
+========================================================================
+Applied: 2026-09-22T08:07:06
+Runtime files changed:
+- retrieval/retriever.py
+- services/answer_service.py
+Models changed: NO
+Retrieval Top-K/threshold changed: NO
+Chunking changed: NO
+KB/storage changed: NO
+KB rebuild performed: NO
+Backup: C:\user_dev\company-chatbot\evidence\release_history\v6.4.92_pre_compiler_config_rule_family_20260922_080706

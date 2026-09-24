@@ -1,0 +1,88 @@
+DOCUBOT v6.4.44 - DEEP CONVERSATION / QUESTION UNDERSTANDING / HALLUCINATION HARDENING
+=====================================================================================
+
+BASE
+----
+Built strictly from v6.4.43 and the actual 2026-09-15 Windows/Ollama evidence.
+
+WHY v6.4.44 EXISTS
+------------------
+- v6.4.43 LLM Certification reported 13/13 PASS, but manual semantic review found status-polarity false passes.
+- v6.4.43 Natural Conversation Certification reported 10/13 PASS, 3 FAIL.
+- A protected Rule 20.7 macro was not treated as a fresh authoritative snippet, and its next follow-up revived the old unsafe macro even though the validator marked that turn PASS.
+- Rule 17.2 `Bakit?` needed source-exact stack-space rationale.
+- Employee Leave Policy broad overview needed all four compact labeled facts, including Eligibility.
+
+PRODUCTION HARDENING
+--------------------
+1. Fresh inline #define/preprocessor text is recognized as code even after natural-language lead-in.
+2. Rule 20.7 can distinguish unsafe vs visibly protected macro parameter expressions without requiring an invocation.
+3. The latest fresh code snippet becomes authoritative for its immediate grounded follow-ups.
+4. Simple MISRA reason/rationale follow-ups can return exact accepted source rationale; code-basis questions remain on the normal code-specific path.
+5. Broad compact label/value overviews preserve all explicit source relations.
+6. MISRA semantic alignment rejects double-status, polarity downgrades/upgrades, and confirmed-violation escalation when deterministic evidence only supports Potential non-compliance.
+7. Forced-model certification cases must pass the semantic guard themselves.
+8. No model, embedding, reranker, retrieval threshold, chunk/index schema, knowledge folder, fallback text, or company-only policy change.
+9. Full MISRA target remains 156 Rules + 17 Directives = 173 structured references.
+
+WINDOWS / OLLAMA AUTOMATED QUALITY GATES
+----------------------------------------
+A. Run_LLM_Certification_QA.bat
+   Target: 13/13 PASS.
+
+B. Run_Natural_Conversation_Certification_QA.bat
+   Target: 13/13 PASS across 4 focused same-chat flows.
+
+C. Run_Conversation_Robustness_QA.bat
+   Target: 18/18 PASS across 5 isolated flows.
+   Covers return-to-old-topic, policy relation continuity, cross-domain switches,
+   structured rationale/scope follow-ups, and new-chat history isolation.
+
+D. Run_Grounded_Hallucination_Guard_QA.bat
+   Target: 12/12 PASS.
+   Covers external/current unsupported knowledge, nonexistent MISRA references,
+   macro literal/protected states, status polarity, exact code-line grounding,
+   compliant-construct restraint, dynamic-memory multi-reference retrieval,
+   and policy completeness.
+
+E. Run_Question_Understanding_QA.bat
+   Target: 18/18 PASS.
+   Covers English/Tagalog/Taglish paraphrases, natural MISRA concept mapping,
+   eligibility/approval/quantity relation intent, exact code grounding,
+   protected macro interpretation, and safe unresolved/external fallback.
+
+TOTAL AUTOMATED RUNTIME COVERAGE: 74 checks/turns across 5 gates.
+These are representative behavior/generalization checks, not a query whitelist.
+
+RETURN EVIDENCE
+---------------
+Send the latest result ZIP + console log from:
+- logs\llm_certification\
+- logs\natural_conversation_certification\
+- logs\conversation_robustness\
+- logs\grounded_hallucination_guard\
+- logs\question_understanding\
+
+MANUAL TESTING
+--------------
+Do not start the large manual natural-conversation batch until all five automated
+Windows/Ollama gates pass. After they pass, run the existing manual normal-UI
+conversation batch to verify presentation, source/example formatting, citations,
+and real human-style follow-up behavior.
+
+ACCEPTANCE
+----------
+v6.4.44 remains UNLOCKED / NOT DEPLOYMENT-CERTIFIED until the actual Windows/Ollama
+runtime evidence for all five gates is reviewed and accepted.
+
+LOCAL FINAL VALIDATION
+----------------------
+- Dedicated v6.4.44 hardening: 16/16 PASS.
+- Retained v6.4.39-v6.4.44 semantic/follow-up/hardening: 71/71 PASS.
+- Architecture Lock + Production-QA compatibility: 12/12 PASS.
+- Full tests: 580 PASS / same 22 known legacy FAIL vs v6.4.43 564 PASS / same 22 FAIL; 0 new functional failures.
+- 182 Python files / 0 syntax errors.
+- config/settings.py byte-identical to v6.4.43.
+- data/all_documents 21/21 byte-identical.
+- storage 123/123 byte-identical.
+- MISRA inventory 156 Rules + 17 Directives = 173.

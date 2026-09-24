@@ -1,0 +1,35 @@
+DocuBot v6.4.95 — Adaptive MultiQuery / Generalization Smoke
+============================================================
+Do not rebuild the KB for this patch.
+
+Automated validation first. After PASS, use a fresh chat and test:
+
+1. What restrictions apply to goto labels?
+   - Should retrieve the Rule requirement about goto label scope instead of only rationale text.
+
+2. Why should persistent side effects be avoided in the right operand of && or ||?
+   - Must be treated as a new standalone topic, not a follow-up to the previous question.
+
+3. Is using <stdarg.h> allowed?
+   - Must be handled as a permission/Yes-No question, not AUTHORIZED ENTITY.
+
+4. Are unused function parameters allowed?
+   - Must be handled as a permission/Yes-No question and ground the answer in the relevant Rule.
+
+5. Which MISRA rules deal with unused declarations?
+   - Should narrow to declaration-related Rule statements instead of dumping the whole unused-code family.
+
+6. What does MISRA say about modifying function parameters?
+   - Should focus on the matching Rule statement instead of listing the whole function Rule family.
+
+7. Tagalog sequence:
+   a. Pwede ba recursion sa MISRA?
+   b. Anong rule tungkol sa hindi ginagamit na parameter?
+   c. Bakit bawal yung side effect sa kanan ng &&?
+   d. May rule ba sa compiler optimization?
+   - b/c/d must not inherit the recursion anchor merely because they follow it.
+
+Evidence expectation for semantic retrieval:
+- MULTI-QUERY RETRIEVAL event may show original + up to 2 alternatives.
+- Exact structured questions may skip MultiQuery intentionally.
+- Global minimum retrieval score remains 0.55.

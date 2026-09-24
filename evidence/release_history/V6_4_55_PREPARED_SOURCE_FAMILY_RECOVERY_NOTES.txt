@@ -1,0 +1,42 @@
+DocuBot v6.4.55 — Option C Prepared-Source Family Recovery
+================================================================
+
+Office evidence
+---------------
+- v6.4.54 actual office QA: 15/16 PASS.
+- OC-015 Rule 16.6 minimum-count handling: PASS.
+- OC-016 trigraph polarity: PASS.
+- Only OC-014 failed: the structured switch family returned Rule 16.1–16.6
+  and still omitted Rule 16.7.
+- Source inspection confirms that the structure-aware prepared ingestion data
+  contains an explicit Rule 16.7 requirement chunk even when the active BM25
+  family records omit it.
+
+Correction
+----------
+- Keep active structured Rule records as primary evidence.
+- Recover missing family members from the active prepared-ingestion cache for
+  the exact same source file/hash.
+- Retain the structured source-PDF recovery from v6.4.53.
+- Add a conservative direct PDF-text recovery guard that accepts only explicit
+  Rule-family entries containing normative shall/should source wording.
+- Retain the indexed Appendix A summary as the final source-backed fallback.
+- No Rule 16.7 requirement text or canned answer is embedded in production code.
+
+Architecture
+------------
+Unchanged: qwen3-embedding:8b + BM25/Qdrant + BAAI/bge-reranker-v2-m3 +
+qwen2.5:7b generation when needed. No model, threshold, Top-K, chunking, index
+schema, active-corpus, source-data, or storage change.
+
+Local validation
+----------------
+- v6.4.50–v6.4.55 focused Option-C tests: 34/34 PASS.
+- retained v6.4.39–v6.4.49 hardening: 115/115 PASS under general profile.
+- raw source-text recovery confirms Rule 16.7 is recoverable from the bundled
+  authoritative technical PDF without relying on visual heading classification.
+
+Office acceptance
+-----------------
+Apply the exact patch to v6.4.54 and run Run_Option_C_Technical_QA.bat.
+A rebuild is not required. Target: 16/16 PASS.

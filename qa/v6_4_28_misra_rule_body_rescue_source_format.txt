@@ -1,0 +1,56 @@
+DocuBot v6.4.28 - MISRA Rule-Body Rescue + Source-Format Preservation
+=======================================================================
+Base: v6.4.27 generated package.
+Trigger: actual Windows/Ollama v6.4.27 MISRA Natural QA evidence from
+2026-09-14 18:12.
+Observed v6.4.27 result: 2/6 PASS, 4 FAIL, 0 ERROR.
+
+Observed runtime evidence
+-------------------------
+- M-001 if (x = 5): fallback, zero accepted chunk evidence.
+- M-002 goto: fallback, zero accepted chunk evidence.
+- M-003 unsigned int x = -1: fallback, zero accepted chunk evidence.
+- M-004 compiler-specific __attribute__((packed)): fallback, zero accepted chunk evidence.
+- M-005 explicit MISRA C++ request: safe fallback PASS.
+- G-001 employee leave policy: secondary company-document path PASS.
+
+Root-cause recovery
+-------------------
+1. The existing local BM25 corpus already contains the correct structured MISRA
+   Rule bodies with metadata: Rule 13.4, 14.4, 15.1, 10.3 and 1.2. The failure
+   was acceptance of natural code/compliance queries, not missing source data.
+2. Added a MISRA-only deterministic rule-body cue rescue. It uses the existing
+   code/scenario semantic cues but can accept only actual structured Rule or
+   Directive body records from the MISRA source. No Rule/Directive number is
+   mapped from a canned question and the global reranker threshold stays 0.55.
+3. For each rescued Rule/Directive, immediately following source detail sections
+   (Amplification, Rationale, Exception(s), Example(s), Notes, See also) are
+   attached only until the next rule/unsupported section boundary. This preserves
+   the meaningful source structure without borrowing content from adjacent rules.
+4. Fixed the MISRA C family guard: an actual Rule body scoped to C90/C99 is now
+   valid evidence for an explicit MISRA C request. Explicit MISRA C++ remains
+   strict and cannot use MISRA C rule bodies as substitutes.
+5. MISRA evidence now carries an APPLICABILITY CUE alongside the citable Rule or
+   Directive so the model must assess every strongly matched visible construct.
+6. General answer formatting now preserves meaningful source headings/labels,
+   numbering, bullets/sub-bullets, code/examples, tables and ordered steps when
+   relevant, while never inventing sections absent from the source.
+7. Runtime QA adds F-001: Explain Rule 1.2 must preserve Rule 1.2, Category,
+   Analysis, Applies to and Rationale labels/content.
+
+Unchanged
+---------
+- llama3.2:3b fast model
+- qwen2.5:7b complex model
+- embedding model / reranker model
+- global MIN_RETRIEVAL_SCORE = 0.55
+- chunk size / overlap
+- data/all_documents corpus
+- existing storage/index files
+- secondary/non-MISRA company-document path
+- v6.4.25 LAN foundation
+- Shift+Enter multiline input behavior
+- no learning-from-Q&A feature
+- no cleanup/deletion scope
+
+Windows/Ollama v6.4.28 rerun is required before runtime certification.

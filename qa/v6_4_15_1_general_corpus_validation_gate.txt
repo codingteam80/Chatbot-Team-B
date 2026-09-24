@@ -1,0 +1,48 @@
+DocuBot v6.4.15.1 - General Corpus Validation Gate
+==================================================
+
+Purpose
+-------
+This is validation tooling only. It does not change production retrieval,
+models, embeddings, reranker behavior, global confidence threshold, chunking,
+or index schema.
+
+One-click runner
+----------------
+Run:
+  Run_General_Corpus_Gate.bat
+
+The gate stops immediately on the first failure and runs, in order:
+
+1. KB Health Check
+   - Every supported source currently under data/all_documents must be tracked
+     and represented by active chunks.
+   - No embeddings, reranker, or Ollama call is required by this step.
+
+2. Certified Cycle-1 regression gate
+   - Exact suite: 78 turns
+   - Seed: 1789101877
+   - Cycle: 1
+   - Shuffle: enabled
+   - Required result: 78 PASS / 0 FAIL / 0 ERROR
+
+3. Runtime unseen-document generality proof
+   - Creates a temporary TXT document with randomized facts that cannot be
+     pre-hardcoded in production logic.
+   - Runs the existing incremental Smart Build.
+   - Asks four grounded questions, including an English and Tagalog query.
+   - Requires the temporary source filename and randomized values in the result.
+   - Deletes the temporary source and runs incremental Smart Build again.
+   - The original user KB must be restored before the gate can pass.
+
+Success condition
+-----------------
+GENERAL CORPUS GATE: PASS
+
+A PASS proves, on that Windows/Ollama machine, that:
+- current corpus/index coverage is healthy;
+- the certified 78-turn baseline remains green; and
+- a genuinely new supported document can be added, incrementally indexed,
+  queried through the real AnswerService, and removed again without code changes.
+
+This is the machine-level precondition before low-spec performance profiling.

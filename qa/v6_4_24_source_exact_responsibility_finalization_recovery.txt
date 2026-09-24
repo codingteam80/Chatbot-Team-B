@@ -1,0 +1,17 @@
+DocuBot v6.4.24 - Source-Exact Responsibility Finalization Recovery
+
+Actual Windows evidence from v6.4.23 Production QA:
+- Production QA: 9/10 stages PASS.
+- Stage 5 unseen-document proof: 3/4.
+- P-003 retrieved the correct temporary source but generated `Archive Coordination Lead 02O` instead of source-exact `Archive Coordination Lead 02O0`.
+- P-001, P-002, P-004 and cleanup all passed.
+
+Focused recovery:
+1. `Who owns ...?` is classified as RESPONSIBLE ENTITY.
+2. Explicit accepted key/value ownership/responsibility labels may be finalized deterministically when a non-generic query stem overlaps the source label.
+3. The value is copied from accepted source text without LLM rewriting, preserving opaque alphanumeric suffixes.
+4. No topic/document/role/test-token hardcoding.
+
+Required Windows certification:
+- Run_Production_QA.bat
+- Target: 10/10 PASS.

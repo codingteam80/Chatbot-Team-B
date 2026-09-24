@@ -1,0 +1,19 @@
+DocuBot v6.4.15.7 - Artifact-Verified General Corpus Gate
+==========================================================
+
+Scope: validation harness only. Production retrieval, answer generation, models,
+thresholds, embeddings, reranker, corpus/index format, and v6.4.15.6 Windows-
+validated 78/78 behavior are intentionally unchanged.
+
+Recovery:
+- Gate 2 no longer treats the producer process exit code as the sole truth after
+  a complete fresh result artifact has already been written.
+- A fresh results.json created after a stage marker must contain exactly 78 rows,
+  planned_turns=78, PASS=78, FAIL=0, ERROR=0.
+- Gate 3 uses the same artifact-first safety pattern. The fresh unseen proof JSON
+  must contain 4/4 PASS, source_ok on all four questions, cleanup_ok=true, and
+  overall=PASS.
+- Old artifacts cannot satisfy a new gate run because each stage has a fresh
+  marker timestamp.
+- Non-zero producer exit codes are logged as warnings only when the independently
+  verified fresh artifact proves that the stage itself completed successfully.

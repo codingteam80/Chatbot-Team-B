@@ -1,0 +1,46 @@
+DocuBot v6.4.22 - Production QA
+================================
+
+Purpose
+-------
+Validate the Windows/Ollama production product around the immutable v6.4.21
+Production Architecture Lock without changing retrieval, routing, models,
+chunking, prompts, thresholds, or UI behavior.
+
+One-click runner
+----------------
+Run_Production_QA.bat
+
+Automated gates
+---------------
+1. Production Architecture Lock pre-check.
+2. Knowledge-base health pre-check.
+3. Streamlit startup + fresh restart through streamlit.testing.v1.AppTest.
+4. Fresh certified 78-turn robustness QA, artifact-verified.
+5. Fresh random unseen-document 4/4 proof, artifact-verified.
+6. Temporary real incremental document lifecycle:
+   add -> query -> update -> query -> delete -> fallback -> exact KB restoration.
+7. Real AnswerService behavior probe covering English, Tagalog, mixed language,
+   list formatting, exact company-only fallback, citations, deterministic
+   structured answer, conversational follow-up, and repeated-use stability.
+8. Controlled complex-model failure -> fast-model fallback resilience probe.
+   The user's Ollama service is not stopped or modified for this test.
+9. Knowledge-base health post-check.
+10. Production Architecture Lock post-check.
+
+Safety
+------
+- No pip install.
+- No full rebuild when the KB starts healthy.
+- No storage deletion.
+- No model-policy override.
+- No production source file modification.
+- The lifecycle probe refuses to start if the KB already needs maintenance.
+- Its random temporary file is removed and Smart Build is run again in finally.
+- Final manifest and Chroma count must return to their initial state.
+
+Limit of automated UI certification
+-----------------------------------
+The Streamlit AppTest verifies execution/startup/restart and uncaught Streamlit
+exceptions. Pixel-level CSS/layout appearance is not machine-certified; that
+remains a final human visual spot-check before installer release.

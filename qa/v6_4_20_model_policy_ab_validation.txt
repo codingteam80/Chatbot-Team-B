@@ -1,0 +1,34 @@
+DocuBot v6.4.20 - Model-Policy A/B Validation
+================================================
+
+Scope
+-----
+Validation-only checkpoint built on the certified v6.4.18 runtime behavior and
+v6.4.19 post-optimization certification harness.
+
+A / Control
+-----------
+- Fast model: llama3.2:3b
+- Complex model: qwen2.5:7b
+- Existing router remains active.
+
+B / Unified 3B candidate
+------------------------
+- Fast model: llama3.2:3b
+- Complex model: llama3.2:3b
+- Existing router remains active; complex questions are still classified as
+  complex. Only the model assigned to that route changes.
+- No DOCUBOT_OLLAMA_MODEL forced-mode override is used.
+
+Promotion gate
+--------------
+B is only eligible if all of the following are true on Windows/Ollama:
+1. Control remains exactly 78/78 PASS, 0 FAIL, 0 ERROR.
+2. Candidate B is exactly 78/78 PASS, 0 FAIL, 0 ERROR.
+3. Candidate B passes the runtime unseen-document proof 4/4 with cleanup PASS.
+
+The harness compares average/median/P95/max latency, generative model switches,
+and the exact cases that route to qwen2.5:7b under the control policy.
+
+The harness never auto-promotes B. A passing candidate only becomes eligible
+for a later explicit production-policy decision.

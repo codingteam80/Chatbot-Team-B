@@ -1,0 +1,181 @@
+DOCUBOT v6.4.8 - BM25 FAST-PATH GROUNDING HARDENING + LATENCY QA
+================================================================
+
+IMPORTANT TEST RULES
+--------------------
+- Enter every numbered question as a REAL separate chat message.
+- Do not type arrows (->), slash alternatives, or placeholder brackets.
+- Start a new chat where the section says NEW CHAT.
+- Keep the same Knowledge Base used for the v6.4.7 evidence comparison.
+
+A. COLD START / STRICT IDENTITY FAST PATH
+-----------------------------------------
+1. Fully stop Streamlit.
+2. Start DocuBot again.
+3. NEW CHAT - first question:
+   Who is Andres Bonifacio?
+
+Expected:
+- The selected accepted/final chunk must be the actual Andres Bonifacio
+  introductory definition, NOT Marriages, References, Notes, or another
+  narrative section.
+- Evidence should show:
+    BM25 FIRST PASS
+    Status: IDENTITY FAST PATH
+  and details should include a concrete chunk_id and target.
+- Evidence should also show:
+    BM25 IDENTITY GROUNDING
+    Status: DETERMINISTIC SOURCE SENTENCE
+- LLM route should be deterministic / No LLM for this fast-path answer.
+- No VECTOR STARTED or RERANKER STARTED should occur before this answer when
+  the strict fast path qualifies.
+- The answer must contain only information supported by the selected accepted
+  identity sentence. No outside facts may be added.
+
+4. NEW CHAT:
+   Who is Apolinario Mabini?
+
+5. NEW CHAT:
+   Who is Emilio Aguinaldo?
+
+Expected for 4-5:
+- If the strict fast path qualifies, the accepted chunk must be the real intro
+  profile and the answer should be deterministic from that source sentence.
+- If it does not qualify, normal semantic retrieval is acceptable; never force
+  a weak BM25 chunk just to save time.
+
+B. REGRESSION FOR THE v6.4.7 BONIFACIO FAILURE
+----------------------------------------------
+6. NEW CHAT:
+   Who is Andres Bonifacio?
+
+After the answer, inspect evidence and confirm all of the following:
+- Accepted/final chunk is not headed Marriages.
+- Accepted/final chunk itself explicitly states who Andres Bonifacio was.
+- If the answer mentions a role/title/organization, that fact must be visible
+  in the selected accepted source sentence/context.
+- Prompt Leak Detected remains False.
+
+C. REAL MULTI-TURN PERSON CONTEXT
+---------------------------------
+NEW CHAT - enter these as three separate messages:
+7. Who is Apolinario Mabini?
+8. What position did he hold?
+9. Why was he significant?
+
+Expected:
+- Q8 resolves the pronoun to Apolinario Mabini and returns the supported
+  position.
+- Q9 stays on Mabini and remains grounded.
+- No query text or internal routing text appears in the final answer.
+
+NEW CHAT - fresh chain:
+10. Who is Jose Rizal?
+11. What roles or professions are explicitly stated for him?
+12. Why was he significant?
+
+Expected:
+- Context continuity remains on Jose Rizal.
+- Answers use only stored-document evidence.
+- If the evidence cannot support a requested relation, use the exact fallback
+  instead of guessing.
+
+D. DEFERRED SEMANTIC COLD LOAD / LOW-SPEC OBSERVATION
+----------------------------------------------------
+NEW CHAT after a fresh Streamlit process if possible:
+13. Who is Andres Bonifacio?
+14. What organization did he help found?
+
+Expected:
+- Q13 should use the strict deterministic BM25 identity fast path when safe.
+- Q14 may load VECTOR/RERANKER if needed. Record VECTOR READY and RERANKER READY
+  seconds separately. This is the deferred cold-load cost to compare on lower-
+  spec PCs; it is not a correctness failure by itself.
+- Q14 should answer Katipunan only when accepted context explicitly supports
+  the founding relation.
+
+15. Why was he significant?
+Expected:
+- Still resolves to Andres Bonifacio.
+- Grounded significance answer; no prompt/query leak.
+
+E. TAGALOG DIRECT-RELATION REGRESSIONS
+--------------------------------------
+NEW CHAT:
+16. Ilang araw ang sick leave na ibinibigay?
+17. Sino ang nag-aapruba ng leave request?
+18. Kailan nilagdaan ang Treaty of Paris ng 1898?
+19. Ano ang pangunahing layunin ng Katipunan?
+
+Expected from the current stored regression corpus:
+- Q16: 17 days.
+- Q17: Manager.
+- Q18: December 10, 1898.
+- Q19: grounded purpose from the stored Katipunan source.
+- No global threshold changes or unrelated neighboring values.
+
+Negative neighbor-value check - NEW CHAT:
+20. Ilang araw ang vacation leave na ibinibigay?
+21. Ilang araw ang sick leave na ibinibigay?
+Expected:
+- Q20: 47 days from the stored test policy.
+- Q21: 17 days, never 47 days from the neighboring field.
+
+F. STRUCTURED / COMPOUND PATHS MUST STAY FAST AND CORRECT
+--------------------------------------------------------
+NEW CHAT:
+22. What does Rule 1.2 say?
+23. What category does it belong to?
+24. What does it apply to?
+Expected:
+- Exact structured deterministic path / No LLM.
+- Correct same-rule follow-up resolution.
+
+25. NEW CHAT:
+    What is Rule 13.5 and explain it as well.
+Expected:
+- Exact Rule 13.5 statement plus supported explanation/rationale.
+- Existing deterministic structured behavior remains intact.
+
+26. NEW CHAT:
+    What is Section 6? Explain it as well.
+Expected:
+- Grounded Section 6 explanation.
+- Complex Qwen route is allowed.
+- Fast-context compaction must not be applied to the structured explanation.
+
+27. NEW CHAT:
+    How much sick leave is provided and who must approve a leave request?
+Expected:
+- 17 days + Manager when supported by the stored test policy.
+- Both facets answered; no omission.
+
+G. ABSENT-INFORMATION SAFETY
+----------------------------
+28. NEW CHAT:
+    Who is Batman?
+Expected exact fallback:
+    Information not found in company knowledge base.
+
+29. NEW CHAT:
+    What is the employee parking reimbursement limit?
+Expected:
+- If that fact is absent from the current storage, exact fallback.
+- If a newly added real company document now contains it, answer only from that
+  stored evidence.
+
+H. EVIDENCE / LATENCY REVIEW
+----------------------------
+For the resulting evidence log, review:
+- First retriever-wrapper initialization time.
+- First identity BM25 FIRST PASS selected source + chunk_id.
+- BM25 IDENTITY GROUNDING event and whether LLM generation was skipped.
+- Whether any Marriages/References/Notes-style chunk incorrectly qualified.
+- Time until first VECTOR READY and RERANKER READY when semantic retrieval is
+  genuinely needed.
+- Warm fast-query retrieval and generation times.
+- FAST CONTEXT COMPACTED events and reduction percentages.
+- Llama -> Qwen and Qwen -> Llama generation times for model-swap analysis.
+- Any fallback, prompt leak, warning, exception, or Error other than None.
+
+Do not treat the intentional Batman/absent-information fallback as a regression.

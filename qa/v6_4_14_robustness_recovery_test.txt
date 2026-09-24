@@ -1,0 +1,46 @@
+DocuBot v6.4.14 - Robustness Recovery + QA Evaluator Hardening
+================================================================
+
+PRIMARY WINDOWS VALIDATION
+--------------------------
+1. Keep the same data/all_documents and existing storage/index used for the
+   v6.4.13.1 run. Do NOT rebuild only for this test.
+2. Ensure Ollama is running and the configured models are available.
+3. Double-click:
+      Run_Robustness_QA_Baseline_Compare.bat
+4. Let all 78 turns complete.
+5. Compare summary.txt/results.csv/results.json against the v6.4.13.1 baseline:
+      PASS 46 / FAIL 32 / ERROR 0
+      Average 5.1205s / Median 3.5884s / P95 15.3006s
+6. Send the new summary.txt + results.csv/results.json for review.
+
+FOCUSED RECOVERY CHECKS
+-----------------------
+The repeatable run should especially re-check:
+- Tagalog leave approval / permission paraphrases.
+- Annual sick/vacation leave quantity paraphrases.
+- Tagalog Katipunan purpose variants.
+- Aguinaldo/Bonifacio profile and position paraphrases.
+- Treaty territory/date/effect wording.
+- Rule 1.2 requirement + follow-up Category / Applies to / Rationale turns.
+- Leave-policy follow-up chain using it/these/corresponding.
+- Tagalog Katipunan follow-up chain using nito/ito.
+- Section 6 targeted subtopic: automatically generated code.
+- Section 6 decidability follow-up.
+
+QA EVALUATOR CHECKS
+-------------------
+- Correct multi-fact answer "47 / 17 / Manager" must not fail merely because
+  it does not repeat "regular employee".
+- Correct factual list content still needs proper list presentation where the
+  test explicitly requires list output.
+- Excessive/runaway Section 6 lists must not PASS merely because required
+  keywords happen to appear.
+
+AFTER BASELINE COMPARISON
+-------------------------
+If Cycle 1 materially improves without regression, run fresh wording using:
+   python -m scripts.run_robustness_qa --suite full --cycle 2
+   python -m scripts.run_robustness_qa --suite full --cycle 3
+
+Do not treat static/unit tests as Windows/Ollama validation.

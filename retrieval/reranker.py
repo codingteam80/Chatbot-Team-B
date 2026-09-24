@@ -1,3 +1,5 @@
+import math
+
 import streamlit as st
 import torch
 
@@ -43,7 +45,10 @@ def get_reranker_model():
     model = CrossEncoder(
         RERANKER_MODEL,
         device=device,
-        max_length=512
+        max_length=512,
+        # Keep a stable 0..1 confidence scale across BGE reranker variants so
+        # MIN_RETRIEVAL_SCORE remains meaningful after the v2-m3 migration.
+        activation_fn=torch.nn.Sigmoid(),
     )
 
     print(
@@ -116,11 +121,80 @@ class CrossEncoderReranker:
                 )
             )
 
-        scores = self.model.predict(
+        raw_scores = self.model.predict(
             pairs,
             batch_size=8,
             show_progress_bar=False
         )
+
+        # CrossEncoder inference can rarely produce NaN/Inf on some local
+        # CPU/model combinations. A non-finite value must never enter Python
+        # sorting or the confidence gate because NaN comparisons are not
+        # ordered and can move unrelated candidates ahead of valid evidence.
+        # Retry only the affected pair at batch size 1. If it is still
+        # non-finite, convert it to a safe finite rejection score (0.0).
+        scores = []
+
+        for index, raw_score in enumerate(raw_scores):
+
+            score = float(raw_score)
+
+            if math.isfinite(score):
+                scores.append(score)
+                continue
+
+            item = candidates[index]
+            file_name = item.get(
+                "metadata",
+                {}
+            ).get(
+                "file_name",
+                "Unknown"
+            )
+
+            print(
+                "[RERANKER] Non-finite score detected for "
+                f"{file_name}; retrying this candidate with batch_size=1."
+            )
+
+            retry_score = float("nan")
+
+            try:
+                retry_scores = self.model.predict(
+                    [pairs[index]],
+                    batch_size=1,
+                    show_progress_bar=False
+                )
+
+                retry_score = float(retry_scores[0])
+
+            except Exception as error:
+                retry_score = float("nan")
+
+                print(
+                    "[RERANKER] Single-candidate retry failed safely: "
+                    f"{type(error).__name__}."
+                )
+
+            if math.isfinite(retry_score):
+                score = retry_score
+                item["_rerank_nonfinite_recovered"] = True
+
+                print(
+                    "[RERANKER] Non-finite score recovered with a finite "
+                    f"retry score: {score:.4f}."
+                )
+
+            else:
+                score = 0.0
+                item["_rerank_nonfinite_safe_rejected"] = True
+
+                print(
+                    "[RERANKER] Retry remained non-finite; assigning the "
+                    "safe rejection score 0.0000."
+                )
+
+            scores.append(score)
 
         print("\n===== RAW RERANK SCORES =====")
 
@@ -131,7 +205,7 @@ class CrossEncoderReranker:
             print(
                 f"{index} | "
                 f"{item['metadata'].get('file_name', 'Unknown')} | "
-                f"{float(score):.4f}"
+                f"{score:.4f}"
             )
 
         print("=============================\n")
@@ -141,9 +215,7 @@ class CrossEncoderReranker:
             scores
         ):
 
-            item["rerank_score"] = float(
-                score
-            )
+            item["rerank_score"] = score
 
         candidates.sort(
             key=lambda item:

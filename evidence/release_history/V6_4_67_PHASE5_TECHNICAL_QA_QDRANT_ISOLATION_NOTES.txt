@@ -1,0 +1,46 @@
+DocuBot v6.4.67 — Phase-5 Technical QA Qdrant Isolation
+
+Built from
+----------
+The complete v6.4.66 technical-QA-harness project plus the 2026-09-18 office result showing Harness=single_process_shared_service and 15/16 PASS. OC-011 alone still failed with PermissionError on production storage/option_c_qwen3_qdrant/qdrant/.lock. Because all 16 cases were already sharing one process/runtime, the remaining lock owner is outside the per-case QA lifecycle. English Natural 19/19 from v6.4.65 remains accepted.
+
+Focused correction
+------------------
+1. Before AnswerService/retriever startup, Technical QA creates a run-specific isolated copy of the production Qdrant payload.
+2. The production qdrant/.lock is never copied, deleted, modified, or opened through Qdrant by the QA preparation step.
+3. Each .sqlite database is cloned with Python sqlite3 backup from a read-only source connection, producing a consistent QA snapshot even when the production DB is open.
+4. SQLite runtime sidecars (-wal, -shm, -journal) and qdrant/.lock are excluded from the QA copy.
+5. config.settings.QDRANT_DIR is redirected inside the QA process to the isolated snapshot before AnswerService imports.
+6. The existing v6.4.66 one-process/shared-service architecture and fresh per-case ChatManager reset remain in place.
+7. Per-case evidence and result ZIP format remain; summary records Harness=single_process_isolated_qdrant and Qdrant=readonly_sqlite_snapshot.
+8. The temporary QA snapshot is removed on best effort after the result ZIP is created.
+
+Why this is the correct layer
+-----------------------------
+The v6.4.66 office rerun proved that process churn was no longer the cause: the single shared QA process still failed only when OC-011 reached the first full embedding/vector path. Isolating certification reads from the live embedded-Qdrant directory removes external runtime lock contention without changing production retrieval behavior or mutating the production store.
+
+Not changed
+-----------
+- AnswerService / MISRA semantic logic
+- qwen2.5:7b generation model
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- production Qdrant/BM25 data or documents
+- retrieval thresholds, Top-K, chunking, or index schema
+- KB rebuild behavior
+
+Office acceptance gate
+----------------------
+1. Do not rerun English Natural; v6.4.65 19/19 PASS remains accepted.
+2. Run_Option_C_Technical_QA.bat -> target 16/16 PASS.
+3. Summary should show Harness: single_process_isolated_qdrant and Qdrant: readonly_sqlite_snapshot.
+4. No KB rebuild and no pip install are required.
+
+Local validation
+----------------
+- v6.4.60-v6.4.67 focused Phase-5 block: 53/53 PASS.
+- New v6.4.66/v6.4.67 harness/isolation tests: 7/7 PASS.
+- Retained v6.4.39-v6.4.67 block: 213 PASS / 3 baseline FAIL; all three reproduce on untouched v6.4.66 (obsolete v6.4.50 TRIAL-status assertion plus the known v6.4.53/v6.4.54 recovery-marker assertions).
+- Actual bundled Qdrant snapshot probe: source SQLite SHA256 unchanged, shadow has no .lock, meta.json byte-identical, cloned SQLite PRAGMA integrity_check=ok.
+- 211 Python files compile with 0 syntax errors.
+- Production Architecture Lock checker: PASS.

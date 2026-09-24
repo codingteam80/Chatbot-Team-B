@@ -1,0 +1,63 @@
+DocuBot v6.4.48 — Unknown Structured Reference Latency Closure
+================================================================
+
+Base
+----
+Built strictly from locked/certified v6.4.47 after final manual/UI evidence on
+Windows/Ollama showed all 16 requested manual answers were semantically correct,
+but one explicit nonexistent MISRA identifier took 16.7515 seconds:
+
+  Explain MISRA Rule 99.99 and give its requirement.
+
+The final answer was the correct company-KB fallback, but the current turn was
+incorrectly treated as a grounded follow-up to the previous Rule 20.7 macro
+question. That stale anchor caused qwen2.5:7b generation before the fallback.
+
+Focused production correction
+-----------------------------
+1. Any explicit current-turn structured identifier (Rule/Directive/Section)
+   is self-contained for follow-up classification and cannot inherit a stale
+   prior grounded MISRA scenario.
+2. If exact structured lookup for an explicit Rule/Directive identifier has no
+   metadata match, retrieval stops authoritatively with zero semantic/vector/
+   reranker candidates. It does not substitute a neighboring rule.
+3. Section-like misses retain the historical semantic fallback because some
+   non-MISRA document families may use looser section metadata.
+4. HG-003 and ADV-011 now require the fake-ID fallback to complete without an
+   LLM generation event, so a correct-but-slow fallback cannot false-PASS.
+5. No model, context window, keep-alive, embedding, reranker, threshold,
+   chunking/index, document, storage, UI, or reviewer-routing setting changed.
+
+Manual evidence that triggered this closure
+-------------------------------------------
+- 16/16 manual answers semantically correct.
+- Median recorded request latency: ~0.064 s.
+- 10/16 turns under 0.1 s.
+- Rule 99.99 fake-ID fallback: 16.7515 s because qwen2.5:7b was invoked.
+- Reviewer-style Rule 16.6 switch analysis: 19.4264 s through qwen2.5:7b;
+  intentionally retained because it is a genuine complex reviewer path and its
+  semantic alignment guard passed.
+
+Local validation
+----------------
+- New v6.4.48 focused tests: 5/5 PASS.
+- Retained v6.4.39-v6.4.48 hardening tests: 105/105 PASS.
+- Pre-lock full tests: 612 PASS / 24 FAIL = same 22 known legacy/superseded
+  failures + 2 expected lock/hash mismatches from intentional edits.
+- No new functional failures.
+- Architecture/Production-QA lock after hash refresh: 12/12 PASS.
+- Frozen full tests: 614 PASS / exactly the same 22 legacy/superseded FAIL across 636 tests.
+- 187 Python files compile with 0 syntax errors; 173 MISRA structured references preserved.
+
+Windows acceptance target
+-------------------------
+To save deadline time while preserving evidence quality, rerun only:
+- Run_Grounded_Hallucination_Guard_QA.bat — target 12/12.
+- Run_Adversarial_Grounding_QA.bat — target 16/16.
+
+Then manually ask once in the same UI after a Rule 20.7 turn:
+  Explain MISRA Rule 99.99 and give its requirement.
+Expected:
+  Information not found in company knowledge base.
+with no qwen generation delay; the test evidence must show the authoritative
+identifier miss stopped before LLM generation.

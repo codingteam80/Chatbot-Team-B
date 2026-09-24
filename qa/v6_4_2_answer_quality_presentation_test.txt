@@ -1,0 +1,122 @@
+DocuBot v6.4.2 - Answer Quality + Consistent List Presentation
+Windows Manual Regression / Fresh Question Guide
+
+IMPORTANT
+- Install/copy v6.4.2 over the current project and choose Replace when asked.
+- Do NOT delete storage.
+- No pip install is required.
+- No Knowledge Base rebuild is required when the current v6.4.1/v6.4 index is healthy.
+- Run normally: .\run_docubot_with_log.ps1
+- Ask the questions in the order below in ONE chat session unless a section says otherwise.
+- After the run, send the newest logs\test_evidence\test_evidence_*.log.
+
+A. TARGETED RECOVERY CHECKS
+These directly retest the issues exposed by the v6.4.1 Windows evidence.
+
+1. Explain Section 6.
+Expected: grounded Section 6 explanation; multiple distinct points should be shown as Markdown bullets/list instead of one dense paragraph.
+
+2. What caused Apolinario Mabini's paralysis?
+Expected: polio. Must NOT fall back and must NOT report the debunked syphilis rumor as the cause.
+
+3. What organization did Andres Bonifacio co-found?
+Expected: Katipunan. Must NOT answer Kalayaan.
+
+4. What position did Apolinario Mabini hold in the First Philippine Republic?
+Expected: a clean direct position/role answer supported by the document. Must NOT appear as an awkward one-item numbered list such as "1. ...".
+
+5. What title is Andres Bonifacio often called?
+Expected: The Father of the Philippine Revolution, cleanly phrased.
+
+6. Sino si Andres Bonifacio?
+Expected: useful grounded identity answer. No duplicated name, IPA/pronunciation block, or stray infobox/footnote noise.
+
+7. Ipaliwanag kung sino si Andres Bonifacio at bakit siya mahalaga.
+Expected: grounded answer covering BOTH who he was and why he was important; no strict fallback. Multi-point content should be readable/listed when appropriate.
+
+8. Ano ang Katipunan?
+Expected: grounded definition/detail of the Katipunan, not title-only and not unrelated nearby metadata.
+
+B. FRESH ROTATING QUESTIONS - NEW FOR v6.4.2
+These are intentionally different from the v6.4.1 fresh set.
+
+9. Who was Emilio Aguinaldo?
+Expected: grounded identity/overview from the company corpus; concise and useful, without infobox/pronunciation noise.
+
+10. What role did Emilio Aguinaldo hold in the First Philippine Republic?
+Expected: direct grounded role/office answer; no unrelated nearby entity.
+
+11. What was the Treaty of Paris of 1898?
+Expected: grounded definition/overview from Treaty of Paris (1898) document.
+
+12. When was Philippine independence declared?
+Expected: grounded date from the available company documents.
+
+13. Ano ang Gomburza?
+Expected: grounded Tagalog response/definition based only on company knowledge; no title-only response.
+
+14. Ipaliwanag ang Philippine Revolution.
+Expected: grounded explanation with the main supported points presented readably; use list format when several distinct points are returned.
+
+15. What does Rule 21.3 say?
+Expected: exact structured lookup if Rule 21.3 exists in the indexed MISRA document; otherwise strict not-found. It must not substitute a neighboring rule.
+
+16. Explain Rule 21.3.
+Expected: same exact identifier retained; if present, grounded explanation; if absent, strict not-found.
+
+17. How much sick leave is provided and who must approve a leave request?
+Expected: BOTH requested parts answered in order from Employee Leave Policy: 17 sick-leave days annually and manager approval.
+
+18. What does Rule 96.96 say?
+Expected: Information not found in company knowledge base. No neighboring Rule substitution.
+
+C. CORE REGRESSION SMOKE
+Keep these to prove that earlier fixed behavior remains intact.
+
+19. Who is Jose Rizal?
+Expected: useful grounded identity answer; automatic Q-001 should PASS if matched.
+
+20. Explain who Jose Rizal was and why he was significant.
+Expected: both compound facets covered, no fallback.
+
+21. What does Rule 1.2 say?
+Expected: exact Rule 1.2, deterministic/no-LLM fast path.
+
+22. Explain Rule 1.2.
+Expected: exact Rule 1.2 explanation. Multi-point explanation should be readable/listed rather than a dense paragraph when several distinct facts are present.
+
+23. What is Dir 4.12?
+Expected: exact Directive 4.12, deterministic/no-LLM fast path.
+
+24. Explain Directive 4.12.
+Expected: exact Directive 4.12 explanation; same identifier retained and multi-point content formatted readably.
+
+25. What is Section 6?
+Expected: concise deterministic/no-LLM Section 6 overview; still near-instant.
+
+26. What does Rule 99.99 say?
+Expected: strict Information not found in company knowledge base.
+
+27. What does Rule 1.2 say?
+28. Why is that rule important?
+29. Explain that rule.
+Expected: questions 28-29 continue resolving to Rule 1.2; no cross-topic contamination.
+
+30. What is MISRA C?
+Expected: grounded concise definition.
+
+31. Explain MISRA C.
+Expected: grounded explanation. If several supported points are returned, presentation should use a readable list rather than one dense paragraph.
+
+32. Explain the employee leave policy.
+Expected: grounded coverage of 47 vacation days, 17 sick days, regular-employee eligibility, and manager approval. Multiple policy points should render as a list.
+
+D. LOG / STABILITY CHECKS
+- No Python traceback.
+- No application WARNING/ERROR caused by this update.
+- Error fields should remain None for successful requests.
+- No reranker NaN/Inf should enter normal ranking. If raw non-finite output occurs, the existing RERANKER NUMERICAL SAFETY path should handle it.
+- Check for ANSWER PRESENTATION / LIST FORMAT APPLIED on answers reformatted to bullets.
+- Check for GROUNDED RELATION SAFETY / DIRECT RELATION PRESERVED when the deterministic relation recovery guard is used.
+- For Tagalog/non-English questions, MULTILINGUAL SEMANTIC TARGET / APPLIED may appear when an English retrieval query is available.
+- Existing REQUEST LATENCY PROFILE and LLM CALL LATENCY events should remain present.

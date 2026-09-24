@@ -1,0 +1,50 @@
+{
+  "version": "v6.4.97",
+  "milestone": "Structured MultiQuery Output Hardening",
+  "base_runtime": "verified v6.4.96 Few-Shot Prompting / Silent Grounded Reasoning",
+  "runtime_files_changed": [
+    "config/settings.py",
+    "config/prompts.py",
+    "retrieval/multi_query.py",
+    "llm/ollama_client.py"
+  ],
+  "multi_query": {
+    "enabled_by_default": true,
+    "alternative_count": 2,
+    "structured_output_enabled_by_default": true,
+    "structured_output_ab_disable": "DOCUBOT_MULTI_QUERY_STRUCTURED_OUTPUT=0",
+    "response_format": "Ollama JSON schema",
+    "schema_shape": {"queries": "exactly 2 strings"},
+    "temperature": 0,
+    "thinking_requested": false,
+    "legacy_text_fallback": true,
+    "semantic_identifier_guards_preserved": true,
+    "original_query_retained": true,
+    "fusion": "RRF",
+    "rerank_uses_original_intent": true
+  },
+  "prompt_strategy": {
+    "few_shot_enabled_by_default": true,
+    "few_shot_profile": "behavior-only-v1",
+    "silent_reasoning_guidance_enabled_by_default": true,
+    "visible_chain_of_thought_requested": false
+  },
+  "architecture_lock": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55
+  },
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "multi_query_fusion_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

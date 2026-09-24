@@ -764,14 +764,15 @@ class EvidenceLogger:
                     )
                 ),
 
-            "Page":
-                metadata.get(
-                    "page_number",
-                    metadata.get(
-                        "page",
-                        ""
-                    )
-                ),
+            "Page": (
+                f"{metadata.get('page_start')}-{metadata.get('page_end')}"
+                if metadata.get("page_start") and metadata.get("page_end")
+                and str(metadata.get("page_start")) != str(metadata.get("page_end"))
+                else metadata.get("page_start")
+                or metadata.get("page_number")
+                or metadata.get("page")
+                or ""
+            ),
 
             "Section":
                 metadata.get(
@@ -1420,27 +1421,33 @@ class EvidenceLogger:
                 dict
             ):
 
-                output.append(
-                    {
-                        "name":
-                            source.get(
-                                "name",
-                                source.get(
-                                    "file_name",
-                                    "Unknown"
-                                )
-                            ),
-
-                        "path":
-                            source.get(
-                                "path",
-                                source.get(
-                                    "file_path",
-                                    ""
-                                )
-                            ),
-                    }
+                normalized = {
+                    "name": source.get(
+                        "name",
+                        source.get("file_name", "Unknown")
+                    ),
+                    "path": source.get(
+                        "path",
+                        source.get("file_path", "")
+                    ),
+                }
+                page_start = source.get("page_start") or source.get("page_number") or source.get("page")
+                page_end = source.get("page_end") or page_start
+                reference = (
+                    source.get("reference")
+                    or source.get("exact_reference")
+                    or source.get("rule_id")
+                    or source.get("directive_id")
+                    or source.get("section_id")
+                    or source.get("section_title")
                 )
+                if page_start:
+                    normalized["page_start"] = page_start
+                if page_end:
+                    normalized["page_end"] = page_end
+                if reference:
+                    normalized["reference"] = reference
+                output.append(normalized)
 
             else:
 

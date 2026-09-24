@@ -1,0 +1,33 @@
+DocuBot v6.4.78 — Phase 7 Optimization #2 Launcher/Diagnostic Hotfix
+====================================================================
+
+Observed Windows issue
+----------------------
+v6.4.77 Run_Phase7_Optimization2_Trial.bat invoked plain `python` instead of the
+project `venv\Scripts\python.exe`. On the personal PC, the system Python did not
+have rank_bm25 installed, so the trial stopped at `from rank_bm25 import BM25Okapi`
+before AnswerService startup. The project requirements already declare
+`rank-bm25==0.2.2`; no dependency or model change is required.
+
+Hotfix
+------
+- The Optimization #2 BAT now requires and launches the existing project venv,
+  matching the certified Phase-7/Phase-6 runners.
+- The Python trial runner now packages a diagnostic result ZIP on preflight,
+  import, or runtime failure after runner startup.
+- Optimization #2 routing/answer logic from v6.4.77 is byte-unchanged outside
+  the trial harness/launcher.
+
+Unchanged
+---------
+Qwen2.5:7B, Qwen3-Embedding-8B, BGE-reranker-v2-m3, Qdrant, thresholds, Top-K,
+Chunking-v4 900/150, production storage/index, technical documents, strict
+fallback contract, and the v6.4.77 evidence-constrained single-rule fast path.
+
+Run
+---
+Apply over v6.4.77, then run:
+    Run_Phase7_Optimization2_Trial.bat
+
+Upload:
+    logs\phase7_optimization2\DocuBot_Phase7_Optimization2_Result_*.zip

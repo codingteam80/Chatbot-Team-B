@@ -1,0 +1,29 @@
+{
+  "version": "v6.4.90",
+  "milestone": "Generalized Intent / Cross-reference / Fast Section Candidate",
+  "base": "v6.4.89 Semantic Completeness",
+  "design_goal": "Improve generalization without hardcoding the final QA prompts. Routing decisions are based on source structure and intent families.",
+  "fixes": {
+    "compiler_switch_disambiguation": {
+      "behavior": "Compiler/toolchain switch/option/flag wording is kept separate from the C language switch-statement family.",
+      "source_grounding": "Compiler-option rule candidates are derived from source child sections that explicitly mention compiler command-line options/flags, then mapped to their parent Rule requirements."
+    },
+    "rationale_cross_reference_follow": {
+      "behavior": "If an exact Rule/Directive rationale explicitly defers its explanation to a Section identifier, that exact cited Section is appended and used for the why/rationale answer.",
+      "semantic_expansion": false
+    },
+    "structured_section_title_fastpath": {
+      "behavior": "Short near-exact document-section title queries are matched against indexed Section metadata before vector/reranker retrieval.",
+      "requires_title_overlap": true,
+      "ambiguous_matches_fail_closed": true
+    },
+    "technical_english_noun_phrase_detection": {
+      "behavior": "Clearly English technical/document noun phrases no longer trigger the multilingual LLM query adapter merely because they lack an English function word."
+    }
+  },
+  "architecture_changes": false,
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

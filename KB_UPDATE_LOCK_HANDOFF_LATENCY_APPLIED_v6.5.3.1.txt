@@ -1,0 +1,19 @@
+DocuBot v6.5.3.1 KB Update Worker Lock Handoff + Latency Decision Diagnostics
+==============================================================================================
+Applied: 2026-09-24T15:26:38
+Base: exact verified v6.5.3
+Chunk size/overlap changed: NO (900/150)
+Global retrieval threshold changed: NO (0.55)
+Vector/BM25/Final Top-K changed: NO (10/10/3)
+Models changed: NO
+Production Qdrant/BM25 rebuilt by installer: NO
+Worker-only KB update lock ownership: YES
+Legacy Streamlit parent self-lock handoff: YES
+Process-start identity guard for PID reuse: YES
+Live worker lock protection: YES
+Streamlit session double-click guard: YES
+v6.5.3 single-query early accept preserved: YES
+v6.5.3 MultiQuery fallback preserved: YES
+Semantic latency decision event: YES
+Single-query / MultiQuery / widened timing fields: YES
+Backup: C:\user_dev\company-chatbot\evidence\release_history\v6.5.3_pre_v6.5.3.1_20260924_152638

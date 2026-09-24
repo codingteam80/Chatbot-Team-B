@@ -1,0 +1,40 @@
+{
+  "version": "v6.4.90.3",
+  "milestone": "Centralized Rule/Directive Causal Intent",
+  "base": "v6.4.90.2 Generalized Rule/Directive Reason Intent",
+  "fixes": {
+    "centralized_causal_intent_detector": true,
+    "shared_by": [
+      "answer focus routing",
+      "exact rationale Section cross-reference augmentation"
+    ],
+    "covered_paraphrase_families": [
+      "why",
+      "rationale",
+      "reason",
+      "purpose",
+      "justification",
+      "basis/bases",
+      "ground/grounds",
+      "motivate/motivated/motivation",
+      "goal",
+      "aim",
+      "objective",
+      "intent",
+      "trying to achieve",
+      "bakit",
+      "dahilan",
+      "layunin"
+    ],
+    "exact_reference_boundary_preserved": true,
+    "not_hardcoded_to_rule_number_or_QA_prompt": true
+  },
+  "runtime_files_changed": [
+    "services/answer_service.py"
+  ],
+  "retriever_changed": false,
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

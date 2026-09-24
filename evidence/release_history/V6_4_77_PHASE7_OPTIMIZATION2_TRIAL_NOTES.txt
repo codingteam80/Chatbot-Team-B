@@ -1,0 +1,31 @@
+DocuBot v6.4.77 — Phase 7 Optimization #2 Trial
+================================================
+
+Purpose
+-------
+Remove the remaining measured 25-second-class OC-008 Qwen long tail on lower-spec PCs without broadening deterministic review routing indiscriminately.
+
+Change
+------
+A single-rule MISRA reviewer answer may skip Qwen only when ALL of these are true:
+- the current turn contains visible C/C++ code;
+- exactly one citable structured MISRA Rule/Directive candidate is deterministically matched;
+- the user explicitly constrains the review not to invent/assume facts, or to use only visible/shown/provided evidence;
+- deterministic cue coverage is at least 0.95;
+- the deterministic state is definite (compliant or violation), never uncertain;
+- a visible-code observation exists;
+- the deterministic answer passes the existing reference-grounding and semantic-alignment guards.
+
+Ordinary single-rule reviewer questions continue to use the existing Qwen route for naturalness. Multi-rule Optimization #1 routing is unchanged.
+
+Unchanged
+---------
+Qwen2.5:7B generation model; Qwen3-Embedding-8B; BGE-reranker-v2-m3; Qdrant; retrieval thresholds; Top-K; Chunking-v4 900/150; production storage; documents; strict fallback contract.
+
+Office/personal-PC trial
+------------------------
+Apply over v6.4.76 and run:
+    Run_Phase7_Optimization2_Trial.bat
+
+Upload:
+    logs\phase7_optimization2\DocuBot_Phase7_Optimization2_Result_*.zip

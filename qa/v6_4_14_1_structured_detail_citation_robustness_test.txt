@@ -1,0 +1,28 @@
+DocuBot v6.4.14.1 - Structured Detail & Citation + Robustness Cleanup
+=====================================================================
+
+BASELINE COMPARISON
+Run: Run_Robustness_QA_Baseline_Compare.bat
+Expected execution shape: 78 turns / Cycle 1 / seed 1789101877.
+Target release gate: 78 PASS / 0 FAIL / 0 ERROR before manual unseen QA.
+
+FOCUSED MANUAL SPOT CHECKS (do not replace the 78-turn runner)
+1. What is the amplification of Rule 1.2?
+2. What is the rationale of Rule 1.2?
+3. Show the examples for Rule 1.2.
+4. Explain Rule 1.2 including its amplification, rationale, and examples.
+5. Ask an exact Rule/Directive answer and verify the Source chip shows Page/Pages and the structured reference when metadata exists.
+6. State MISRA Rule 1.2. -> Which C versions does it cover?
+7. Give me a short description of Apolinario Mabini.
+8. What is the yearly sick-leave allotment in the policy?
+9. Compare the annual vacation leave and sick leave credits.
+10. What topics does Section 6 introduce?
+11. Give me an overview of Section 6. -> What does it say about decidability?
+12. Ano ang Katipunan sa maikling paliwanag? -> Sino ang isa sa mga nagtatag nito?
+
+SAFETY EXPECTATIONS
+- No outside knowledge.
+- Exact fallback remains: Information not found in company knowledge base.
+- No unsupported examples or invented page numbers.
+- Page/reference metadata is displayed only when it exists in retrieved metadata.
+- Weak/ambiguous deterministic extraction must fall back to the established grounded pipeline.

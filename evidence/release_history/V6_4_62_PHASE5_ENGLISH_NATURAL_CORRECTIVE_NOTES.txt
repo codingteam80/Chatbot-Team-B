@@ -1,0 +1,29 @@
+DocuBot v6.4.62 — Phase-5 English Natural Corrective Trial
+
+Scope
+-----
+- English-first planning/guidance intent precedence.
+- Exact Rule/Directive evidence planner keeps parent Rule body as citable anchor for explanation/rationale/example requests.
+- Compact prepared child blocks (Rationale/Example/etc.) parsed by evidence role without cross-role contamination.
+- Natural prose switch-clause review and Boolean-switch rationale requests enter MISRA mode without requiring canned wording.
+- Default-label position follow-ups self-ground to the relevant switch requirements.
+- Scope guard prevents one satisfied requirement from being presented as overall MISRA compliance.
+- Technical-profile current/out-of-domain requests fail closed before expensive retrieval when clearly unsupported.
+- Phase-5 English Natural Benchmark is bundled for repeatable Windows/Ollama rerun.
+- requirements.txt explicitly lists python-pptx and documents external runtime models (Qwen2.5:7B, Qwen3-Embedding-8B, BGE-v2-m3).
+
+Not changed
+-----------
+- qwen2.5:7b generation
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant
+- retrieval thresholds / Top-K policy
+- chunking / index schema
+- active technical documents / storage
+
+Required office validation
+--------------------------
+1. Run_Option_C_Technical_QA.bat -> target 16/16 PASS.
+2. Run_English_Natural_Benchmark.bat -> compare against v6.4.61 baseline 10/19 automated PASS.
+3. Review naturalness/usefulness manually before deciding whether Rule-aware Chunking v4 A/B is needed.

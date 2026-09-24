@@ -26,7 +26,13 @@ class HybridRetriever:
             max_bm25 = 1
 
         # Add vector search results.
-        for item in vector_results:
+        #
+        # Preserve the original channel/rank evidence. The previous merge
+        # collapsed BM25 + vector into one score, so downstream code could not
+        # tell whether both independent retrievers agreed on the same chunk.
+        # These fields are metadata-only; the configured hybrid weights remain
+        # unchanged.
+        for vector_rank, item in enumerate(vector_results, start=1):
 
             # Create unique chunk identifier.
             key = (
@@ -48,11 +54,18 @@ class HybridRetriever:
                 # Apply vector search weight.
                 "score":
                     item["score"]
-                    * VECTOR_WEIGHT
+                    * VECTOR_WEIGHT,
+
+                "_vector_score": float(item["score"]),
+                "_vector_rank": vector_rank,
+                "_bm25_score": None,
+                "_bm25_normalized_score": 0.0,
+                "_bm25_rank": None,
+                "_retrieval_channels": ["vector"],
             }
 
         # Merge BM25 search results.
-        for item in bm25_results:
+        for bm25_rank, item in enumerate(bm25_results, start=1):
 
             # Create unique chunk identifier.
             key = (
@@ -79,6 +92,18 @@ class HybridRetriever:
                     * BM25_WEIGHT
                 )
 
+                merged[key]["_bm25_score"] = float(item["score"])
+                merged[key]["_bm25_normalized_score"] = float(
+                    normalized_score
+                )
+                merged[key]["_bm25_rank"] = bm25_rank
+                channels = list(
+                    merged[key].get("_retrieval_channels", [])
+                )
+                if "bm25" not in channels:
+                    channels.append("bm25")
+                merged[key]["_retrieval_channels"] = channels
+
             else:
 
                 merged[key] = {
@@ -92,7 +117,14 @@ class HybridRetriever:
                     # Apply BM25 search weight.
                     "score":
                         normalized_score
-                        * BM25_WEIGHT
+                        * BM25_WEIGHT,
+
+                    "_vector_score": None,
+                    "_vector_rank": None,
+                    "_bm25_score": float(item["score"]),
+                    "_bm25_normalized_score": float(normalized_score),
+                    "_bm25_rank": bm25_rank,
+                    "_retrieval_channels": ["bm25"],
                 }
 
         # Convert dictionary into a list.

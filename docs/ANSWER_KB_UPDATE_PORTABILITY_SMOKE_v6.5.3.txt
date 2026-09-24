@@ -1,0 +1,31 @@
+DocuBot v6.5.3 — Answer Contract + Follow-up Isolation + KB Update Portability
+================================================================================
+
+Scope
+-----
+1. Fix semantic Yes/No finalization tuple/string contract.
+2. Prevent self-contained MISRA questions from inheriting an unrelated prior Rule merely because the current sentence contains a local anaphor such as "that risk".
+3. Allow conservative single-query Rule-level early acceptance when semantic rank #1 and BGE independently agree with a strong cosine margin; authoritative Rule-body verification remains mandatory.
+4. Prewarm Qwen3's query path as well as the document path.
+5. Make the Streamlit "Update Knowledge Base" button use an isolated worker launched with the exact serving Python interpreter and project root.
+6. Unify web-button and BAT updates on the same guarded worker engine with a cross-process lock, dependency/Ollama/filesystem/disk preflight, semantic-index postcheck and KB Health postcheck.
+7. Add retrieval-only and LLM-from-verified-context diagnostic scripts.
+
+Architecture preserved
+----------------------
+- Generation: qwen2.5:7b
+- Embedding: qwen3-embedding:8b
+- Reranker: BAAI/bge-reranker-v2-m3
+- Vector/BM25/Final Top-K: 10/10/3
+- Global minimum retrieval score: 0.55
+- Chunking: 900/150
+- MultiQuery: original + exactly 2 alternatives, RRF
+- No production Qdrant/BM25 rebuild performed by this patch.
+
+Manual post-install checks
+--------------------------
+A. Rerun the seed-6501 benchmark in fresh chats. Q4 and Q10 must return a normal string answer (No + Rule 16.4), not a tuple/type error.
+B. Ask the string-bounds question immediately after an unrelated MISRA question in the same chat. It must resolve independently rather than reuse the prior Rule.
+C. Copy/add one harmless supported test document into data/technical_documents and use the Streamlit Update Knowledge Base button on a non-LAN single-PC setup. The worker must create logs/kb_update/kb_update_result_*.json and pass KB Health; then remove/revert the test document and update again.
+D. On LAN/server mode, the web button remains disabled; stop the server and use Update_DocuBot_Knowledge_Base.bat.
+E. For pipeline diagnosis, run scripts/test_retrieval_pipeline.py first. Only if retrieval passes should scripts/test_llm_from_verified_context.py be used.

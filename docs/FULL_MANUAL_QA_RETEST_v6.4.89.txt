@@ -1,0 +1,51 @@
+DocuBot v6.4.89 — FULL Manual QA Retest
+========================================
+
+RUN THIS ONLY AFTER:
+- v6.4.89 semantic-completeness validator = PASS
+- KB Health = PASS
+- result ZIP has been reviewed/verified
+
+Run normally from VS Code -> run.py in ONE fresh chat/session.
+
+1. What does MISRA Rule 8.7 state?
+2. Explain MISRA Rule 2.2 in simple terms.
+3. Is Rule 14.3 required, mandatory, or advisory?
+4. Compare Rule 10.1 and Rule 10.3.
+5. List rules related to goto statements.
+6. Can I have an empty else block?
+7. Show compliant and non-compliant examples for Rule 14.4.
+8. Explain Rules 8.7, 10.1 and 14.3.
+9. Explain Rule 8.7 then give an example.
+10. Discuss Rule 10.1 and explain prior classification.
+11. Tell me about Rule 17 and what is its rationale.
+12. Summarize Rule 13.5.
+13. What are the rules for unused code?
+14. Which MISRA rules apply to pointers?
+15. List mandatory MISRA rules.
+16. Why does Rule 10.6 exist?
+17. Explain MISRA Rule 99.99.
+18. Explain Rule ABC.X.
+19. Who won the FIFA World Cup in 2022?
+
+v6.4.89 semantic expectations:
+- #8/#10: Rule 10.1 has multiple numbered rationale points. If one point is
+  shown concisely, it must be explicitly identified as only the first point,
+  not presented as the complete rationale.
+- #14: broad pointer query must NOT be limited to Rules 11.1–11.9.
+  It should return a compact explicit-pointer inventory:
+    Rule 7.4
+    Rule 8.13
+    Rules 11.1–11.9
+    Rules 18.1–18.5
+    Rules 21.15–21.17, 21.19–21.20
+    Rules 22.5–22.6
+  with a scope note that other rules can still apply depending on context.
+- #17/#18/#19: strict safe fallback; no unrelated answer substitution.
+- #11: there is no single exact indexed Rule 17; fail-closed is acceptable.
+
+Response-shaping regression:
+- Answer only what was asked.
+- Do not dump Category/Analysis/Applies-to/C90/C99/raw tables/examples unless
+  the question explicitly asks for those details.
+- Source card remains visible for traceability.

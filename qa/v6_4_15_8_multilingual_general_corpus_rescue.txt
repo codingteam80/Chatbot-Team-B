@@ -1,0 +1,12 @@
+DocuBot v6.4.15.8 - Multilingual General Corpus Rescue
+
+Scope
+- Preserve the Windows-certified 78/78 primary retrieval path.
+- When the fallback-only general-corpus rescue uses a canonical multilingual intent query for candidate discovery, use that same canonical query for reranking.
+- Keep the existing reranker and MIN_RETRIEVAL_SCORE unchanged.
+- Target arbitrary newly indexed English source facts asked through Tagalog/mixed-language numeric or facet questions.
+
+Acceptance
+- Certified 78-turn Windows baseline remains 78/78.
+- Runtime unseen-document proof reaches 4/4 with cleanup PASS.
+- No document/topic-specific answer hardcoding.

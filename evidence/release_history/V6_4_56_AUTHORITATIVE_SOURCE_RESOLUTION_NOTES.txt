@@ -1,0 +1,20 @@
+DocuBot v6.4.56 — Option C Authoritative-Source Resolution
+=========================================================
+
+Office evidence
+---------------
+The v6.4.55 Windows/Ollama Option-C QA result remained 15/16 PASS. OC-015 and
+OC-016 remained fixed. OC-014 still returned only Rule 16.1 through Rule 16.6,
+and its emitted chunks contained no source-recovery marker.
+
+Correction
+----------
+Structured Rule-family reconciliation no longer depends exclusively on the
+absolute source path persisted inside BM25 metadata. It now resolves existing
+authoritative PDF candidates from the active data/technical_documents corpus by
+source file name, derives the major Rule family from already-proven structured
+records, and reconciles explicit Rule entries from the actual source.
+
+This is dynamic/source-grounded behavior. No Rule 16.7 requirement text or
+sample-question answer is hardcoded. The Option-C model/embedding/reranker/
+Qdrant architecture and retrieval thresholds are unchanged.

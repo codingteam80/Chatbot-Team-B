@@ -1,0 +1,144 @@
+DOCUBOT v6.4.7 - LATENCY PHASE 2 / BM25-FIRST + CONTEXT REDUCTION QA
+====================================================================
+
+Use REAL separate questions. Do not enter arrows, slash alternatives, or
+placeholder brackets as literal questions. Start a new chat where noted.
+
+A. COLD-START BM25-FIRST IDENTITY TEST
+--------------------------------------
+1. Fully stop Streamlit, then start DocuBot again.
+2. As the FIRST question, ask:
+   Who is Andres Bonifacio?
+Expected:
+- Correct grounded identity/overview from stored company knowledge.
+- Evidence should contain:
+    BM25 FIRST PASS
+    Status: IDENTITY FAST PATH
+- For that request there should be no cold VECTOR STARTED / RERANKER STARTED
+  before the answer if the strict lexical gate qualifies the stored intro chunk.
+- Record total request time and compare with the v6.4.6 first semantic request
+  (~30.6 s on the user's prior machine/run).
+
+Fresh identity variants (new chat for each):
+3. Who is Apolinario Mabini?
+4. Who is Emilio Aguinaldo?
+Expected:
+- Grounded identity answer.
+- BM25 identity fast path may activate only if the source-topic + intro safety
+  gate is satisfied. If not, normal vector/reranker retrieval is acceptable.
+
+B. BM25-FIRST SAFETY / FALLBACK
+-------------------------------
+5. New chat: Who is a person that is NOT present in storage?
+Use an actual absent name, not the literal placeholder above.
+Expected:
+- The BM25 identity fast path must NOT invent an answer.
+- Normal semantic guardrails may run.
+- Final result should be exactly:
+  Information not found in company knowledge base.
+
+6. Ask a real list/completeness question from a stored document.
+Expected:
+- List path must NOT use the single-chunk identity BM25 fast path.
+- Existing completeness/list behavior remains intact.
+
+C. DIRECT RELATION + VERIFIER REDUCTION
+---------------------------------------
+New chat conversation chain:
+7. Who is Andres Bonifacio?
+8. What organization did he help found?
+9. Why was he significant?
+Expected:
+- Q8 resolves to Andres Bonifacio and answers Katipunan when supported.
+- Q8 should not need a second answer-focus verifier when the accepted context
+  contains the explicit founding relation.
+- Q9 remains grounded and has no query/prompt leakage.
+
+Fresh relation variants:
+10. What organization did Andres Bonifacio found?
+11. What organization did Andres Bonifacio co-found?
+Expected:
+- Same supported organization when the source states it.
+- No unrelated newspaper/publication/title substitution.
+
+D. MULTILINGUAL DIRECT-FOCUS / VERIFIER SKIP
+--------------------------------------------
+New chat:
+12. Ilang araw ang sick leave na ibinibigay?
+13. Sino ang nag-aapruba ng leave request?
+14. Kailan nilagdaan ang Treaty of Paris ng 1898?
+Expected:
+- Q12: 17 days when supported by the stored test policy.
+- Q13: Manager when supported by the stored test policy.
+- Q14: December 10, 1898 when supported by the stored Treaty source.
+- Evidence Answer Focus should be QUANTITY / APPROVER / TIME respectively.
+- A short direct value may show FOCUS VERIFIER SKIPPED only when local accepted
+  evidence proves the value/relation.
+
+Negative safety check:
+15. Ask the sick-leave quantity question again after a vacation-leave question.
+Expected:
+- Must still return sick-leave quantity, never the neighboring vacation value.
+
+E. FAST CONTEXT REDUCTION
+-------------------------
+New chat / normal warm process:
+16. Who is Emilio Aguinaldo?
+17. What role did he hold in the First Philippine Republic?
+18. Why was he important?
+Expected:
+- Correct person continuity and grounded answers.
+- On a fast-route request whose accepted context exceeds the generation cap,
+  evidence should show:
+    LATENCY OPTIMIZATION
+    Status: FAST CONTEXT COMPACTED
+- `original_chars` must be greater than `generation_chars`.
+- Returned sources/chunks and downstream safety still use the full accepted
+  context; no citation/source loss.
+
+Fresh long-context relation:
+19. Ask one direct role/date/entity question whose relevant evidence appears
+    later in a long stored chunk.
+Expected:
+- Answer remains correct; compaction must retain the relevant relation window.
+
+F. PRESERVED STRUCTURED / COMPLEX PATHS
+---------------------------------------
+20. What does Rule 1.2 say?
+21. What category does it belong to?
+22. What does it apply to?
+Expected:
+- Exact structured deterministic path remains around the existing ultra-fast
+  behavior; no vector/reranker required.
+
+23. What is Rule 13.5 and explain it as well.
+Expected:
+- Exact rule statement + supported rationale/explanation.
+- Deterministic no-LLM route remains intact.
+
+24. What is Section 6? Explain it as well.
+Expected:
+- Grounded Section 6 explanation.
+- Complex Qwen route remains allowed.
+- FAST CONTEXT COMPACTED must NOT be applied to this explanation path.
+
+25. How much sick leave is provided and who must approve a leave request?
+Expected:
+- 17 days sick leave + Manager approval when supported.
+- Compound facet coverage and deterministic compact compound path preserved.
+
+G. EVIDENCE / LATENCY REVIEW
+----------------------------
+For the resulting evidence log, review:
+- First retriever-wrapper initialization time.
+- Whether first identity query used BM25 FIRST PASS.
+- Whether VECTOR/RERANKER cold-load was deferred until a query truly needed it.
+- Warm fast-query median and average.
+- Llama generation time vs retrieval time.
+- Any FOCUS VERIFIER SKIPPED events.
+- Any FAST CONTEXT COMPACTED events and reduction percentage.
+- Complex Qwen generation time.
+- Any fallback, prompt leak, warning, or error.
+
+Do not treat intentionally absent-information questions as regressions when the
+strict fallback is correct.

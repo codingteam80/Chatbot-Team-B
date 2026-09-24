@@ -1,0 +1,26 @@
+DocuBot v6.4.102 Deterministic Evidence Finalization + Language Detection Guard
+====================================================================================
+Applied: 2026-09-24T07:19:47
+Base: exact verified v6.4.101 Evidence-Aware Routing + Retry Latency Guard
+Unused-parameter generalized use/read/access/reference/consume semantics: ENABLED
+English modal May vs Tagalog may disambiguation: ENABLED
+Post-retrieval authoritative Rule/Directive finalization: ENABLED
+Reference-overlap precision guard: ENABLED
+LLM cannot erase proven direct MISRA Rule evidence: ENABLED
+v6.4.101 evidence-aware promotion: PRESERVED
+v6.4.101 duplicate multilingual retry guard: PRESERVED
+v6.4.101 Rule 15.3 directional guard: PRESERVED
+v6.4.100 concept matcher: PRESERVED
+v6.4.99 post-normalization MISRA rescue: PRESERVED
+v6.4.98 runtime intent/evidence hardening: PRESERVED
+Structured MultiQuery: PRESERVED
+MultiQuery: original + 2 alternatives (UNCHANGED)
+Fusion: RRF (UNCHANGED)
+BGE reranker: UNCHANGED
+MIN_RETRIEVAL_SCORE: 0.55 (UNCHANGED)
+Vector/BM25/Final Top-K: 10/10/3 (UNCHANGED)
+Chunking: 900/150 v4 (UNCHANGED)
+Models changed: NO
+KB rebuild performed by patch: NO
+Existing test evidence deleted: NO
+Pre-patch files preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.101_pre_v6.4.102_20260924_071947

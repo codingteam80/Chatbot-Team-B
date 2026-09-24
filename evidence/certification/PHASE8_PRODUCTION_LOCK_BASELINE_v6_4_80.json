@@ -1,0 +1,16 @@
+{
+  "version": "v6.4.80",
+  "baseline": "v6.4.79 Phase 7 Optimization #2 Full Certification",
+  "technical_documents_sha256": {
+    "data/technical_documents/MISRA_FromInternet.pdf": "3ebd84ca1855ca96c7f5fb45f2f030862f95a909a49fbf976b0fffbd4fa62f10"
+  },
+  "v3_rollback_sha256": {
+    "storage/option_c_qwen3_qdrant/bm25/bm25_index.pkl": "8db068b239ceb8d4325e3243e6fb6c9952f1e9b0881544b9e1d6b4c6b3849577",
+    "storage/option_c_qwen3_qdrant/bm25/corpus.pkl": "7313c4f5c4c55fc8527f73907dcaa92cee43b06cf20d7249a849c6aaf1f73689",
+    "storage/option_c_qwen3_qdrant/metadata/manifest.json": "2b84dd13eea1593031f7c264059aba17c8ebcc8d8300c8368663beabdbcacd74",
+    "storage/option_c_qwen3_qdrant/qdrant/meta.json": "9235c6effafaabb41cddda74b705458638eef3bb3987ae271dfa89f07c8b48fb"
+  },
+  "strict_fallback": "Information not found in company knowledge base.",
+  "office_qwen_target_seconds": 20.0,
+  "office_qwen_hard_ceiling_seconds": 30.0
+}

@@ -1,0 +1,11 @@
+DocuBot v6.4.46 Windows closure recovery
+
+Built strictly from v6.4.45 after actual Windows/Ollama evidence reached 85/90 official PASS.
+
+Focused closures:
+- Explicit named cross-domain subjects override stale grounded MISRA follow-up state.
+- Rule 20.7 why+expansion questions retain the full deterministic assessment and literal substitution.
+- Text-only Rule 13.5 uncertainty no longer claims a visible snippet/code that the user did not provide.
+- Forced llama3.2 certification now matches its actual production role (grounded fast company-knowledge synthesis); MISRA reviewer generation remains qwen2.5:7b, while source-proven MISRA checks stay deterministic.
+
+No model, embedding, reranker, retrieval-threshold, indexing, or company-document changes.

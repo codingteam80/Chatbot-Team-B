@@ -1,0 +1,30 @@
+DocuBot v6.4.91 — Focused Answer Contract / UX Retest
+========================================================
+
+RUN ONLY AFTER:
+- v6.4.91 validator = PASS
+- KB Health = PASS
+- result ZIP has been reviewed
+
+Use VS Code -> run.py and a fresh chat.
+
+1. Can I have an empty else block?
+2. Is it ok to use trigraphs?
+3. Is Rule 14.3 required, mandatory, or advisory?
+4. Tell me about Rule 17 and what is its rationale.
+5. Why does Rule 10.6 exist?
+6. What are the rules for compiler switch?
+7. What are the rules for switch statement?
+8. Explain MISRA Rule 99.99.
+
+Expected:
+- #1 starts with "No." then gives the scoped Rule 15.7 explanation.
+- #2 starts with "No." and remains grounded to Rule 4.2.
+- #3 remains "Category: Required"; it is a classification choice, not yes/no.
+- #4 explains that Rule 17 is a family (17.1–17.8) and asks for an exact 17.x.
+- #5 follows Section 8.10.3 and UI source cards include Rule 10.6 + Section 8.10.3.
+- #6 stays Rule 20.9 and renders clean heading/scope/bullet formatting.
+- #7 remains Rules 16.1–16.7.
+- #8 remains the safe company-KB fallback.
+
+After this focused retest passes, proceed to NEW unseen robustness questions.

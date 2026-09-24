@@ -425,11 +425,24 @@ header {
 
     margin-left:auto;
 
-    max-width:60%;
+    width: fit-content !important;
+    max-width:72%;
     background:#163053;
-    /*border-radius:10px;*/
-    padding:7px 18px;
+    border-radius:18px !important;
+    padding:10px 14px;
     border:0.5px solid rgba(255,255,255,.08);
+    overflow: hidden !important;
+}
+
+/* Preserve exactly what the user submitted: multiline prose, indentation,
+   and pasted C/C++ snippets must not collapse into one Markdown paragraph. */
+.docubot-user-message-text {
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
 }
 
 /* ==========================================================
@@ -457,6 +470,14 @@ header {
     /*border-radius:10px;*/
     padding:7px 18px;
     /*border:1px solid rgba(255,255,255,.08);*/
+}
+
+/* Source-driven answers intentionally use single newlines between labels and
+   values (Category -> Advisory, Analysis -> Decidable, etc.). Preserve those
+   soft line breaks in the browser while leaving lists/code blocks to Markdown. */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] p {
+    white-space: pre-wrap !important;
 }
 
 /* ==========================================================
@@ -1011,7 +1032,7 @@ div.stButton {
 
 /* Leave room for the fixed chat input. */
 .main .block-container {
-    padding-bottom: 150px !important;
+    padding-bottom: 132px !important;
 }
 
 /* The whole form is the visible chat input box. */
@@ -1020,11 +1041,12 @@ div.stButton {
     position: relative !important;
 
     width: 100% !important;
-    height: 44px !important;
-    min-height: 44px !important;
+    height: var(--docubot-composer-height, 94px) !important;
+    min-height: 94px !important;
+    max-height: 226px !important;
 
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 4px 8px 42px !important;
 
     background: #242632 !important;
     border: 1px solid transparent !important;
@@ -1066,15 +1088,15 @@ div.stButton {
 }
 
 /* Text-input wrapper fills the form. */
-.st-key-chat_input_shell_empty [data-testid="stTextInput"],
-.st-key-chat_input_shell_active [data-testid="stTextInput"] {
+.st-key-chat_input_shell_empty [data-testid="stTextArea"],
+.st-key-chat_input_shell_active [data-testid="stTextArea"] {
     width: 100% !important;
     margin: 0 !important;
 }
 
 /* Remove additional input wrapper borders. */
-.st-key-chat_input_shell_empty [data-testid="stTextInput"] > div,
-.st-key-chat_input_shell_active [data-testid="stTextInput"] > div {
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] > div,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] > div {
     width: 100% !important;
 
     background: transparent !important;
@@ -1082,15 +1104,28 @@ div.stButton {
     box-shadow: none !important;
 }
 
+
+/* Streamlit TextArea wrappers follow the dynamically grown editor. */
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] > div,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] > div {
+    min-height: 48px !important;
+    height: var(--docubot-editor-height, 48px) !important;
+    max-height: 180px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
 /* Main textbox stays transparent because the form owns the box. */
-.st-key-chat_input_shell_empty [data-testid="stTextInput"] input,
-.st-key-chat_input_shell_active [data-testid="stTextInput"] input {
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] textarea,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] textarea {
     width: 100% !important;
 
-    height: 42px !important;
-    min-height: 42px !important;
+    height: var(--docubot-editor-height, 48px) !important;
+    min-height: 48px !important;
+    max-height: 180px !important;
 
-    padding: 0 55px 0 16px !important;
+    padding: 8px 12px !important;
 
     background: transparent !important;
     color: #ffffff !important;
@@ -1102,27 +1137,31 @@ div.stButton {
 
     font-size: 14px !important;
     font-weight: 400 !important;
-    line-height: 42px !important;
+    line-height: 1.45 !important;
     text-align: left !important;
+    resize: none !important;
+    overflow-y: auto !important;
+    white-space: pre-wrap !important;
 
     margin: 0 !important;
+    box-sizing: border-box !important;
 }
 
 /* Prevent a second, smaller outline on the text field itself. */
-.st-key-chat_input_shell_empty [data-testid="stTextInput"] input:hover,
-.st-key-chat_input_shell_active [data-testid="stTextInput"] input:hover,
-.st-key-chat_input_shell_empty [data-testid="stTextInput"] input:focus,
-.st-key-chat_input_shell_active [data-testid="stTextInput"] input:focus,
-.st-key-chat_input_shell_empty [data-testid="stTextInput"] input:focus-visible,
-.st-key-chat_input_shell_active [data-testid="stTextInput"] input:focus-visible {
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] textarea:hover,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] textarea:hover,
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] textarea:focus,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] textarea:focus,
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] textarea:focus-visible,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] textarea:focus-visible {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
 }
 
 /* Placeholder. */
-.st-key-chat_input_shell_empty [data-testid="stTextInput"] input::placeholder,
-.st-key-chat_input_shell_active [data-testid="stTextInput"] input::placeholder {
+.st-key-chat_input_shell_empty [data-testid="stTextArea"] textarea::placeholder,
+.st-key-chat_input_shell_active [data-testid="stTextArea"] textarea::placeholder {
     color: #8d98aa !important;
     opacity: 1 !important;
 
@@ -1143,10 +1182,10 @@ div.stButton {
 .st-key-chat_input_shell_active .st-key-chat_send_button {
     position: absolute !important;
 
-    top: 5px !important;
-    right: 5px !important;
+    top: auto !important;
+    right: 8px !important;
     left: auto !important;
-    bottom: auto !important;
+    bottom: 6px !important;
 
     width: 34px !important;
     min-width: 34px !important;
@@ -1204,11 +1243,11 @@ div.stButton {
     align-items: center !important;
     justify-content: center !important;
 
-    background: transparent !important;
+    background: #2f80ed !important;
     color: #ffffff !important;
 
     border: none !important;
-    border-radius: 23px !important;
+    border-radius: 50% !important;
     box-shadow: none !important;
 
     font-size: 17px !important;
@@ -1217,8 +1256,8 @@ div.stButton {
 
 /* Hover and disabled states. */
 .st-key-chat_send_button [data-testid="stFormSubmitButton"] button:hover {
-    background: rgba(78, 161, 255, .16) !important;
-    color: #66b3ff !important;
+    background: #4b95f2 !important;
+    color: #ffffff !important;
     transform: none !important;
 }
 
@@ -1289,7 +1328,7 @@ div.stButton {
     right: 10px;
     bottom: 0;
 
-    height: 115px;
+    height: 100px;
 
     background: linear-gradient(
         to bottom,
@@ -1330,7 +1369,7 @@ div.stButton {
 
     .docubot-bottom-mask {
         left: 0;
-        height: 115px;
+        height: 100px;
     }
 }
 
@@ -1995,3 +2034,332 @@ div[class*="st-key-docubot_regenerate_"] {
 /* ==========================================================
    END OF FILE
 ========================================================== */
+
+/* ==========================================================
+   v6.4.12 SIDEBAR BOTTOM VISIBILITY ONLY
+   Based strictly on the accepted v6.4.11 scrollbar/card geometry.
+   - Fixed upper sidebar remains unchanged.
+   - Recent-chat cards keep the same 16px right inset/width.
+   - Scrollbar stays at the sidebar outer edge.
+   - Only the scroll viewport height is shortened by a dedicated
+     bottom safe area so the final card clears the visible viewport.
+========================================================== */
+[data-testid="stSidebarContent"] {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden !important;
+
+    /* Preserve the original 16px left inset, but release only the
+       right edge so the Recent Chats scrollbar can sit outside the
+       card column instead of between the cards and sidebar edge. */
+    padding-right: 0 !important;
+}
+
+/* Restore the original v6.4.9 right inset for every non-scrolling
+   sidebar region after removing stSidebarContent's right padding. */
+[data-testid="stSidebar"] .st-key-sidebar_fixed_top,
+[data-testid="stSidebar"] .st-key-recent_chats_header {
+    padding-right: 16px;
+    box-sizing: border-box;
+}
+
+[data-testid="stSidebar"] .st-key-sidebar_fixed_top {
+    flex: 0 0 auto;
+}
+
+/* The scroll box itself still spans to the sidebar's outer-right edge.
+   v6.4.12 keeps the accepted v6.4.11 geometry but reserves an extra
+   32px OUTSIDE the card column at the bottom of the viewport. This
+   fixes the remaining clipping without changing card size or width. */
+[data-testid="stSidebar"] .st-key-recent_chats_scroll {
+    height: calc(100vh - 442px);
+    height: calc(100dvh - 442px);
+    min-height: 120px;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    padding-right: 0 !important;
+    padding-bottom: 12px;
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
+}
+
+/* Restore the exact visual card column inset from v6.4.9. The parent
+   owns scrolling; this child only preserves card width/alignment. */
+[data-testid="stSidebar"] .st-key-recent_chats_cards {
+    padding-right: 16px;
+    box-sizing: border-box;
+}
+
+/* Ensure the final button has usable breathing room when the list is
+   scrolled to its absolute bottom. */
+[data-testid="stSidebar"] .st-key-recent_chats_cards .stButton:last-child {
+    margin-bottom: 8px;
+}
+
+/* Keep the scrollbar visible and visually consistent with DocuBot. */
+[data-testid="stSidebar"] .st-key-recent_chats_scroll::-webkit-scrollbar {
+    width: 7px;
+}
+
+[data-testid="stSidebar"] .st-key-recent_chats_scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+[data-testid="stSidebar"] .st-key-recent_chats_scroll::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 50px;
+}
+
+[data-testid="stSidebar"] .st-key-recent_chats_scroll::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+[data-testid="stSidebar"] .st-key-recent_chats_scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
+
+/* Very short windows keep a usable list while still preserving a
+   visible bottom reserve. This changes only list height, never cards. */
+@media (max-height: 700px) {
+    [data-testid="stSidebar"] .st-key-recent_chats_scroll {
+        height: calc(100vh - 417px);
+        height: calc(100dvh - 417px);
+        min-height: 100px;
+    }
+}
+
+/* ==========================================================
+   v6.4.51 DYNAMIC ASSISTANT RESPONSE LAYOUT
+   Keep short answers compact while allowing structured Markdown,
+   tables and code reviews to breathe like a modern chat interface.
+========================================================== */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] {
+    width: fit-content;
+    max-width: min(820px, 82vw) !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h3 {
+    margin-top: 16px !important;
+    margin-bottom: 8px !important;
+    line-height: 1.3 !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h3:first-child {
+    margin-top: 2px !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] pre {
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 10px;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] blockquote {
+    margin: 10px 0;
+    padding-left: 14px;
+    border-left: 3px solid rgba(156, 201, 255, .55);
+    color: rgba(255,255,255,.86);
+}
+
+@media (max-width: 900px) {
+    [data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+    [data-testid="stMarkdownContainer"] {
+        max-width: 92vw !important;
+    }
+}
+
+/* ==========================================================
+   v6.4.59 — CHATGPT-LIKE ASSISTANT RESPONSE FLOW
+   Assistant turns are content-first, unboxed, and responsive.
+   User bubbles remain unchanged.
+========================================================== */
+
+/* Do not turn an assistant response into a fixed-width card. */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stChatMessageContent"] {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] {
+    width: fit-content !important;
+    max-width: min(820px, 86%) !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+
+/* Natural prose rhythm similar to a modern conversational assistant. */
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] p {
+    margin: 0 0 10px !important;
+    line-height: 1.65 !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] p:last-child {
+    margin-bottom: 0 !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] h3 {
+    margin: 4px 0 10px !important;
+    line-height: 1.3 !important;
+}
+
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] ul,
+[data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+[data-testid="stMarkdownContainer"] ol {
+    margin: 6px 0 10px !important;
+    padding-left: 22px !important;
+}
+
+/* Compact in-place loading state: no temporary answer card / layout jump. */
+.loading-bubble {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    gap: 9px !important;
+
+    margin: 2px 0 !important;
+    padding: 3px 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    color: #cbd5e1 !important;
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+}
+
+.loading-spinner {
+    width: 14px !important;
+    height: 14px !important;
+    border-width: 2px !important;
+}
+
+/* Sources belong to the same assistant turn but stay visually lightweight. */
+div[class*="st-key-docubot_sources_"] {
+    width: fit-content !important;
+    max-width: min(820px, 86%) !important;
+    min-width: 0 !important;
+
+    margin: 10px 0 0 !important;
+    padding: 0 !important;
+
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+div[class*="st-key-docubot_sources_"] [data-testid="stMarkdownContainer"] {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.docubot-sources-heading {
+    margin: 0 0 5px !important;
+    font-size: 11px !important;
+    color: #8d98aa !important;
+}
+
+/* Keep source chips only as wide as their actual label. */
+div[class*="st-key-docubot_source_chip_"] {
+    width: fit-content !important;
+    max-width: min(100%, 820px) !important;
+}
+
+div[class*="st-key-docubot_source_chip_"] [data-testid="stButton"],
+div[class*="st-key-docubot_source_chip_"] [data-testid="stButton"] > button {
+    width: fit-content !important;
+    max-width: 100% !important;
+}
+
+/* Actions sit directly under the answer/source, not inside a padded card. */
+div[class*="st-key-docubot_actions_"] {
+    margin: 5px 0 8px !important;
+    padding-left: 0 !important;
+}
+
+[data-testid="stChatMessage"]:has(
+    [aria-label="Chat message from assistant"]
+):not(:has(div[class*="st-key-docubot_sources_"]))
+div[class*="st-key-docubot_actions_"] {
+    margin-top: 7px !important;
+}
+
+@media (max-width: 768px) {
+    [data-testid="stChatMessage"]:has([aria-label="Chat message from assistant"])
+    [data-testid="stMarkdownContainer"],
+    div[class*="st-key-docubot_sources_"] {
+        width: auto !important;
+        max-width: 94% !important;
+    }
+}
+
+
+/* ==========================================================
+   v6.4.60 — COMPOSER SAFE AREA / SCROLL ANCHORING
+   Keep the final assistant content fully visible above the fixed composer,
+   including when the composer grows for multiline code/questions.
+========================================================== */
+
+.main .block-container {
+    padding-bottom: calc(var(--docubot-active-composer-height, 94px) + 86px) !important;
+}
+
+.docubot-bottom-mask {
+    height: calc(var(--docubot-active-composer-height, 94px) + 36px) !important;
+}
+
+/* Avoid source/action rows being hidden behind the composer at the end of a chat. */
+[data-testid="stMain"] [data-testid="stVerticalBlock"] > div:last-child {
+    scroll-margin-bottom: calc(var(--docubot-active-composer-height, 94px) + 72px) !important;
+}
+
+@media (max-width: 768px) {
+    .main .block-container {
+        padding-bottom: calc(var(--docubot-active-composer-height, 94px) + 76px) !important;
+    }
+
+    .docubot-bottom-mask {
+        height: calc(var(--docubot-active-composer-height, 94px) + 28px) !important;
+    }
+}

@@ -1,0 +1,45 @@
+DocuBot v6.4.52 Option-C Office-QA Recovery Trial
+===================================================
+
+Basis
+-----
+Built directly from the v6.4.51 complete corrective package after reviewing the
+actual office QA result:
+  DocuBot_Option_C_Technical_QA_Result_20260916_201602.zip
+
+Observed office result
+----------------------
+13/16 PASS.
+Failures:
+- OC-014: switch-rule family answer omitted Rule 16.7.
+- OC-015: exact Rule 16.6 review wording was routed to Qwen and false-fell back.
+- OC-016: trigraph question selected the Rationale chunk and Qwen incorrectly
+  converted the source sentence about permitted digraphs into permission for trigraphs.
+
+Corrections
+-----------
+1. Structured switch-family collection now has a strict textual Rule-heading
+   recovery for malformed metadata boundary chunks. It only accepts text that
+   itself starts with "Rule 16.x".
+2. The prepared-ingestion cache schema is bumped, forcing the office technical
+   rebuild to reparse MISRA_FromInternet.pdf before indexing.
+3. Explicit Rule/Directive review/check/analyze wording enters MISRA application
+   mode even when the user does not repeat the word MISRA.
+4. Natural yes/no questions backed by an authoritative semantic cue can use the
+   MISRA rule-body rescue path.
+5. Trigraph questions use the source-language cue "Trigraphs should not be used",
+   preserving Rule 4.2 polarity and preventing the adjacent digraph note from
+   becoming the answer.
+6. No model, embedding, reranker, vector DB, or retrieval threshold was changed.
+
+Data / rollback
+---------------
+data\technical_documents remains the active Option-C corpus.
+data\all_documents and legacy storage remain preserved for rollback.
+
+Office sequence
+---------------
+1. Setup_DocuBot_Option_C.bat
+2. Build_DocuBot_Option_C_Technical_Index.bat
+3. Run_Option_C_Technical_QA.bat   (target: 16/16 PASS)
+4. Start_DocuBot_Option_C_Trial.bat only after QA passes.

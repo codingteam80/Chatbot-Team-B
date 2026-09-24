@@ -1,0 +1,35 @@
+DocuBot v6.4.51 Option-C Corrective Trial
+=========================================
+
+Scope
+-----
+This release is built directly from v6.4.50 Option C. It does not replace the
+Qwen3-Embedding-8B, Qdrant, BGE-reranker-v2-m3, or Qwen2.5:7B architecture.
+It corrects the retrieval-to-context and deterministic answer behavior exposed
+by the September 16 office runtime evidence.
+
+Corrections
+-----------
+1. Accepted list-query anchors are preserved through context expansion.
+2. Explicit switch-statement rule-list requests use structured Rule 16.x
+   inventory and return Rule 16.1 through Rule 16.7 without model omission.
+3. Primary CrossEncoder reranking uses the semantic/original intent query,
+   aligning it with the fallback rescue path and avoiding enriched-query noise.
+4. Exact Rule numeric minimum application can finalize mechanically decidable
+   cases such as Rule 16.6 with exactly two switch-clauses without an LLM.
+5. Assistant Markdown presentation is more responsive for structured answers,
+   code blocks, headings, tables, and longer responses.
+6. Runtime Option-C QA is expanded from 13 to 16 cases.
+
+Data/rollback
+-------------
+data\technical_documents remains the active Option-C corpus.
+data\all_documents and legacy storage remain preserved for rollback and are
+not copied into the technical index.
+
+Office sequence
+---------------
+1. Setup_DocuBot_Option_C.bat
+2. Build_DocuBot_Option_C_Technical_Index.bat
+3. Run_Option_C_Technical_QA.bat   (target: 16/16 PASS)
+4. Start_DocuBot_Option_C_Trial.bat only after QA passes.

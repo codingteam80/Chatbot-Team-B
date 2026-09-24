@@ -1,0 +1,28 @@
+DocuBot v6.4.53 — Option C Source-Family Reconciliation
+=========================================================
+
+Office evidence basis
+---------------------
+- v6.4.52 actual Windows/Ollama QA: 15/16 PASS.
+- OC-015 PASS: exact Rule 16.6 two-clause assessment recovered.
+- OC-016 PASS: trigraph question recovered to authoritative Rule 4.2 / No.
+- OC-014 FAIL only: Rule 16.1-16.6 were returned, but Rule 16.7 was absent from
+  active BM25 family records even though the authoritative MISRA PDF contains
+  the explicit Rule 16.7 section on PDF page 146.
+
+Recovery design
+---------------
+- Keep BM25/Qdrant/Qwen3/BGE/Qwen2.5 architecture unchanged.
+- Keep deterministic structured list rendering.
+- When a structured Rule family is already proven by active index records,
+  reconcile that family against the same authoritative PDF using the existing
+  PDFStructureExtractor.
+- Accept only explicit Rule <major>.<n> section headings from the source PDF.
+- Add only missing family members; indexed members retain precedence.
+- Cache direct-source family extraction by resolved path, mtime, file size, and
+  major Rule family to keep repeat queries low-cost.
+- Fail closed: if the source is absent or cannot be parsed, retain the indexed
+  family rather than inventing content.
+
+This is a dynamic/source-grounded completeness guard. Rule 16.7 requirement
+text is not hardcoded into runtime logic.

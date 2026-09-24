@@ -1,0 +1,29 @@
+{
+  "version": "v6.4.90.2",
+  "milestone": "Generalized Rule/Directive Causal-Intent Hotfix",
+  "base": "v6.4.90.1 Rationale Cross-reference Paraphrase Hotfix",
+  "fixes": {
+    "rule_directive_causal_intent_family": [
+      "why",
+      "rationale",
+      "reason",
+      "purpose",
+      "justification",
+      "basis",
+      "motivation",
+      "bakit",
+      "dahilan",
+      "layunin"
+    ],
+    "behavior": "For an exact Rule/Directive, causal-intent wording is routed to the source Rationale before generic explanation. Exact source-deferred Section cross-references continue to be followed.",
+    "not_hardcoded_to_rule_or_prompt": true
+  },
+  "runtime_files_changed": [
+    "services/answer_service.py"
+  ],
+  "retriever_changed": false,
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

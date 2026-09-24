@@ -1,0 +1,63 @@
+DOCUBOT v6.4.43 - NATURAL CONVERSATION + CERTIFICATION RECOVERY
+=================================================================
+
+BASE
+----
+Built strictly from v6.4.42.
+
+SCOPE
+-----
+1. Explicit newly named subjects override stale conversation topics.
+2. Deictic follow-ups (dito/iyan/it/that/siya/niya) keep the latest semantically valid grounded anchor.
+3. Fresh code/preprocessor scenarios do not inherit an older MISRA scenario.
+4. Natural MISRA concepts such as self-recursion and dynamic memory are routed to the authoritative structured MISRA corpus.
+5. Rule/Directive identity comes from authoritative structured references, not appendix/rationale/cross-reference mentions.
+6. Employee Leave Policy eligibility stays separate from manager approval.
+7. Rule 17.2 scope follow-ups can answer the explicit "directly or indirectly" text without an unnecessary fallback.
+8. Rule 20.7 keeps literal macro substitution and strips unsolicited non-literal reconstructed expansions.
+9. Mixed MISRA status generation preserves independent deterministic states such as Rule 13.3 potential non-compliance vs Rule 13.5 needs more context.
+10. Full structured MISRA coverage remains 156 Rules + 17 Directives = 173 references.
+
+WINDOWS VALIDATION ORDER
+------------------------
+A. Run: Run_LLM_Certification_QA.bat
+   Target: 13/13 PASS, 0 FAIL, 0 ERROR.
+   Return the newest ZIP and console log from logs\llm_certification\.
+
+B. Run: Run_Natural_Conversation_Certification_QA.bat
+   Target: 13/13 PASS, 0 FAIL, 0 ERROR across 4 isolated same-chat flows.
+   Return the newest ZIP and console log from logs\natural_conversation_certification\.
+
+C. Optional manual UI spot-check in normal DocuBot.
+   Use the conversations below exactly in the SAME chat for each flow.
+
+FLOW 1 - DYNAMIC MEMORY FOLLOW-UP
+1. May rule ba ang MISRA tungkol sa paggamit ng dynamic memory?
+2. Ano yung mga applicable requirements dito?
+3. Explain mo nga bakit siya restricted.
+Expected: remain on dynamic memory; #2 should surface the supported Directive/Rule requirements and must not drift to Katipunan or another document.
+
+FLOW 2 - EXPLICIT TOPIC SWITCH TO LEAVE POLICY
+1. Explain Rule 17.2.
+2. Tell me about the employee leave policy.
+3. Who can use it?
+4. Paano approval niya?
+Expected: #2 explicitly switches away from MISRA. Eligibility resolves to regular employee; approval resolves to manager approval.
+
+FLOW 3 - NATURAL RECURSION
+1. Pwede bang tawagin ng function yung sarili niya sa MISRA?
+2. Bakit?
+3. Does it apply indirectly too?
+Expected: Rule 17.2; rationale stays on recursion/stack; indirect scope is answered from the same rule rather than falling back.
+
+FLOW 4 - MACRO HISTORY ISOLATION
+1. Explain mo kung compliant ito sa MISRA. Ipakita mo yung literal macro expansion.
+   #define SQUARE(x) x * x
+   int value = SQUARE(a + b);
+2. Paano naman kung ganito? #define SQUARE(x) ((x) * (x))
+3. May kailangan pa ba akong baguhin diyan?
+Expected: first answer preserves literal expansion a + b * a + b and does not present (a + b) * (a + b) as the literal expansion. Fresh safe macro stays independent from the previous unsafe snippet.
+
+ACCEPTANCE
+----------
+v6.4.43 is not deployment-certified until BOTH automated Windows/Ollama launchers pass. These QA cases are regression evidence only; production behavior remains semantic and source-grounded and is not limited to these questions.

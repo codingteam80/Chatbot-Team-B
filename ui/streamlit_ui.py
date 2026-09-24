@@ -1,6 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import base64
+import html
+import mimetypes
+import re
 from pathlib import Path
 #from urllib.parse import quote
 import os
@@ -8,7 +11,9 @@ import os
 from config.settings import (
     PAGE_TITLE,
     PAGE_ICON,
-    LAYOUT
+    LAYOUT,
+    LAN_SERVER_MODE,
+    DOCUMENT_DIR,
 )
 
 from chat.chat_manager import ChatManager
@@ -64,6 +69,168 @@ class StreamlitUI:
                 )
 
     # =====================================================
+    # CHAT INPUT KEYBOARD BEHAVIOR
+    # =====================================================
+
+    @staticmethod
+    def install_chat_input_keyboard_behavior():
+        """Make the multiline chat editor behave like a modern chat input.
+
+        Enter submits the surrounding Streamlit form. Shift+Enter keeps the
+        native textarea newline behavior. The handler also grows the editor
+        up to a compact maximum height so pasted C/C++ snippets stay readable.
+        """
+
+        components.html(
+            r"""
+            <script>
+            (() => {
+                let parentWindow;
+                let parentDocument;
+                try {
+                    parentWindow = window.parent;
+                    parentDocument = parentWindow.document;
+                } catch (error) {
+                    return;
+                }
+
+                const observerKey = "__docubotChatInputObserver";
+                if (parentWindow[observerKey]) {
+                    try { parentWindow[observerKey].disconnect(); } catch (error) {}
+                }
+
+                const selector = [
+                    '.st-key-chat_input_shell_empty [data-testid="stTextArea"] textarea',
+                    '.st-key-chat_input_shell_active [data-testid="stTextArea"] textarea'
+                ].join(',');
+
+                function bindEditor() {
+                    const textarea = parentDocument.querySelector(selector);
+                    if (!textarea) return;
+
+                    const shell = textarea.closest(
+                        '.st-key-chat_input_shell_empty, .st-key-chat_input_shell_active'
+                    );
+
+                    const applyComposerHeight = (editorHeight) => {
+                        textarea.style.setProperty(
+                            'height',
+                            `${editorHeight}px`,
+                            'important'
+                        );
+
+                        if (shell) {
+                            const toolbarHeight = 46;
+                            shell.style.setProperty(
+                                '--docubot-editor-height',
+                                `${editorHeight}px`
+                            );
+                            const composerHeight = editorHeight + toolbarHeight;
+                            shell.style.setProperty(
+                                '--docubot-composer-height',
+                                `${composerHeight}px`
+                            );
+                            parentDocument.documentElement.style.setProperty(
+                                '--docubot-active-composer-height',
+                                `${composerHeight}px`
+                            );
+                        }
+                    };
+
+                    const resetCompact = () => {
+                        // ChatGPT-like contract: once a message is submitted
+                        // (or Streamlit clears the draft on rerun), the composer
+                        // immediately returns to its compact one-line height.
+                        applyComposerHeight(48);
+                    };
+
+                    const resize = () => {
+                        // An empty draft must never inherit the height of the
+                        // previously submitted multiline message.  React can
+                        // update textarea.value without firing a DOM input
+                        // event, so check the current value every time bindEditor
+                        // runs as well as on normal input events.
+                        if (!String(textarea.value || '').length) {
+                            resetCompact();
+                            return;
+                        }
+
+                        // CSS uses the same variables.  Set the inline height
+                        // with !important while measuring so an older cached
+                        // stylesheet cannot pin the editor to one line.
+                        textarea.style.setProperty('height', 'auto', 'important');
+                        const editorHeight = Math.max(
+                            48,
+                            Math.min(180, textarea.scrollHeight)
+                        );
+                        applyComposerHeight(editorHeight);
+                    };
+
+                    if (textarea.dataset.docubotKeyboardBound !== '1') {
+                        textarea.dataset.docubotKeyboardBound = '1';
+
+                        textarea.addEventListener('keydown', (event) => {
+                            if (event.key !== 'Enter' || event.isComposing) return;
+
+                            // Shift+Enter intentionally uses the textarea's
+                            // native newline behavior.
+                            if (event.shiftKey) return;
+
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            const currentShell = textarea.closest(
+                                '.st-key-chat_input_shell_empty, .st-key-chat_input_shell_active'
+                            );
+                            const submit = currentShell
+                                ? currentShell.querySelector(
+                                    '.st-key-chat_send_button [data-testid="stFormSubmitButton"] button'
+                                  )
+                                : null;
+
+                            if (submit && !submit.disabled) {
+                                // Reset before React/Streamlit reruns so the
+                                // large multiline box does not remain visible
+                                // during "Searching knowledge base...".
+                                resetCompact();
+                                submit.click();
+                            }
+                        }, true);
+
+                        textarea.addEventListener('input', resize);
+                    }
+
+                    const submitButton = shell
+                        ? shell.querySelector(
+                            '.st-key-chat_send_button [data-testid="stFormSubmitButton"] button'
+                          )
+                        : null;
+                    if (submitButton && submitButton.dataset.docubotResetBound !== '1') {
+                        submitButton.dataset.docubotResetBound = '1';
+                        submitButton.addEventListener('click', resetCompact, true);
+                    }
+
+                    resize();
+                }
+
+                const observer = new MutationObserver(bindEditor);
+                observer.observe(parentDocument.body, {
+                    childList: true,
+                    subtree: true
+                });
+                parentWindow[observerKey] = observer;
+
+                bindEditor();
+                window.setTimeout(bindEditor, 80);
+                window.setTimeout(bindEditor, 300);
+            })();
+            </script>
+            """,
+            height=0,
+            scrolling=False,
+        )
+
+    # =====================================================
     # SESSION INITIALIZATION
     # =====================================================
 
@@ -99,152 +266,152 @@ class StreamlitUI:
 
         with st.sidebar:
 
-            # ---------------------------------------------
-            # COMPANY LOGO
-            # ---------------------------------------------
+            # The sidebar is intentionally split into two independent
+            # regions.  The upper controls stay fixed while only the
+            # recent-chat list is allowed to scroll.
+            with st.container(key="sidebar_fixed_top"):
 
-            logo = StreamlitUI.assoc_logo()
+                # ---------------------------------------------
+                # COMPANY LOGO
+                # ---------------------------------------------
 
-            if logo:
+                logo = StreamlitUI.assoc_logo()
+
+                if logo:
+
+                    st.markdown(
+                        f"""
+                        <div class="company-logo-wrapper">
+                            <img
+                                src="data:image/png;base64,{logo}"
+                                class="company-logo"
+                            >
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                # ---------------------------------------------
+                # DOCUBOT TITLE
+                # ---------------------------------------------
 
                 st.markdown(
-                    f"""
-                    <div class="company-logo-wrapper">
-                        <img
-                            src="data:image/png;base64,{logo}"
-                            class="company-logo"
-                        >
+                    """
+                    <div class="sidebar-logo">
+                        🤖 DocuBot
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-            # ---------------------------------------------
-            # DOCUBOT TITLE
-            # ---------------------------------------------
+                st.markdown(
+                    """
+                    <div class="sidebar-title">
+                        Your company's knowledge assistant
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            st.markdown(
-                """
-                <div class="sidebar-logo">
-                    🤖 DocuBot
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.markdown(
+                    """
+                    <div class="sidebar-version">
+                        v1.0
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            st.markdown(
-                """
-                <div class="sidebar-title">
-                    Your company's knowledge assistant
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.write("")
 
-            st.markdown(
-                """
-                <div class="sidebar-version">
-                    v1.0
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                # ---------------------------------------------
+                # NEW CHAT
+                # ---------------------------------------------
 
-            st.write("")
+                if st.button(
+                    "✚ New Chat",
+                    use_container_width=True
+                ):
 
-            # ---------------------------------------------
-            # NEW CHAT
-            # ---------------------------------------------
+                    ChatManager.create_chat()
 
-            if st.button(
-                "✚ New Chat",
-                use_container_width=True
-            ):
+                    StreamlitUI.rerun()
 
-                ChatManager.create_chat()
+                st.write("")
 
-                StreamlitUI.rerun()
+            # Keep the divider and section label at the original v6.4.9
+            # inset while only the cards below them scroll.
+            with st.container(key="recent_chats_header"):
+                st.markdown("---")
 
-            st.write("")
-
-            st.markdown("---")
-
-            st.markdown(
-                """
-                <div class="sidebar-section">
-                    Recent Chats
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.markdown(
+                    """
+                    <div class="sidebar-section">
+                        Recent Chats
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
             conversations = ChatManager.get_recent_chats()
 
-            if not conversations:
-                st.button(
-                    "No recent chats",
-                    disabled=True,
-                    use_container_width=True
-                )
+            with st.container(key="recent_chats_scroll"):
 
-            else:
+                # Keep the conversation cards at the exact v6.4.9 inset/width
+                # while the parent scroll track is allowed to reach the
+                # sidebar's outer-right edge.
+                with st.container(key="recent_chats_cards"):
 
-                for conversation in conversations:
-
-                    is_current = (
-
-                        conversation["id"]
-
-                        ==
-
-                        ChatManager.current_chat_id()
-
-                    )
-
-                    button_type = (
-
-                        "primary"
-
-                        if is_current
-
-                        else
-
-                        "secondary"
-
-                    )
-
-                    if st.button(
-
-                        f"💬 {conversation['title']}",
-
-                        key=conversation["id"],
-
-                        use_container_width=True,
-
-                        type=button_type
-
-                    ):
-
-                        ChatManager.switch_chat(
-                            conversation["id"]
+                    if not conversations:
+                        st.button(
+                            "No recent chats",
+                            disabled=True,
+                            use_container_width=True
                         )
 
-                        StreamlitUI.rerun()
+                    else:
 
-            # Push footer to bottom
-            st.markdown(
-                "<div class='sidebar-spacer'></div>",
-                unsafe_allow_html=True
-            )
+                        for conversation in conversations:
 
-#            st.markdown("---")
+                            is_current = (
 
-#            st.html("""
-#                <div class="sidebar-footer">
-#                    <strong>DocuBot</strong><br>
-#                    v1.0
-#                </div>
-#            """)
+                                conversation["id"]
+
+                                ==
+
+                                ChatManager.current_chat_id()
+
+                            )
+
+                            button_type = (
+
+                                "primary"
+
+                                if is_current
+
+                                else
+
+                                "secondary"
+
+                            )
+
+                            if st.button(
+
+                                f"💬 {conversation['title']}",
+
+                                key=conversation["id"],
+
+                                use_container_width=True,
+
+                                type=button_type
+
+                            ):
+
+                                ChatManager.switch_chat(
+                                    conversation["id"]
+                                )
+
+                                StreamlitUI.rerun()
 
     # =====================================================
     # WELCOME SCREEN
@@ -363,7 +530,25 @@ class StreamlitUI:
 
                 else:
 
-                    st.markdown(content)
+                    StreamlitUI.render_user_message(content)
+
+    # =====================================================
+    # USER MESSAGE PRESENTATION
+    # =====================================================
+
+    @staticmethod
+    def render_user_message(content: str):
+        """Render the submitted text exactly as typed, including newlines.
+
+        User content is HTML-escaped first, then displayed with a pre-wrap
+        container.  This prevents Markdown from collapsing pasted C/C++ code
+        or treating source characters as formatting syntax.
+        """
+        safe_content = html.escape(str(content or ""))
+        st.markdown(
+            f'<div class="docubot-user-message-text">{safe_content}</div>',
+            unsafe_allow_html=True,
+        )
 
     # =====================================================
     # BUILD ASSISTANT MESSAGE
@@ -723,36 +908,146 @@ class StreamlitUI:
     # =====================================================
 
     @staticmethod
+    def _compact_reference_label(references):
+        refs = []
+        for reference in references or []:
+            value = str(reference or "").strip()
+            if value and value not in refs:
+                refs.append(value)
+
+        if not refs:
+            return ""
+        if len(refs) == 1:
+            return refs[0]
+
+        parsed = []
+        for value in refs:
+            match = re.fullmatch(
+                r"(?i)(Rule|Dir(?:ective)?)\s+(\d+)\.(\d+)",
+                value,
+            )
+            if not match:
+                parsed = []
+                break
+            kind = "Directive" if match.group(1).casefold().startswith("dir") else "Rule"
+            parsed.append((kind, int(match.group(2)), int(match.group(3))))
+
+        if parsed:
+            kinds = {item[0] for item in parsed}
+            majors = {item[1] for item in parsed}
+            minors = sorted({item[2] for item in parsed})
+            if len(kinds) == 1 and len(majors) == 1 and minors:
+                consecutive = minors == list(range(minors[0], minors[-1] + 1))
+                kind = next(iter(kinds))
+                major = next(iter(majors))
+                if consecutive:
+                    plural = "Directives" if kind == "Directive" else "Rules"
+                    return f"{plural} {major}.{minors[0]}–{major}.{minors[-1]}"
+
+        if len(refs) <= 3:
+            return ", ".join(refs)
+        return f"{len(refs)} references"
+
+    @staticmethod
+    def _aggregate_sources(sources):
+        """Merge repeated chunks from one file into one compact source chip."""
+
+        grouped = {}
+        order = []
+        for source in sources or []:
+            source_path = str(source.get("path") or "").strip()
+            if not source_path:
+                continue
+
+            if source_path not in grouped:
+                grouped[source_path] = {
+                    "name": source.get("name") or Path(source_path).name or "Source file",
+                    "path": source_path,
+                    "page_starts": [],
+                    "page_ends": [],
+                    "references": [],
+                }
+                order.append(source_path)
+
+            item = grouped[source_path]
+            for key, target in (("page_start", "page_starts"), ("page_end", "page_ends")):
+                value = source.get(key)
+                try:
+                    numeric = int(value) if value is not None and str(value).strip() else None
+                except (TypeError, ValueError):
+                    numeric = None
+                if numeric is not None:
+                    item[target].append(numeric)
+
+            reference = str(source.get("reference") or "").strip()
+            if reference and reference not in item["references"]:
+                item["references"].append(reference)
+
+        output = []
+        for source_path in order:
+            item = grouped[source_path]
+            starts = item.pop("page_starts")
+            ends = item.pop("page_ends")
+            references = item.pop("references")
+            pages = starts + ends
+            item["page_start"] = min(pages) if pages else None
+            item["page_end"] = max(pages) if pages else None
+            item["reference"] = StreamlitUI._compact_reference_label(references)
+            output.append(item)
+
+        return output
+
+    @staticmethod
+    def _resolve_source_path(source_path):
+        """Resolve stored source metadata against the current installation.
+
+        Existing Qdrant payloads can contain an absolute path from the PC on
+        which the index was originally built.  When the project is copied to a
+        different workstation/path, remap that stale path to the canonical
+        data/technical_documents tree before opening/downloading the source.
+        """
+
+        raw = str(source_path or "").strip()
+        if not raw:
+            return None
+
+        try:
+            direct = Path(raw)
+            if direct.is_file():
+                return direct.resolve()
+        except (OSError, ValueError):
+            pass
+
+        normalized = raw.replace("\\", "/")
+        lowered = normalized.casefold()
+        markers = (
+            "/data/technical_documents/",
+            "data/technical_documents/",
+            "/technical_documents/",
+            "technical_documents/",
+        )
+        for marker in markers:
+            index = lowered.find(marker)
+            if index >= 0:
+                relative = normalized[index + len(marker):].lstrip("/")
+                candidate = DOCUMENT_DIR / Path(relative)
+                if candidate.is_file():
+                    return candidate.resolve()
+
+        # Compatibility for older one-folder indexes.
+        candidate = DOCUMENT_DIR / Path(normalized).name
+        if candidate.is_file():
+            return candidate.resolve()
+
+        return Path(raw)
+
+    @staticmethod
     def render_sources(sources, message_index=0):
 
         if not sources:
             return
 
-        unique_sources = []
-        seen_paths = set()
-
-        for source in sources:
-
-            source_path = source.get("path")
-
-            if not source_path:
-                continue
-
-            if source_path in seen_paths:
-                continue
-
-            seen_paths.add(source_path)
-
-            source_name = (
-                source.get("name")
-                or Path(source_path).name
-                or "Source file"
-            )
-
-            unique_sources.append({
-                "name": source_name,
-                "path": source_path
-            })
+        unique_sources = StreamlitUI._aggregate_sources(sources)
 
         if not unique_sources:
             return
@@ -795,19 +1090,73 @@ class StreamlitUI:
                     )
                 )
 
-            source_clicked = source_chip.button(
-                f"📄 {source['name']}",
-                key=(
-                    "source_button_"
-                    f"{message_key}_{source_index}"
+            details = []
+            page_start = source.get("page_start")
+            page_end = source.get("page_end")
+            if page_start:
+                if page_end and str(page_end) != str(page_start):
+                    details.append(f"Pages {page_start}–{page_end}")
+                else:
+                    details.append(f"Page {page_start}")
+            if source.get("reference"):
+                details.append(str(source["reference"]))
+            source_label_text = source["name"]
+            if details:
+                source_label_text += " · " + " · ".join(details)
+
+            source_path = StreamlitUI._resolve_source_path(source["path"])
+
+            if LAN_SERVER_MODE:
+                # A browser on another LAN PC cannot open a filesystem path
+                # that exists only on the DocuBot server. Serve the cited file
+                # through the existing Streamlit connection instead. This
+                # keeps company documents on the central server and avoids
+                # exposing a writable/shared Chroma or data directory.
+                try:
+                    if source_path is None or not source_path.is_file():
+                        raise FileNotFoundError(str(source.get("path") or ""))
+                    source_bytes = source_path.read_bytes()
+                    mime_type = (
+                        mimetypes.guess_type(source_path.name)[0]
+                        or "application/octet-stream"
+                    )
+                    source_chip.download_button(
+                        f"📄 {source_label_text}",
+                        data=source_bytes,
+                        file_name=source_path.name,
+                        mime=mime_type,
+                        key=(
+                            "source_download_"
+                            f"{message_key}_{source_index}"
+                        ),
+                    )
+                except (OSError, PermissionError):
+                    source_chip.button(
+                        f"📄 {source_label_text} (unavailable)",
+                        key=(
+                            "source_unavailable_"
+                            f"{message_key}_{source_index}"
+                        ),
+                        disabled=True,
+                    )
+            else:
+                source_clicked = source_chip.button(
+                    f"📄 {source_label_text}",
+                    key=(
+                        "source_button_"
+                        f"{message_key}_{source_index}"
+                    )
                 )
-            )
 
-            if source_clicked:
-
-                            os.startfile(
-                                source["path"]
-                            )
+                if source_clicked:
+                    try:
+                        if source_path is None or not source_path.is_file():
+                            raise FileNotFoundError(str(source.get("path") or ""))
+                        os.startfile(str(source_path))
+                    except (OSError, FileNotFoundError):
+                        source_chip.caption(
+                            "Source file is not available at the current technical_documents path."
+                        )
 
     # =======================
     # ==============================

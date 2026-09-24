@@ -1,0 +1,36 @@
+{
+  "version": "v6.4.88",
+  "milestone": "Final Manual-QA Response Shaping Candidate",
+  "base": "v6.4.86 Manual QA Round-2 Hotfix",
+  "supersedes_unapplied_candidate": "v6.4.87 Numbered Rationale Micro-Hotfix",
+  "response_policy": {
+    "default": "answer only the information requested by the user",
+    "hide_unrequested_metadata": [
+      "Category",
+      "Analysis",
+      "Applies to",
+      "C90/C99 technical mappings",
+      "external standard cross-references",
+      "raw amplification tables",
+      "examples",
+      "exceptions",
+      "notes",
+      "see-also references"
+    ],
+    "metadata_remains_queryable_when_explicitly_requested": true,
+    "source_card_remains_authoritative_traceability_surface": true
+  },
+  "fixes": {
+    "numbered_rationale_marker": true,
+    "multi_rule_metadata_dump": true,
+    "single_rule_metadata_dump": true,
+    "simple_terms_reference_noise": true,
+    "summary_category_noise": true,
+    "topic_list_reference_noise": true,
+    "example_only_when_requested": true
+  },
+  "architecture_changes": false,
+  "model_stack_changed": false,
+  "retrieval_parameters_changed": false,
+  "kb_rebuild": false
+}

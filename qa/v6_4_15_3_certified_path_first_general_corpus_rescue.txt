@@ -1,0 +1,17 @@
+DocuBot v6.4.15.3 - Certified-Path-First General Corpus Rescue
+
+Acceptance intent:
+- Preserve the v6.4.14.2.4 certified primary retrieval behavior for ordinary successful queries.
+- Do not pre-merge or pre-diversify corpus-wide lexical candidates into normal reranker pools.
+- Run corpus-wide lexical discovery only after the primary path would otherwise return no accepted context.
+- Require rescued candidates to pass the existing CrossEncoder and the unchanged 0.55 threshold.
+- Keep arbitrary supported files under data/all_documents eligible for second-pass discovery without filename/topic/entity hardcoding.
+- Preserve generic list/table handling and generic temporal comparison parsing.
+- Keep intentional too-short files visible but non-blocking in KB Health.
+
+Windows acceptance gate:
+1. Run Run_General_Corpus_Gate.bat.
+2. Gate 1 must report KB Health PASS/HEALTHY.
+3. Gate 2 must return 78/78 PASS, 0 FAIL, 0 ERROR.
+4. Gate 3 runtime unseen-document add/query/remove proof must PASS.
+5. Final GENERAL CORPUS GATE must PASS.

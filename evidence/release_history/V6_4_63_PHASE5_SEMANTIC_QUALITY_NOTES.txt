@@ -1,0 +1,38 @@
+DocuBot v6.4.63 — Phase-5 Semantic Quality Closure Candidate
+
+Built from
+----------
+Actual user-supplied v6.4.62 project ZIP and the 2026-09-17 office QA/English-natural evidence.
+
+Focused corrections
+-------------------
+1. EN-011 example boundary: compact Example extraction stops before inline/newline See also blocks, so unrelated cross-reference Rules cannot leak into the answer.
+2. EN-012 rationale completeness: why/rationale answers retain up to three source sentences so the Rule 16.7 if-else recommendation is not truncated.
+3. EN-007 structured-family semantic contract: complete Rule-family evidence is deterministically annotated before LLM generation. Unknown facts are NEEDS MORE CONTEXT, including switch(x) essential type when x is undeclared in the visible snippet.
+4. FU-001-T3 follow-up facts: “default label is first/last” establishes both presence and allowed position instead of returning Needs more context.
+5. OC-007 operator fidelity: visible pointer arithmetic preserves the exact operator (+ vs += etc.); the semantic guard rejects an LLM rewrite of the visible operator.
+6. QA validator hardening: English Natural EN-007/FU-001-T3 and Option-C OC-007 now detect the former false-pass patterns.
+
+Not changed
+-----------
+- qwen2.5:7b generation model
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant / BM25 architecture
+- retrieval thresholds and Top-K
+- chunking/index schema
+- company/technical documents
+- active storage/index contents
+
+Local validation
+----------------
+- New v6.4.63 semantic-quality tests + retained v6.4.62 corrective tests: 16/16 PASS.
+- Retained v6.4.39-v6.4.63 focused block: 194 PASS, 2 baseline FAIL.
+- The same two failures reproduce on untouched v6.4.62 and are old v6.4.53/v6.4.54 recovery-marker assertions; no new v6.4.63 regression.
+
+Office acceptance gate
+----------------------
+1. Run_Option_C_Technical_QA.bat -> target 16/16 PASS with OC-007 exact + operator fidelity.
+2. Run_English_Natural_Benchmark.bat -> target 19/19 PASS.
+3. Manual review: EN-007 must keep Rule 16.7 as unknown without x type; FU-001-T3 must recognize “first” as an established allowed position.
+4. No KB rebuild is required for this patch.

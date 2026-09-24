@@ -1,0 +1,47 @@
+DocuBot v6.5.2 — Role-Aware Precision + Semantic Consensus + Latency Structural Fix
+
+Purpose
+-------
+Fix the structural failures exposed by the v6.5.1 mixed unseen benchmark without
+adding phrase-to-Rule mappings, lowering the global retrieval threshold, changing
+900/150 chunking, or rebuilding the production Qdrant/BM25 knowledge base.
+
+Applied fixes
+-------------
+1. Rule-level BGE precision now reranks the concise authoritative requirement
+   text, while Qwen3 semantic recall continues to embed the richer
+   requirement+rationale/example profile.
+2. A MultiQuery-only semantic-consensus gate can accept a stable Rule leader
+   when absolute BGE scores are poorly calibrated for multilingual wording.
+   It requires a strong cosine lead, complete MultiQuery presence, BGE top-2
+   support, and only small independent BGE disagreement. The 0.55 chunk gate
+   is unchanged and authoritative Rule-body verification remains mandatory.
+3. Original query embeddings are cached across single-query -> MultiQuery
+   widening; already-scored Rule/query CrossEncoder pairs are reused.
+4. MultiQuery alternatives are cached by semantic intent, so a decorated
+   chunk-level fallback cannot trigger a second variant-generation LLM call.
+5. Natural MISRA chunk fallback uses section-role metadata. Requirement,
+   rationale, amplification, example, exception and note chunks are protected
+   from being crowded out by Appendix/summary/document_section noise. Broad
+   sections remain available as secondary support.
+6. Trailing Yes/No clauses such as "... Is that acceptable under MISRA C?"
+   are recognized as binary relation questions and can use the compact
+   source-grounded semantic relation verifier.
+7. Evidence logging records semantic acceptance basis, similarity margin,
+   BGE leader, and MultiQuery consensus for post-test diagnosis.
+
+Explicitly unchanged
+--------------------
+- qwen2.5:7b generation
+- qwen3-embedding:8b embeddings
+- BAAI/bge-reranker-v2-m3 reranker
+- Vector/BM25/Final Top-K = 10/10/3
+- MIN_RETRIEVAL_SCORE = 0.55
+- Chunk size/overlap = 900/150
+- MultiQuery = original + exactly 2 alternatives, RRF
+- Existing Qdrant/BM25 production KB; no rebuild
+
+Recommended manual retest
+-------------------------
+Use the existing v6.5.1 seed-6501 12-question mixed unseen benchmark in fresh
+chats with TEST_EVIDENCE_MODE enabled. Send the new .log + .csv for evaluation.

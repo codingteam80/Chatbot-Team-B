@@ -1,0 +1,52 @@
+DocuBot v6.4.6 - Verifier Cleanup + Latency Phase 2 Start
+Fresh Questions + Fixed Regression Chains
+
+IMPORTANT
+- Run each CHAIN in one conversation.
+- Start a NEW CHAT between chains.
+- Questions below are literal questions; there are no slash alternatives or bracket placeholders.
+- Keep the existing fixed regression set as well, but do not replace these fresh questions with recycled prompts.
+
+CHAIN A - Person reference + importance presentation
+1. Who is Andres Bonifacio?
+2. What organization did he help found?
+3. Why was he significant?
+Expected review: pronouns resolve to the same person; final answer must never echo an internal resolved query line before the answer.
+
+CHAIN B - Tagalog direct relations
+1. Ilang araw ang vacation leave na ibinibigay?
+2. Sino ang nag-aapruba ng leave request?
+Expected review: answers are grounded in the stored leave policy; no fallback when the explicit relation is present.
+
+CHAIN C - Exact structured cold-path candidate
+1. What does Rule 1.2 say?
+2. What category does it belong to?
+3. What does it apply to?
+Expected review: exact structured path remains deterministic/No LLM and should not require vector/reranker model loading for the first exact lookup.
+
+CHAIN D - Mixed intent structured regression
+1. What is Rule 13.5 and explain it as well.
+2. Give me the example mentioned in that rule.
+Expected review: WHAT + EXPLAIN remains complete and grounded; reference continuity remains correct.
+
+CHAIN E - Generic causal WHY must still be validated normally
+1. Ask a WHY question about a cause/reason explicitly stated in any current stored document, but do not use importance/significance wording.
+Expected review: the new importance-only skip must not disable normal cause/rationale handling.
+
+FIXED REGRESSIONS TO RETAIN
+- Who is Apolinario Mabini? -> What position did he hold?
+- Who is Emilio Aguinaldo? -> What role did he hold in the First Philippine Republic? -> Why was he important?
+- Kailan nilagdaan ang Treaty of Paris ng 1898?
+- Ilang araw ang sick leave na ibinibigay?
+- Sino ang nag-aapruba ng leave request?
+- Ano ang pangunahing layunin ng Katipunan?
+- What is Section 6? Explain it as well.
+- How much sick leave is provided and who must approve a leave request?
+- Invalid structured reference should return exactly: Information not found in company knowledge base.
+
+LATENCY EVIDENCE TO CHECK
+- First new-process Streamlit load subjectively faster than v6.4.5.
+- RETRIEVER INITIALIZATION READY now includes elapsed seconds.
+- For a first exact Rule/Directive/Section query, no VECTOR STARTED/RERANKER STARTED event should be needed.
+- For the first general semantic query, VECTOR READY and RERANKER READY events should show their separate cold-load durations.
+- Warm queries should not reload those cached ML resources.

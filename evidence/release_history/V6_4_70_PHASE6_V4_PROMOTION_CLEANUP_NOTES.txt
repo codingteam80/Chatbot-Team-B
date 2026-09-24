@@ -1,0 +1,37 @@
+DocuBot v6.4.70 — Phase 6 Chunking-v4 Promotion Cleanup
+
+Purpose
+-------
+Narrow promotion cleanup after v6.4.69 Experimental B passed full certification
+(Technical 16/16 + English Natural 19/19).
+
+Changes
+-------
+1. Source Example/Rationale extraction strips only a terminal standalone
+   Rule/Directive parent anchor introduced by v4 expansion. This removes
+   presentation residue such as a trailing "Rule 16.5" while preserving
+   substantive references inside the source block.
+2. Narrow grounded MISRA follow-up questions such as "Why is that required?"
+   may now finalize deterministically from an exact structured Rule/Directive
+   match, so the retrieved source Rationale is preferred over a generic LLM
+   justification.
+
+Non-goals / unchanged
+---------------------
+- No Chunking-v4 algorithm change.
+- No CHUNK_SIZE / CHUNK_OVERLAP change (900 / 150).
+- No model, embedding, reranker, retrieval threshold, Top-K, prompt, source
+  documents, Control A index, or Experimental B index change.
+- No KB rebuild required.
+
+Promotion gate
+--------------
+Apply the patch to the v6.4.69 trial project and rerun:
+  Run_Phase6_Chunking_v4_Full_Certification.bat
+
+Required result:
+  Technical 16/16 PASS
+  English Natural 19/19 PASS
+
+If green and the two manual-review artifacts are absent, v4 is ready for the
+Phase-6 production-promotion decision.

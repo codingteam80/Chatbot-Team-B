@@ -1,0 +1,61 @@
+DocuBot v6.4.71 — Phase 6 Chunking-v4 Production Promotion Baseline
+===================================================================
+
+Purpose
+-------
+Promote the already-certified Chunking-v4 Experimental B to the normal
+production default without deleting or overwriting the certified v3 rollback.
+
+Certification basis
+-------------------
+v6.4.70 office full-certification result:
+- Technical QA: 16/16 PASS
+- English Natural Benchmark: 19/19 PASS
+- EN-011 terminal parent-anchor artifact: fixed
+- FU-001-T2 rationale follow-up: source-faithful deterministic rationale
+- Chunking profile: v4
+- Schema: structure-aware-pdf-v4-rule-aware-option-c-qdrant-qwen3-tech
+
+Production selection after promotion
+------------------------------------
+Default profile : v4
+Production v4   : storage\option_c_qwen3_qdrant_v4
+Rollback v3     : storage\option_c_qwen3_qdrant
+Experimental B  : storage\experiments\chunking_v4 (retained)
+
+One-time office step
+--------------------
+1. Apply the v6.4.71 exact patch to an existing v6.4.70 project.
+2. Close DocuBot windows/processes.
+3. Run:
+
+   Promote_Chunking_v4_To_Production.bat
+
+The promotion utility copies and verifies the already-certified Experimental B.
+It does not rebuild the knowledge base and does not delete either rollback store.
+
+Launchers
+---------
+Production v4:
+  Start_DocuBot_v4_Production.bat
+
+Immediate v3 rollback:
+  Start_DocuBot_v3_Rollback.bat
+
+No architecture retuning
+------------------------
+Unchanged:
+- qwen2.5:7b generation
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant local backend
+- CHUNK_SIZE=900
+- CHUNK_OVERLAP=150
+- retrieval thresholds and Top-K
+- prompts / answer semantics
+- technical documents
+
+Roadmap status
+--------------
+Phase 6: CLOSED after promotion.
+Next: Phase 7 Performance Optimization against the v6.4.71 v4 production baseline.

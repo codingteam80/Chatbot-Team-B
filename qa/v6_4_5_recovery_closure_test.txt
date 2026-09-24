@@ -1,0 +1,61 @@
+DocuBot v6.4.5 - Recovery Closure Fresh + Fixed Regression Test
+================================================================
+
+PURPOSE
+-------
+Validate the remaining v6.4.4 regressions without making DocuBot dependent on
+any specific document domain. Use the files currently present in the configured
+knowledge folder/storage. Replace sample entities below when a named item does
+not exist in the active corpus.
+
+A. FIXED REGRESSION CHAINS
+--------------------------
+Chain 1 - Person referent continuity
+1. Who is Apolinario Mabini?
+2. What position did he hold?
+3. Why was he significant?
+Expected: follow-ups remain bound to the same person; no unrelated topic drift.
+
+Chain 2 - Existing person regression
+1. Who is Emilio Aguinaldo?
+2. What role did he hold in the First Philippine Republic?
+3. Why was he important?
+Expected: the third question resolves to Emilio Aguinaldo.
+
+B. TAGALOG -> ENGLISH-SOURCE RELATION REGRESSIONS
+-------------------------------------------------
+1. Kailan nilagdaan ang Treaty of Paris ng 1898?
+2. Ilang araw ang sick leave na ibinibigay?
+3. Sino ang nag-aapruba ng leave request?
+4. Ano ang pangunahing layunin ng Katipunan?
+Expected: when the fact exists in storage, retrieval must not fail merely
+because the question is Tagalog while the source wording is English.
+
+C. FRESH DOMAIN-NEUTRAL QUESTIONS
+---------------------------------
+Use at least one currently stored non-history/non-MISRA document when available.
+Examples of capability shapes (replace bracketed placeholders with real stored
+subjects/terms):
+1. Who is [person actually present in storage]?
+2. What position did he/she hold?
+3. Ilang araw/bilang ang [benefit/limit/value actually present]?
+4. Sino ang nag-aapruba ng [request/process actually present]?
+5. Kailan nagsimula ang [named project/process/event actually present]?
+6. What is [named policy/process/item]? Explain why it matters.
+
+D. PRESERVE WORKING STRUCTURED/COMPOUND PATHS
+---------------------------------------------
+1. What does Rule 13.5 say?
+2. What is Rule 13.5 and explain it as well.
+3. Give me the example mentioned in that rule.
+4. What is Section 6? Explain it as well.
+5. How much sick leave is provided and who must approve a leave request?
+Expected: exact structured retrieval stays fast; compound facets stay clean;
+verifier should not add unsupported facts.
+
+E. PERFORMANCE NOTES
+--------------------
+Record cold first-request latency separately from warm requests. Do not compare
+a fresh Streamlit process directly with an already-warm process without labeling
+which is which. Capture retriever initialization, retrieval, model, and total
+request latency from the evidence log.

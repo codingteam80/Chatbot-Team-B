@@ -1,0 +1,118 @@
+DocuBot v6.4.42 - Grounded LLM Contract / History Isolation Manual Validation
+=============================================================================
+
+Purpose
+-------
+Validate real Windows + Ollama production behavior after the v6.4.41 8/11
+LLM-inclusive certification result. All 156 Rules + 17 Directives remain in
+scope; these questions are regression probes, not a whitelist.
+
+1) First run:
+   Run_LLM_Certification_QA.bat
+
+Target:
+   13/13 PASS, 0 FAIL, 0 ERROR
+
+Important LLM cases:
+- CERT-H003: qwen2.5:7b, Rule 13.5 = Needs more context, Rule 13.3 = Potential non-compliance.
+- CERT-H005: qwen2.5:7b, literal SQUARE(a + b) expansion = a + b * a + b; no fabricated outer-only fix.
+- CERT-H006: qwen2.5:7b, Rule 13.5 remains Needs more context for a text-only RHS function-call scenario.
+- CERT-H007: qwen2.5:7b, fresh switch review does not borrow prior malloc/free or dynamic-memory concerns.
+
+Fresh manual questions
+----------------------
+A. Mixed confirmed/uncertain MISRA
+
+May more than one MISRA concern ba dito? Ihiwalay mo yung confirmed concern sa concern na kailangan pa malaman ang behavior ng function.
+int x = 0;
+if ((x++ > 0) && update_state())
+{
+    process(x);
+}
+
+Expected direction:
+- Rule 13.3: Potential non-compliance.
+- Rule 13.5: Needs more context unless persistent side effect of update_state() is established.
+- Do not turn Rule 13.5 into a confirmed violation.
+
+B. Literal macro expansion
+
+Explain mo kung bakit risky ito under MISRA. Ipakita mo yung literal expansion at huwag gumawa ng fix kung hindi kailangan.
+#define SQUARE(x) x * x
+int value = SQUARE(a + b);
+
+Expected direction:
+- Rule 20.7.
+- Literal visible expansion: a + b * a + b.
+- No invented claim that (x * x) alone fixes the parameter-parentheses requirement.
+
+C. Fresh code after unrelated dynamic-memory topic
+
+First ask:
+Review this dynamic-memory code against every supported MISRA Rule or Directive.
+#include <stdlib.h>
+void test(void)
+{
+    int *p = malloc(10 * sizeof(int));
+    if (p != NULL)
+    {
+        free(p);
+    }
+}
+
+Then, in the SAME CHAT, ask:
+Review this fresh switch as a MISRA reviewer. Explain only what this visible code supports.
+switch (mode)
+{
+    case 0:
+        start();
+        break;
+    case 1:
+        stop();
+        break;
+    default:
+        handle_error();
+        break;
+}
+
+Expected direction:
+- Fresh switch answer must not mention malloc, free, Rule 21.3, or Directive 4.12.
+- It should assess only the new visible switch evidence.
+
+D. True grounded follow-up remains supported
+
+After a grounded MISRA answer, ask:
+Bakit mo nasabi yan? Aling exact part ng code ang basis mo?
+
+Expected direction:
+- Reuse only the immediately accepted grounded MISRA scenario/source.
+- Do not retrieve or invent an older unrelated code sample.
+
+E. Same-document approval + eligibility
+
+Ask:
+Explain the Employee Leave Policy in a short summary. Include vacation leave, sick leave, approval, and eligibility.
+
+Then ask:
+Does the approval requirement apply to the eligible employees based on the same document? Explain exactly what the document supports and don't assume anything beyond it.
+
+Expected direction:
+- Preserve the source approval statement (manager approval).
+- Preserve the source eligibility statement (regular employee population).
+- Explain their same-document scope without saying the manager is the eligible employee group.
+
+F. All-Rules/Directives coverage sanity check
+
+Ask a fresh supported MISRA scenario not copied from the certification harness.
+Confirm that the returned Rule/Directive is present in the source card and that no
+unretrieved identifier is invented. Exact full-coverage certification from v6.4.33
+remains the 173/173 baseline.
+
+Evidence to return
+------------------
+1. Latest logs\llm_certification\DocuBot_LLM_Certification_Result_*.zip
+2. Latest logs\llm_certification\DocuBot_LLM_Certification_Console_*.log
+3. Latest logs\test_evidence\test_evidence_*.log
+4. Latest logs\test_evidence\test_evidence_*.csv
+5. Screenshots for manual A-E showing the full user question/code, answer, source card,
+   and any follow-up answer.

@@ -1,0 +1,44 @@
+DocuBot v6.5.1 - Mixed Goal Benchmark Harness
+================================================
+
+Purpose
+-------
+Measure the production goals without changing production answer behavior:
+1. MultiQuery: widen recall only when needed; do not repeatedly regenerate variants.
+2. Recall: expected Rule/Directive must appear in semantic/retrieval evidence.
+3. Precision: final structured reference must be the correct one without unrelated competing Rule/Directive citations.
+4. Correctness: grounded answer must match the selected source Rule/Directive and required Yes/No polarity when determinable.
+5. Consistency: two different natural-language variants of the same concept must converge to the same source Rule/Directive.
+6. Latency: avoid architecture-driven runaway paths; benchmark flags >25s, >2 LLM calls, or repeated MultiQuery generation.
+
+Contamination controls
+----------------------
+- Benchmark questions are NOT registered in qa/test_case_registry.py.
+- Production retrieval/answer code does NOT import the benchmark bank or evaluator.
+- Expected references are stored only in test-only files.
+- Questions are selected by a reproducible random seed.
+- Use a fresh chat for every manual question.
+
+Generate a benchmark sheet
+--------------------------
+Double-click:
+    Generate_v6.5.1_Mixed_Goal_Benchmark.bat
+
+or from VS Code terminal:
+    python -m scripts.generate_v6_5_1_mixed_goal_benchmark
+
+Optional reproducible seed:
+    python -m scripts.generate_v6_5_1_mixed_goal_benchmark --seed 6501 --pairs 6
+
+The generated TXT contains the questions. The JSON is used by the evaluator.
+
+Evaluate after manual execution
+-------------------------------
+After asking every generated question in a fresh chat and keeping TEST_EVIDENCE_MODE enabled:
+
+    python -m scripts.evaluate_v6_5_1_mixed_goal_benchmark
+
+By default it uses the latest benchmark sheet and latest test_evidence CSV/log.
+Explicit paths are also supported with --sheet, --csv and --log.
+
+This harness does not rebuild Qdrant/BM25 and does not change model, retrieval, reranker, threshold, Top-K, chunking or answer behavior.

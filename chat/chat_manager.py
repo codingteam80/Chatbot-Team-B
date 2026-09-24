@@ -78,7 +78,11 @@ class ChatManager:
 
             "messages": [],
 
-            "current_topic": None
+            "current_topic": None,
+
+            # Last accepted grounded retrieval state used only to resolve
+            # conservative same-conversation follow-up references.
+            "grounded_state": None
 
         }
 
@@ -674,3 +678,38 @@ class ChatManager:
         if conversation is not None:
 
             conversation["current_topic"] = None
+    # ======================================================
+    # GROUNDED FOLLOW-UP STATE
+    # ======================================================
+
+    @staticmethod
+    def get_grounded_state():
+
+        conversation = ChatManager.get_current_chat()
+
+        if conversation is None:
+            return None
+
+        value = conversation.get("grounded_state")
+        return value if isinstance(value, dict) else None
+
+    @staticmethod
+    def set_grounded_state(state):
+
+        conversation = ChatManager.get_current_chat()
+
+        if conversation is None:
+            return
+
+        conversation["grounded_state"] = (
+            dict(state) if isinstance(state, dict) else None
+        )
+
+    @staticmethod
+    def clear_grounded_state():
+
+        conversation = ChatManager.get_current_chat()
+
+        if conversation is not None:
+            conversation["grounded_state"] = None
+

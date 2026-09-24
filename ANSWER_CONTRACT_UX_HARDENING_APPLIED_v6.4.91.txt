@@ -1,0 +1,13 @@
+DocuBot v6.4.91 Answer Contract & UX Hardening
+========================================================================
+Applied: 2026-09-22T07:13:38
+Base: applied v6.4.90.3
+Runtime files changed:
+  services/answer_service.py
+  services/misra_compliance.py
+  retrieval/retriever.py
+Models changed: NO
+Retrieval thresholds/Top-K changed: NO
+Chunking changed: NO
+KB rebuild performed: NO
+Pre-patch files preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.90.3_pre_v6.4.91_20260922_071338

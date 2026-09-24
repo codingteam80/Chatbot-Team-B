@@ -1,0 +1,46 @@
+DocuBot v6.4.15 - General Corpus Retrieval Architecture Recovery
+================================================================
+
+Purpose
+-------
+Validate the product contract that data/all_documents is the complete company
+knowledge corpus. The implementation must not require hardcoded awareness of a
+particular topic, filename, person, policy, historical event, or QA wording.
+
+Required gates
+--------------
+1. Run Run_KB_Health_Check.bat.
+   PASS = every supported intended document is manifest-tracked and has at
+   least one active Chroma chunk, except files explicitly and correctly skipped
+   by validation with a visible reason.
+
+2. Run Run_Robustness_QA_Baseline_Compare.bat.
+   PASS = 78/78 PASS, 0 FAIL, 0 ERROR using seed 1789101877 / Cycle 1 / shuffle.
+
+3. Re-run the existing fresh manual validation set.
+   Review correctness from source evidence, not merely whether an answer is
+   non-empty. A relevant short HTML/CSV/TXT/DOCX source must not lose to an
+   unrelated large PDF solely because of corpus size.
+
+4. Add at least one completely new supported document to data/all_documents,
+   run the normal incremental Smart Build, then ask unseen questions whose
+   answers exist only in that new document. Do not add code or QA aliases for
+   the new topic. This is the strongest proof that retrieval is general.
+
+5. Remove/update that test document and run Smart Build again to verify the
+   incremental add/update/delete lifecycle without a full rebuild.
+
+Low-spec protection
+-------------------
+The new lexical-coverage path must not load another ML model. Reranker candidate
+pool remains capped. KB Health is read-only and must not load embeddings,
+reranker, or Ollama. Do not lower MIN_RETRIEVAL_SCORE=0.55.
+
+Regression protections
+----------------------
+- Keep v6.4.14.2.4 deterministic temporal/local-date safeguards.
+- Keep structured Rule/Directive/Section and Example/code fidelity.
+- Keep strict Information-not-found behavior when no accepted company evidence
+  exists.
+- Keep source/citation traceability.
+- Do not introduce filename/topic-specific answer logic.

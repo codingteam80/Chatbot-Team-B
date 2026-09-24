@@ -1,0 +1,7 @@
+DocuBot v6.4.16 - Low-Spec Windows Baseline Instrumentation
+
+Purpose: measure cold/warm latency and memory/runtime behavior on the target Windows PC without changing certified v6.4.15.9 RAG behavior.
+
+Run: Run_Low_Spec_Latency_Benchmark.bat
+
+Return the newest logs/low_spec_latency/run_*/summary.txt and results.json for optimization analysis.

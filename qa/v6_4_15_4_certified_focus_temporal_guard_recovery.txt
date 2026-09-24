@@ -1,0 +1,14 @@
+DocuBot v6.4.15.4 - Certified Focus + Temporal Guard Recovery
+
+Actual Windows evidence addressed:
+- R-006 returned the subject name instead of the requested role/title.
+- R-015 returned only a month/year instead of the two grounded dates and order.
+- R-012 returned a semantically correct localized country spelling (España) that the evaluator did not recognize.
+
+Production rules:
+- Certified v6.4.14.2.4 temporal finalization runs before broader temporal extensions.
+- Generic associated/connected role queries may use explicit accepted source grammar only.
+- General corpus rescue stays fallback-only behind the normal certified retrieval path and the unchanged 0.55 threshold.
+- No topic/person/document-specific production facts are encoded.
+
+Windows acceptance remains: Gate 1 PASS, exact 78/78 baseline, runtime unseen-document proof PASS, final GENERAL CORPUS GATE PASS.

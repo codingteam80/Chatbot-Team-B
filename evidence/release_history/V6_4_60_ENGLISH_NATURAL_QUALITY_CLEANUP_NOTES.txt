@@ -1,0 +1,43 @@
+DocuBot v6.4.60 - English-Natural Quality + Conservative Cleanup
+
+Goals
+-----
+1. Improve natural English MISRA questions without model/embedding/reranker replacement.
+2. Preserve v6.4.58/v6.4.59 formal Option-C correctness behavior.
+3. Remove only files proven unreferenced by production/runtime/QA launch paths.
+
+Conservative cleanup
+--------------------
+Removed from the clean release:
+- app_input_lock.py
+- app_type_while_processing.py
+- ui/streamlit_ui_input_lock.py
+- open_file.py
+- DocuBot_Model_AB_Test_Result_20260914_133358.zip
+
+Not removed:
+- legacy Chroma rollback backend/storage
+- historical regression tests
+- Qdrant/BM25/index data
+- data/all_documents
+- data/technical_documents
+- release notes and rollback-relevant tooling
+
+Natural-answer changes
+----------------------
+- Multi-Rule comparisons retrieve each explicit Rule/Directive anchor instead of stopping at the first ID.
+- English natural Boolean-switch questions map to authoritative switch-expression evidence.
+- Text-only switch reviews can establish stated facts such as one case + one default = two switch-clauses.
+- Broad English control-flow review questions use source-grounded guidance instead of immediate fallback.
+- Exact Rule phrasing supports bare references and "simple terms" explanation intent.
+- Grounded follow-up state preserves complete structured families rather than truncating them to six items.
+- Fresh/latest/current questions are kept standalone so prior switch context cannot leak into them.
+- MISRA generation context admits rationale/amplification/examples according to user intent instead of always passing every child block.
+- Fixed composer safe-area tracks the dynamic multiline composer height so the final response/source row is not covered.
+
+Architecture unchanged
+----------------------
+- Qwen3-Embedding-8B
+- BM25 + Qdrant
+- BGE-reranker-v2-m3
+- Qwen2.5:7B generation when synthesis is required

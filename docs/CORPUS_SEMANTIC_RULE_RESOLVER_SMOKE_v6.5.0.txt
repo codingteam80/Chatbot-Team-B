@@ -1,0 +1,63 @@
+DocuBot v6.5.0 - Corpus-Driven Semantic Rule Resolver
+======================================================
+
+PURPOSE
+-------
+Move natural MISRA question resolution away from phrase-to-Rule hardcoding and toward document-derived semantic Rule/Directive profiles while preserving the production retrieval stack.
+
+PRIMARY FLOW
+------------
+1. Detect that a text-only turn is a MISRA standards question. This step does not select a Rule.
+2. Search a derived Rule/Directive semantic index built from the existing structured MISRA corpus.
+3. If the original query is ambiguous, generate exactly two MultiQuery alternatives and fuse Rule-profile ranks with RRF.
+4. Use the existing BAAI/bge-reranker-v2-m3 on the small Rule-profile candidate set for precision.
+5. Accept only a clear winner above the existing confidence floor and margin guards.
+6. Independently verify the selected Rule/Directive against the authoritative BM25 corpus before answering.
+7. For text-only requirement lookups, return the exact source requirement directly.
+8. For binary Yes/No relations, use one compact structured source-grounded relation check over the exact resolved requirement; do not use hardcoded directional keyword polarity.
+9. If the Rule-level result remains ambiguous, fall through to the established chunk-level hybrid/MultiQuery path. Reuse cached MultiQuery variants instead of generating them again.
+
+LATENCY DESIGN
+--------------
+- No duplicate MultiQuery variant generation for the same semantic target in one process.
+- Original + two variants are query-embedded in one Qwen3 batch for Rule-level fallback.
+- Rule-level search runs over a small derived profile matrix, not the full chunk corpus.
+- Exact source finalization stops generation early when the evidence fully determines the answer.
+- Binary relation verification is compact and single-source instead of a full-context generation pass.
+
+PRODUCTION LOCKS PRESERVED
+--------------------------
+- Generation: qwen2.5:7b
+- Embedding: qwen3-embedding:8b
+- Reranker: BAAI/bge-reranker-v2-m3
+- Vector / BM25 / Final Top-K: 10 / 10 / 3
+- MIN_RETRIEVAL_SCORE: 0.55
+- Chunking: 900 / 150, v4 rule-aware
+- MultiQuery: original + exactly 2 alternatives
+- MultiQuery fusion: RRF
+- Existing Qdrant/BM25 KB is not rebuilt by this release.
+
+DERIVED INDEX
+-------------
+The installer builds a small semantic Rule index from the existing BM25 structured records using qwen3-embedding:8b. It writes only derived metadata/vector cache files under the existing metadata directory. It does not modify the Qdrant collection, BM25 corpus, source PDF, or chunking.
+
+INSTALL GATE
+------------
+Installation is PASS only when:
+- exact v6.4.102 baseline hashes match;
+- patch payload hashes match;
+- semantic Rule index build succeeds on the local Qwen3 embedding model;
+- v6.5.0 behavioral/architecture validator passes;
+- read-only KB Health passes.
+
+NEXT MANUAL TEST
+----------------
+Do NOT return to an endless Rule 2.7 / Rule 15.3 paraphrase loop. After the installation result is PASS, use a mixed unseen benchmark spanning several unrelated MISRA concepts. Measure:
+- MultiQuery semantic consistency
+- recall of the correct Rule/evidence
+- precision of final Rule/evidence selection
+- answer correctness/grounding
+- fallback rate
+- end-to-end latency and number of expensive LLM/retrieval stages
+
+A successful v6.5.0 should generalize from document semantics rather than require a new code patch for every new wording.

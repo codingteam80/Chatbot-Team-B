@@ -1,0 +1,29 @@
+DocuBot v6.4.61 — Semantic QA Validator Correction
+==================================================
+
+Scope
+-----
+This release changes the Option-C technical QA harness only. Production answer,
+retrieval, indexing, chunking, model, grounding, and UI behavior are unchanged.
+
+Reason
+------
+The v6.4.60 office run produced a grounded Rule 16.6 answer that stated the
+requirement was satisfied and that two switch-clauses meet the minimum of two,
+but OC-015 still required the literal token "Yes.". That created a false
+negative even though the answer semantics were correct.
+
+Correction
+----------
+OC-015 now requires:
+- Rule 16.6 evidence;
+- one satisfaction semantic (for example: Yes, satisfies, satisfied, meets the
+  requirement, or no violation established); and
+- one minimum-two semantic (minimum of 2, minimum of two, or at least two).
+
+The source and no-unnecessary-LLM requirements remain unchanged.
+
+No production behavior change
+-----------------------------
+No changes are made to AnswerService, retriever, reranker, embeddings, Qdrant,
+BM25, ingestion, chunking, prompts, grounding, or UI.

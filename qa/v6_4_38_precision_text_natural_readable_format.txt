@@ -1,0 +1,82 @@
+DocuBot v6.4.38 — Precision + Text-Natural MISRA + Readable Answer Presentation
+================================================================================
+
+Base
+----
+Built strictly from v6.4.37 generic multiline natural interpretation.
+No model-policy, embedding, reranker, 0.55 threshold, chunking, knowledge-corpus,
+or storage/index policy changes are introduced.
+
+Actual v6.4.37 evidence that motivated this update
+---------------------------------------------------
+- Windows/Ollama scripted natural QA: 41/41 PASS, 0 FAIL, 0 ERROR.
+- Fresh manual ad-hoc session: 16 questions recorded; 15 grounded answers and
+  1 safe fallback.
+- The single fallback was a text-only natural MISRA question about an execution
+  path with no return value, sent separately from the code snippet.
+- Manual evidence also exposed two precision opportunities:
+  1) known in-range pointer arithmetic should distinguish Rule 18.1 satisfaction
+     from Rule 18.4 advisory non-compliance;
+  2) a function call in the RHS of &&/|| does not by itself prove a persistent
+     side effect for Rule 13.5.
+
+v6.4.38 changes
+---------------
+1. Text-only natural MISRA concept recovery
+   - Explicit human descriptions can produce source-language requirement cues
+     even when no C snippet is pasted.
+   - The remaining missing-return-path manual fallback now resolves to the
+     authoritative Rule 17.4 body.
+   - Without a visible function signature/control flow, the per-rule state is
+     "Needs more context" rather than an invented confirmed violation.
+
+2. Per-rule assessment precision
+   - Rule 18.1 vs Rule 18.4:
+     * array declarations are no longer misread as array accesses;
+     * a visible array-backed pointer moved by a known in-range constant offset
+       can mark Rule 18.1 as satisfied while Rule 18.4 remains potential
+       non-compliance for explicit pointer arithmetic.
+   - Rule 13.5:
+     * visible assignment/inc/dec on the RHS of &&/|| remains potential
+       non-compliance;
+     * an RHS function call with unknown behavior is "Needs more context"
+       unless a persistent side effect is actually proven by the visible input.
+
+3. Readable ChatGPT-style natural MISRA presentation
+   - User-facing natural compliance answers now use:
+       Assessment
+       Applicable/Relevant MISRA Rule(s)
+       Status
+       Requirement
+       Why it applies
+       concise Rationale/Source exception when useful
+       Conclusion
+   - Multiple rules are numbered and itemized.
+   - Raw Analysis / Applies-to metadata is no longer visibly dumped in normal
+     natural compliance answers.
+   - Exact Rule/Directive explanation requests (for example "Explain Rule 1.2")
+     stay on the existing source-shaped certified format.
+   - Source cards/citations remain rendered separately by the existing UI.
+
+Compatibility
+-------------
+- Existing deterministic source grounding remains mandatory.
+- No Rule/Directive identifier is invented by the natural concept detector.
+- Existing 173-reference inventory remains 156 Rules + 17 Directives.
+- The v6.4.31 Python 3.11 f-string/BAT BOM guard remains retained.
+- Existing non-MISRA company-document path is unchanged.
+
+Local validation before release
+-------------------------------
+- v6.4.37 broad baseline: 502 PASS / 22 known legacy FAIL.
+- v6.4.38 broad suite: 509 PASS / same 22 known legacy FAIL.
+- New functional regressions: 0.
+- Focused production/MISRA/architecture compatibility selection: 54/54 PASS.
+- Python compile/static pass: 171 Python files, 0 syntax errors.
+
+Windows validation still required
+---------------------------------
+Run Run_MISRA_Natural_QA.bat on the real Windows/Ollama environment. v6.4.38
+adds M-040 through M-043 for text-only recovery, per-rule precision, ambiguity
+handling, and readable Markdown answer structure. Do not call v6.4.38 fully
+Windows-certified until that evidence is returned.

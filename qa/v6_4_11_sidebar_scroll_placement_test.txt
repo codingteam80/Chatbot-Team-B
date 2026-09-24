@@ -1,0 +1,12 @@
+DOCUBOT v6.4.11 - SIDEBAR SCROLL PLACEMENT + BOTTOM VISIBILITY TEST
+
+Scope: UI only. No RAG/KB rebuild is required.
+
+1. Start DocuBot and expand the sidebar.
+2. Confirm logo, DocuBot title/subtitle/version, New Chat, divider, and Recent Chats heading remain stationary.
+3. Confirm Recent Chat cards have the same width, height, text wrapping, and spacing as v6.4.9.
+4. Create/open enough chats to overflow the Recent Chats list.
+5. Confirm a visible scrollbar appears at the OUTER-RIGHT EDGE of the Recent Chats area, not between the cards and sidebar edge.
+6. Scroll to the absolute bottom.
+7. PASS only if the final chat card is fully visible with a small bottom gap and is not clipped by the viewport.
+8. Confirm the main chat area/layout is unchanged.

@@ -1,0 +1,55 @@
+{
+  "version": "v6.4.98",
+  "milestone": "Runtime Intent + Evidence Selection Hardening",
+  "base_runtime": "verified v6.4.97 Structured MultiQuery Output Hardening",
+  "runtime_files_changed": [
+    "chat/query_enricher.py",
+    "services/misra_compliance.py",
+    "services/answer_service.py",
+    "retrieval/retriever.py"
+  ],
+  "hardening": {
+    "technical_permission_authorization_guard": true,
+    "generic_yes_no_before_compliance_assessment": true,
+    "source_language_misra_rerank_canonicalization": true,
+    "strict_anaphora_only_followup_binding": true,
+    "source_rationale_pairing_for_why_questions": true,
+    "natural_requirement_lookup": true,
+    "rescued_exact_evidence_pinned_through_diversity": true,
+    "exact_concept_intersection_before_broad_family": true
+  },
+  "multi_query": {
+    "enabled_by_default": true,
+    "alternative_count": 2,
+    "structured_output_enabled_by_default": true,
+    "response_format": "Ollama JSON schema",
+    "temperature": 0,
+    "thinking_requested": false,
+    "original_query_retained": true,
+    "fusion": "RRF",
+    "v6_4_97_design_preserved": true
+  },
+  "prompt_strategy": {
+    "few_shot_enabled_by_default": true,
+    "silent_reasoning_guidance_enabled_by_default": true,
+    "visible_chain_of_thought_requested": false
+  },
+  "architecture_lock": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55
+  },
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "multi_query_algorithm_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

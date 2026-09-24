@@ -1,13 +1,14 @@
-from scripts.build_index import build_index
+from scripts.build_qdrant_index import build_qdrant_index
 
 
 print("\n===== FULL KNOWLEDGE BASE REBUILD =====")
 print(
-    "This operation rebuilds all source documents. "
-    "The current working indexes are kept until the replacement is ready."
+    "This operation transactionally rebuilds the finalized Qdrant v4 + BM25 "
+    "production knowledge base. The current working index is preserved until "
+    "the replacement is ready."
 )
 
-success = build_index()
+success = build_qdrant_index()
 
 if success:
     print("\n===== FULL REBUILD COMPLETE =====")

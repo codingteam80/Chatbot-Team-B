@@ -1,0 +1,19 @@
+{
+  "version": "v6.4.91.1",
+  "milestone": "Validator Verification Hotfix",
+  "base_runtime": "v6.4.91 Answer Contract & UX Hardening",
+  "change_type": "verification-only",
+  "files_changed": [
+    "scripts/validate_v6_4_91_1_answer_contract_ux.py",
+    "FINAL_COMPONENT_MANIFEST_v6.4.91.1.json"
+  ],
+  "root_cause": "The v6.4.91 validator imported HybridRetriever from retrieval.retriever. That symbol is the low-level hybrid search helper imported by the module, while the DocuBot application retriever class is CompanyRetriever. The runtime implementation itself was not the cause of the validator crash.",
+  "runtime_behavior_changed": false,
+  "retriever_runtime_changed": false,
+  "answer_runtime_changed": false,
+  "misra_runtime_changed": false,
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

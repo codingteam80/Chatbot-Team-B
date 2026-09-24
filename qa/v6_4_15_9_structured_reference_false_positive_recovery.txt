@@ -1,0 +1,13 @@
+DocuBot v6.4.15.9 - Structured Reference False-Positive Recovery
+
+Scope
+- Prevent ordinary prose words whose prefix equals a section kind from being parsed as exact structured references.
+- Primary Windows evidence: `spare parts` must not become `Part s`.
+- Preserve genuine Section/Article/Chapter/Part identifiers.
+- No production retrieval ranking, model, threshold, chunking, or index schema changes.
+
+Validation
+- 47/47 focused structured-reference tests PASS.
+- 364/364 release-relevant current tests PASS with warnings-as-errors.
+- Excluded historical files: rejected v6.4.14.2.5 branch tests and superseded v6.4.10 sidebar-boundary tests; both were already failing on the pristine uploaded v6.4.15.8 project.
+- 125 Python files compile cleanly.

@@ -1,0 +1,48 @@
+{
+  "version": "v6.4.82",
+  "milestone": "Phase 8C-8F Cleanup / Finalization Candidate",
+  "base": "v6.4.81 Phase-8 candidate certification PASS",
+  "office_hardware_acceptance": "DEFERRED",
+  "active_components": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "lexical_retriever": "rank_bm25",
+    "vector_backend": "qdrant",
+    "vector_profile": "v4",
+    "reranker": "BAAI/bge-reranker-v2-m3",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "storage": "storage/option_c_qwen3_qdrant_v4",
+    "runtime": "Ollama + project venv",
+    "normal_entrypoint": "run.py",
+    "optimization_1": "active",
+    "optimization_2": "active",
+    "fallback": "strict"
+  },
+  "retrieval_parameters": {
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "vector_weight": 0.4,
+    "bm25_weight": 0.6,
+    "minimum_reranker_score": 0.55
+  },
+  "preserved_evidence": [
+    "Technical 16/16",
+    "English Natural 19/19",
+    "Chunking-v4 certification/A-B evidence",
+    "Optimization #1/#2 evidence",
+    "Phase-7 speed/latency evidence",
+    "Phase-8 production-lock candidate evidence",
+    "Architecture-lock/release-history evidence"
+  ],
+  "removed_from_active_runtime": [
+    "Llama3 model profiles",
+    "Chroma vector backend",
+    "multilingual-E5 embedding profile",
+    "Qdrant v3 rollback storage",
+    "experimental promotion storage",
+    "historical model A/B and rollback launchers",
+    "Phase 6/7/8 one-off certification launchers from project root"
+  ]
+}

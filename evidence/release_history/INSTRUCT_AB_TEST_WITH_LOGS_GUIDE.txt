@@ -1,0 +1,82 @@
+DocuBot Explicit Instruct A/B Test + Automatic Log Collector
+============================================================
+
+PURPOSE
+-------
+Compare the certified/default model tags against the explicit Instruct tags
+without permanently changing the production configuration.
+
+DEFAULT / CERTIFIED
+- Fast    : llama3.2:3b
+- Complex : qwen2.5:7b
+
+INSTRUCT CANDIDATE
+- Fast    : llama3.2:3b-instruct-q4_K_M
+- Complex : qwen2.5:7b-instruct
+
+IMPORTANT
+---------
+The current DocuBot project already has TEST_EVIDENCE_MODE enabled.
+Every submitted question automatically records evidence including:
+- exact question
+- actual answer
+- source/citation metadata
+- response duration
+- Fast and Complex model tags
+- retrieval/evidence details
+- error information when present
+
+This overlay does NOT change retrieval, prompts, chunking, embeddings, reranker,
+knowledge-base data, or the Production Architecture Lock.
+
+QUICK TEST FLOW
+---------------
+1. Extract this overlay into the DocuBot project ROOT (same folder as app.py).
+
+2. First time only:
+   Pull_Instruct_Test_Models.bat
+
+3. Run:
+   Start_DocuBot_Instruct_Test.bat
+
+4. Ask your MISRA test questions. When finished, stop/close DocuBot.
+
+5. Run:
+   Start_DocuBot_Certified_Default.bat
+
+6. Ask the SAME questions in the SAME order. When finished, stop/close DocuBot.
+
+7. Double-click:
+   Collect_Model_AB_Test_Logs.bat
+
+8. A ZIP will be created in the project root named like:
+   DocuBot_Model_AB_Test_Result_YYYYMMDD_HHMMSS.zip
+
+9. Send ONLY that ZIP to ChatGPT.
+   Screenshots are optional unless you notice a UI/display issue.
+
+WHAT THE RESULT ZIP CONTAINS
+----------------------------
+- MODEL_AB_SUMMARY.txt
+  Human-readable comparison containing questions, answers, source names,
+  response times, status, and errors.
+
+- MODEL_AB_COMPARISON.csv
+  Side-by-side comparison table for matching questions.
+
+- DEFAULT/
+  Original QA evidence .log and .csv from the latest default-model session.
+
+- INSTRUCT/
+  Original QA evidence .log and .csv from the latest Instruct-model session.
+
+IF ONE SIDE IS MISSING
+----------------------
+The collector will still create a ZIP and clearly show which test side was not
+found. Run the missing model variant, submit questions, stop it, and run the
+collector again.
+
+OPTIONAL
+--------
+Open_Test_Evidence_Folder.bat opens the raw evidence folder if you want to
+inspect the logs yourself.

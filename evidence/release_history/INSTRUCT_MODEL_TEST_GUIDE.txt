@@ -1,0 +1,65 @@
+DocuBot Explicit Instruct Model Test Overlay
+============================================
+
+PURPOSE
+-------
+Test the explicit Ollama Instruct tags WITHOUT permanently changing the
+certified/default project configuration.
+
+Candidate models:
+- Fast/default candidate : llama3.2:3b-instruct-q4_K_M
+- Complex candidate      : qwen2.5:7b-instruct
+
+Certified/default project models remain:
+- Fast/default : llama3.2:3b
+- Complex      : qwen2.5:7b
+
+WHAT THIS OVERLAY CHANGES
+-------------------------
+No production Python/config file is changed.
+The test launcher sets these environment variables only for its own process:
+
+DOCUBOT_FAST_LLM_MODEL=llama3.2:3b-instruct-q4_K_M
+DOCUBOT_COMPLEX_LLM_MODEL=qwen2.5:7b-instruct
+
+When the launcher closes, those temporary values disappear.
+
+HOW TO USE
+----------
+1. Extract/copy the files in this overlay into the ROOT of your current
+   DocuBot project (same folder as app.py and run.py).
+
+2. First time only, double-click:
+   Pull_Instruct_Test_Models.bat
+
+   Internet is needed only if Ollama still needs to download the models.
+
+3. To test the explicit Instruct candidates, double-click:
+   Start_DocuBot_Instruct_Test.bat
+
+   Before Streamlit starts, the console should show:
+     fast    = llama3.2:3b-instruct-q4_K_M
+     complex = qwen2.5:7b-instruct
+     forced  = (none)
+
+4. Test normally in the browser.
+   No KB rebuild is required just for changing model tags.
+
+5. To compare with the certified/default model tags, close the Instruct test
+   and double-click:
+   Start_DocuBot_Certified_Default.bat
+
+   The console should show:
+     fast    = llama3.2:3b
+     complex = qwen2.5:7b
+
+IMPORTANT
+---------
+- Do NOT edit config/settings.py for this initial test.
+- Do NOT edit PRODUCTION_ARCHITECTURE_LOCK.json.
+- Do NOT rebuild/rechunk the knowledge base just because of this model test.
+- This is a candidate test only; it does not replace the certified model policy.
+- For the first comparison, use the exact same questions in both launchers.
+
+Initial focus:
+MISRA questions first; other topics are secondary for this comparison.

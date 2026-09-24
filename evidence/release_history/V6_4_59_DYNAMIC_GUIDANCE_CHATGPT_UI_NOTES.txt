@@ -1,0 +1,55 @@
+DocuBot v6.4.59 Dynamic Guidance + ChatGPT-like Response UX
+
+Basis
+-----
+- Built from v6.4.58 after actual office Option-C Technical QA reached 16/16 PASS.
+- Manual UI testing was used to identify the next quality issues; the formal
+  v6.4.58 correctness fixes remain intact.
+
+Observed manual issues
+----------------------
+1. A prospective Taglish question about changing if-else logic into a switch was
+   treated as a current MISRA compliance Assessment and assigned potential
+   non-compliance even though no code had been supplied.
+2. Short and long assistant replies inherited fixed-card/background geometry,
+   producing large blank horizontal regions.
+3. Source sections could retain a large fixed width and show only the first
+   same-file structured source rather than a compact family/page span.
+4. The temporary "Searching knowledge base..." state appeared as a large answer
+   card instead of a lightweight in-place loading indicator.
+
+v6.4.59 corrections
+-------------------
+- Add prospective MISRA guidance intent distinct from compliance assessment.
+- Do not declare violation/compliance status for planning/guidance questions
+  without actual current-turn code/evidence supporting that verdict.
+- Allow natural English/Taglish switch-guidance wording to use the existing
+  complete structured Rule-family retrieval; reject compiler/build/command-line
+  switch wording from this C-switch family shortcut.
+- Preserve deterministic grounded answers when available; LLM generation remains
+  available for explanation/synthesis where needed.
+- Make assistant Markdown unboxed and content-driven with a bounded readable
+  maximum width; user bubbles remain unchanged.
+- Make loading an inline spinner/status with no temporary response card.
+- Aggregate same-file sources into compact page/reference spans for presentation.
+- Keep Copy/Regenerate controls lightweight beneath the same assistant turn.
+
+Architecture impact
+-------------------
+None. Qwen3-Embedding-8B, BM25 + Qdrant, BGE-reranker-v2-m3, Qwen2.5:7B,
+technical corpus, thresholds, cache/index schemas, and storage remain unchanged.
+No index rebuild is required.
+
+Validation before handoff
+-------------------------
+- v6.4.50-v6.4.59 focused Option-C/UI regression set: 40/40 PASS.
+- Retained v6.4.39-v6.4.49 hardening under the legacy/general profile: 115/115 PASS.
+- Final architecture-lock/static/package verification is recorded in the release
+  SHA-256 summary.
+
+Office validation
+-----------------
+1. Apply the exact patch over v6.4.58. No Setup or index Build is required.
+2. Run Run_Option_C_Technical_QA.bat; target remains 16/16 PASS.
+3. Start DocuBot and manually spot-check prospective guidance, a short grounded
+   answer, a structured family/list answer, source display, and loading state.

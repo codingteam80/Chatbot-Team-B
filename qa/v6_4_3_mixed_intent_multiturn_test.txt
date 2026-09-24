@@ -1,0 +1,152 @@
+DocuBot v6.4.3 - Mixed Intent + Multi-Turn Context Recovery
+======================================================================
+
+INSTALL / RUN
+- Copy v6.4.3 over the current v6.4.2 project and choose Replace.
+- Do NOT delete storage.
+- No pip install is required.
+- No Knowledge Base rebuild is required from a healthy v6.4.2 index.
+- Start normally:
+    .\run_docubot_with_log.ps1
+
+IMPORTANT
+- Use a NEW CHAT where noted so conversation chains are isolated.
+- Keep the questions in the exact order within each multi-turn chain.
+- The fixed core regression questions are retained, but the rotating questions
+  below are different from the previous release.
+
+======================================================================
+A. TARGETED v6.4.3 FIXES
+======================================================================
+
+1) What is Rule 13.5 and explain it as well.
+Expected:
+- Must answer BOTH parts: the exact Rule 13.5 statement AND its supported
+  explanation/rationale.
+- Must not return only the one-line rule statement.
+- Should remain deterministic / No LLM after retrieval is ready.
+- Multi-point explanation should use readable list formatting.
+
+2) How much sick leave is provided and who must approve a leave request?
+Expected:
+- Must answer BOTH: 17 days sick leave annually + manager approval.
+- Must not return the company-knowledge fallback.
+- For this compact policy source, QA evidence should show
+  COMPOUND GROUNDING SAFETY / deterministic compound handling and no LLM call.
+
+3) What is Section 6? Explain it as well.
+Expected:
+- Must provide the Section 6 identification/overview AND explanation.
+- Explanation should be multi-point/list style when several points are present.
+- Section explanations may continue to use qwen2.5:7b.
+
+4) What is the Katipunan and explain why it was important.
+Expected:
+- Must answer WHAT it was and the requested explanation/importance.
+- Do not answer only one clause.
+
+======================================================================
+B. TRUE MULTI-TURN CONTEXT RETENTION
+======================================================================
+
+CHAIN 1 - EXACT STRUCTURED CONTEXT (NEW CHAT)
+Ask in this exact order:
+
+1) What does Rule 13.5 say?
+2) Why is it important?
+3) Explain it.
+4) What category does it belong to?
+5) What does it apply to?
+6) Give me the example mentioned in that rule.
+
+Expected:
+- Questions 2-6 must continue referring to Rule 13.5 unless the user explicitly
+  changes subject.
+- Question 3 must return a real explanation, not only the statement.
+- Question 4 should return Category: Required.
+- Question 5 should return Applies to: C90, C99.
+- Questions 1-5 should use deterministic handling where supported.
+
+CHAIN 2 - PERSON TOPIC + EXPLICIT TOPIC SWITCH (NEW CHAT)
+Ask in this exact order:
+
+1) Who is Emilio Aguinaldo?
+2) What role did he hold in the First Philippine Republic?
+3) Why was he important?
+4) Who is Apolinario Mabini?
+5) What position did he hold in the First Philippine Republic?
+
+Expected:
+- Questions 2-3 refer to Emilio Aguinaldo.
+- Question 4 explicitly changes the topic to Apolinario Mabini.
+- Question 5 must refer to Mabini, not Aguinaldo.
+
+CHAIN 3 - GENERAL DOCUMENT FOLLOW-UP (NEW CHAT)
+Ask in this exact order:
+
+1) What was the Treaty of Paris of 1898?
+2) When was it signed?
+3) What did it do to the Philippines?
+4) Explain why that mattered.
+
+Expected:
+- All follow-ups remain tied to the Treaty of Paris unless a new subject is
+  explicitly named.
+- Do not replace the subject with an older unrelated conversation topic.
+
+======================================================================
+C. FRESH ROTATING QUESTIONS - NEW FOR v6.4.3
+======================================================================
+
+1) When was the Treaty of Paris of 1898 signed?
+2) What was the main objective of the Katipunan?
+3) When was the Katipunan founded?
+4) What was the Philippine Revolution?
+5) Ano ang pangunahing layunin ng Katipunan?
+6) Kailan nilagdaan ang Treaty of Paris ng 1898?
+7) What does Rule 13.2 say?
+8) Explain Rule 13.2.
+9) What is Directive 4.7?
+10) Explain Directive 4.7.
+11) What does Rule 95.95 say?
+
+Expected:
+- Answers must remain grounded only in indexed company documents.
+- Multiple distinct points should use list formatting.
+- Rule 95.95 should use the strict not-found fallback if it does not exist.
+
+======================================================================
+D. FIXED CORE SMOKE REGRESSION
+======================================================================
+
+1) Who is Jose Rizal?
+2) Explain who Jose Rizal was and why he was significant.
+3) What does Rule 1.2 say?
+4) Explain Rule 1.2.
+5) What does Rule 10.6 say?
+6) What is Dir 4.12?
+7) Explain Directive 4.12.
+8) What is Section 6?
+9) Explain Section 6.
+10) What does Rule 99.99 say?
+11) What is MISRA C?
+12) Explain MISRA C.
+13) Explain the employee leave policy.
+
+======================================================================
+E. WHAT TO CHECK IN THE QA LOG
+======================================================================
+
+- No TEST RESULT = FAIL for registered automatic cases.
+- No Traceback.
+- No unexpected WARNING or ERROR event.
+- No reranker NaN/Inf.
+- Mixed Rule 13.5 WHAT + EXPLAIN must show STRUCTURED EXPLANATION and should
+  route DETERMINISTIC / No LLM.
+- Compact sick-leave + approver question should show deterministic compound
+  grounding rather than a Qwen fallback.
+- Multi-turn Rule 13.5 chain must keep Rule 13.5 as the resolved target.
+- Explicit topic switches must replace the old topic cleanly.
+- Check REQUEST LATENCY PROFILE and LLM CALL LATENCY as usual.
+
+Send the newest test_evidence_*.log after the run.

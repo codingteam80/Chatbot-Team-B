@@ -1,0 +1,38 @@
+DocuBot v6.4.86 — Focused Manual QA Round-2 Retest
+=====================================================
+
+After the patch validation PASS, run VS Code -> run.py and retest ONLY these
+remaining/quality cases:
+
+1. Explain MISRA Rule 2.2 in simple terms.
+   EXPECT: concise source-grounded plain explanation; no full raw Rule dump.
+
+2. Explain Rules 8.7, 10.1 and 14.3.
+   EXPECT: all three exact Rules; no unrelated Rule family; no fallback.
+
+3. Explain Rule 8.7 then give an example.
+   EXPECT: explain Rule 8.7 and explicitly say the source has no Example section;
+   do not invent an example and do not fallback.
+
+4. Discuss Rule 10.1 and explain prior classification.
+   EXPECT: concise Rule 10.1 discussion + Category Required; no raw full table dump.
+
+5. Summarize Rule 13.5.
+   EXPECT: complete requirement + concise rationale; no code punctuation as bullets.
+
+6. Which MISRA rules apply to pointers?
+   EXPECT: structured Rule 11.1–11.9 list; no fallback.
+
+7. Tell me about Rule 17 and what is its rationale.
+   EXPECT: strict safe fallback remains acceptable because "Rule 17" is not an
+   exact indexed Rule identifier. A future UX enhancement may offer clarification.
+
+Regression spot checks:
+- Is Rule 14.3 required, mandatory, or advisory?
+- List rules related to goto statements.
+- Can I have an empty else block?
+- Show compliant and non-compliant examples for Rule 14.4.
+- List mandatory MISRA rules.
+- Explain MISRA Rule 99.99.
+- Explain Rule ABC.X.
+- Who won the FIFA World Cup in 2022?

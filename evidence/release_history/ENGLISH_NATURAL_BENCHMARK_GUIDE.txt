@@ -1,0 +1,51 @@
+DocuBot v6.4.65 - Phase 5 English Natural Benchmark
+====================================================
+
+Purpose
+-------
+Measure real English user-question quality after the formal Option-C 16/16 QA.
+This benchmark does NOT change production answer logic, models, indexes, chunking,
+or storage. It only collects repeatable runtime evidence.
+
+What it checks
+--------------
+- English planning/guidance questions
+- natural yes/no compliance wording
+- simple explanations
+- Rule-to-Rule comparisons
+- rationale questions
+- prose and code review questions
+- broad control-flow overview questions
+- exact Rule lookup
+- scope/overclaim guard
+- current-information and out-of-domain fallback
+- multi-turn follow-up continuity
+- same-chat topic reset
+- source grounding and visible Rule/Directive grounding
+- wrong-model detection
+- latency warnings
+- contamination guards for known noisy example spill
+
+How to run
+----------
+1. Keep the existing v6.4.65 technical index and models running/available.
+2. Do NOT rebuild the index for this benchmark.
+3. Run:
+
+   Run_English_Natural_Benchmark.bat
+
+4. Wait for all cases and the follow-up session to finish.
+5. Upload the newest ZIP from:
+
+   logs\english_natural_benchmark\
+   DocuBot_English_Natural_Benchmark_Result_YYYYMMDD_HHMMSS.zip
+
+How to interpret the result
+---------------------------
+Automated PASS means the objective checks passed (grounding, expected Rule family,
+fallback boundaries, contamination guards, etc.). It does not automatically certify
+writing quality. Each row also contains a Manual review note for clarity/naturalness.
+
+A FAIL is diagnostic. Do not change embeddings, reranker, LLM, chunking, or rebuild
+the index just because a benchmark case fails. The result ZIP is used to identify
+which layer is responsible before the next corrective change.

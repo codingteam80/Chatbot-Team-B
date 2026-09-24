@@ -1,0 +1,10 @@
+{
+  "version": "v6.4.72",
+  "phase": "Phase 6 Chunking-v4 Windows-safe Production Promotion",
+  "ready": true,
+  "schema": "structure-aware-pdf-v4-rule-aware-option-c-qdrant-qwen3-tech",
+  "embedding_model": "qwen3-embedding:8b",
+  "source": "C:\\user_dev\\company-chatbot\\storage\\experiments\\chunking_v4",
+  "destination": "C:\\user_dev\\company-chatbot\\storage\\option_c_qwen3_qdrant_v4",
+  "finalized_at": "2026-09-18T16:57:56"
+}

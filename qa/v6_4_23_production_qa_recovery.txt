@@ -1,0 +1,18 @@
+DocuBot v6.4.23 - Production QA Recovery
+==========================================
+
+Base: v6.4.22 Production QA on v6.4.21 locked hybrid architecture.
+
+Focused Windows evidence addressed:
+1. Lifecycle QA false-fail: Windows normcase lowercased manifest document keys, while the QA harness compared random mixed-case filenames case-sensitively. Actual add/update/delete behavior and KB restoration were already successful.
+2. Mixed-language relation gap: English-start questions containing strong Tagalog source/relation phrases such as "ayon sa" were incorrectly treated as clearly English, and front-loaded approval-role wording could anchor enrichment to a determiner instead of the actual subject.
+
+Changes:
+- QA lifecycle classification is manifest-aware and case-insensitive.
+- Mixed English/Tagalog detection recognizes strong Tagalog phrases anywhere in the question.
+- Generic approval-role/authority subject extraction supports ayon sa / according to / under / in / for without document-specific hardcoding.
+- Model, embedding, reranker, thresholds, chunking, routing policy, fallback text, and KB source remain unchanged.
+
+Windows acceptance target:
+- Run_Production_QA.bat
+- PRODUCTION QA: PASS (10/10 stages)

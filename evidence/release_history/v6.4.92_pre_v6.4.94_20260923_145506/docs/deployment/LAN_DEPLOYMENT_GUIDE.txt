@@ -1,0 +1,79 @@
+DocuBot v6.4.25 - Centralized Office LAN Deployment Guide
+==========================================================================
+
+PURPOSE
+-------
+Run one authoritative DocuBot installation on a trusted office server PC.
+Employee PCs do NOT need Python, Ollama, embeddings, ChromaDB, or a copy of
+company documents. They use a normal web browser over the office LAN.
+
+ARCHITECTURE
+------------
+Employee browser(s) -> Office LAN -> DocuBot Server PC:8501
+                                     |- Streamlit UI
+                                     |- Ollama / llama3.2:3b / qwen2.5:7b
+                                     |- data/all_documents
+                                     |- storage/chroma_db + BM25 + metadata
+                                     |- embedding + reranker models
+
+IMPORTANT
+---------
+Do NOT place storage/chroma_db on a Windows shared folder for multiple PCs to
+open directly. Only the central DocuBot server process should access the live
+index/database files.
+
+FIRST LAN SETUP ON THE SERVER PC
+--------------------------------
+1. Keep the already validated venv/.venv, data/all_documents, and storage.
+2. Double-click Configure_DocuBot_LAN_Firewall.bat once as administrator.
+   The rule is restricted to Windows Private profile + LocalSubnet only.
+3. Double-click Check_DocuBot_LAN_Server.bat.
+   Target: Overall : PASS
+4. Double-click Start_DocuBot_LAN_Server.bat.
+5. The console prints one or more employee URLs, for example:
+      http://192.168.1.50:8501
+   It also creates DocuBot_Employee_Link.url in the project folder.
+6. From another office PC on the same LAN, open that URL in Edge/Chrome.
+
+EMPLOYEE PCS
+------------
+No DocuBot installation is required. Browser only.
+Do not copy data/all_documents, storage, Ollama models, or the Python venv to
+employee PCs.
+
+SOURCE/CITATION FILES
+---------------------
+In centralized LAN mode, citation buttons download the cited source through
+the employee's browser. They do not call os.startfile() on the server desktop.
+Normal single-PC/local mode keeps the original local-open behavior.
+
+UPDATING COMPANY DOCUMENTS
+--------------------------
+1. Stop Start_DocuBot_LAN_Server.bat (Ctrl+C in the server console).
+2. Add/update/delete authorized files under data/all_documents on the server.
+3. Run Update_DocuBot_Knowledge_Base.bat on the server.
+4. Confirm the update and KB health are PASS.
+5. Start Start_DocuBot_LAN_Server.bat again.
+
+The employee web UI is intentionally read-only for KB maintenance in LAN mode,
+so multiple browser sessions cannot race an index write.
+
+SECURITY BOUNDARY
+-----------------
+- Trusted office LAN only.
+- Firewall rule: TCP 8501 / Private network profile / LocalSubnet only.
+- Do NOT configure router port forwarding for TCP 8501.
+- Do NOT expose DocuBot directly to the public Internet.
+- Current build does not add per-employee authentication. Anyone allowed onto
+  the trusted LAN/subnet and permitted by Windows Firewall can reach DocuBot.
+  Add authentication before using a less-trusted/shared network.
+
+SERVER AVAILABILITY
+-------------------
+The central server PC must remain powered on, connected to the office LAN, and
+running Ollama + Start_DocuBot_LAN_Server.bat for employees to use DocuBot.
+
+STOPPING LAN ACCESS
+-------------------
+1. Stop the LAN server console with Ctrl+C.
+2. Optional: run Remove_DocuBot_LAN_Firewall.bat as administrator.

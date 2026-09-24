@@ -1,0 +1,23 @@
+DocuBot v6.4.100 Concept-Level Semantic Matcher Hardening
+============================================================================
+Applied: 2026-09-24T06:30:06
+Base: exact verified v6.4.99 Semantic Concept Canonicalization + Deterministic Rescue Hardening
+Concept-level unused-parameter relation matcher: ENABLED
+English never/not referenced/used support: ENABLED
+Tagalog/Taglish negation + filler-word support: ENABLED
+Contraction normalization (e.g. doesn't use): ENABLED
+Precision guards for macro parameter / unused return value: ENABLED
+Authoritative Rule-body rescue before MultiQuery: PRESERVED/ENFORCED
+v6.4.99 post-normalization MISRA rescue: PRESERVED
+v6.4.98 runtime intent/evidence hardening: PRESERVED
+Structured MultiQuery: PRESERVED
+MultiQuery: original + 2 alternatives (UNCHANGED)
+Fusion: RRF (UNCHANGED)
+BGE reranker: UNCHANGED
+MIN_RETRIEVAL_SCORE: 0.55 (UNCHANGED)
+Vector/BM25/Final Top-K: 10/10/3 (UNCHANGED)
+Chunking: 900/150 v4 (UNCHANGED)
+Models changed: NO
+KB rebuild performed by patch: NO
+Existing test evidence deleted: NO
+Pre-patch files preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.99_pre_v6.4.100_20260924_063006

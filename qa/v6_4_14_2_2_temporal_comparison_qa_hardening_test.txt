@@ -1,0 +1,40 @@
+DocuBot v6.4.14.2.2 - Temporal Comparison Correctness + QA Assertion Hardening
+================================================================================
+
+Primary Windows gate
+--------------------
+Run:
+  Run_Robustness_QA_Baseline_Compare.bat
+
+Required baseline:
+- Suite: full
+- Seed: 1789101877
+- Cycle: 1
+- Planned turns: 78
+- Target: 78 PASS / 0 FAIL / 0 ERROR
+
+Critical R-015 review
+---------------------
+Question selected in Cycle 1:
+  Nauna ba ang deklarasyon ng kalayaan noong Hunyo 1898 kaysa pagpirma sa Treaty of Paris?
+
+The answer must bind the actual source events/dates:
+- Philippine declaration of independence: June 12, 1898
+- Treaty of Paris signing: December 10, 1898
+- June 12 must be identified as earlier / first; December 10 as later.
+
+The old false-PASS answer using August 13, 1898 and August 4, 1964 must NOT pass.
+
+Additional temporal paraphrases protected by regression tests:
+- Was the Treaty of Paris signed before or after the June 1898 Philippine declaration of independence?
+- Which came later: the June 1898 declaration of Philippine independence or the Treaty of Paris signing?
+
+Release checks
+--------------
+- Full maintained tests pass.
+- Full maintained tests pass with warnings treated as errors.
+- Python compile/static warning check passes.
+- Final ZIP integrity passes.
+- Final ZIP is re-extracted and the full maintained tests/warnings/compile checks pass again.
+- No live storage/index/log/cache contents are packaged.
+- No pip install or Knowledge Base rebuild is required.

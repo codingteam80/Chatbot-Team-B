@@ -1,0 +1,46 @@
+DocuBot v6.4.66 — Phase-5 Technical QA Harness Architecture Fix
+
+Built from
+----------
+The complete v6.4.65 certification-cleanup project plus the 2026-09-18 office evidence: English Natural reached 19/19 PASS, while two consecutive Option-C Technical reruns remained 15/16 because OC-011 alone hit the same Windows embedded-Qdrant qdrant/.lock PermissionError. The v6.4.65 bounded retry attempted the exact lock failure three times, but the next independent case process then passed, isolating the remaining problem to QA process churn rather than DocuBot answer/retrieval semantics.
+
+Focused correction
+------------------
+1. The normal Option-C Technical QA parent no longer starts a fresh Python worker process for every case.
+2. All 16 cases now run in one Python process with one shared AnswerService / QueryService / CompanyRetriever lifecycle.
+3. Every case still receives a completely fresh ChatManager session/conversation, so case-to-case chat/topic state does not carry over.
+4. Per-case JSON and console evidence are still written, and the result ZIP format is retained.
+5. The previous bounded per-case Qdrant lock retry helper remains only as legacy compatibility code; the normal v6.4.66 parent path does not call it.
+6. The harness never deletes or modifies qdrant/.lock.
+
+Why this is the correct layer
+-----------------------------
+The repeated office failure occurred only in the multi-process certification harness. Product semantic behavior is already green: English Natural v6.4.65 is 19/19 PASS, and the Technical suite passes every case except the single Qdrant-lock interruption. Reusing one runtime removes self-contention between consecutive QA processes while preserving independent chat state for each test case.
+
+Not changed
+-----------
+- AnswerService semantic/routing/finalization logic
+- qwen2.5:7b generation model
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant/BM25 retrieval architecture or active storage/index contents
+- retrieval thresholds, Top-K, chunking, or index schema
+- company/technical documents
+- Qdrant lock file or storage contents
+
+Office acceptance gate
+----------------------
+1. English Natural is already accepted at 19/19 from v6.4.65; do not rerun it for this harness-only change.
+2. Run_Option_C_Technical_QA.bat -> target 16/16 PASS.
+3. Result summary should show Harness: single_process_shared_service.
+4. No KB rebuild and no pip install are required.
+
+Local validation
+----------------
+- New v6.4.66 harness architecture + retained v6.4.65 cleanup tests: 7/7 PASS.
+- v6.4.60-v6.4.66 focused Phase-5 block: 49/49 PASS.
+- Retained v6.4.39-v6.4.66 block: 210 PASS / 2 baseline FAIL.
+- The same two v6.4.53/v6.4.54 recovery-marker failures reproduce on untouched v6.4.65.
+- 210 Python files compile with 0 syntax errors.
+- Production Architecture Lock checker: PASS.
+- Two legacy v6.4.21 architecture assertions still expect llama3.2:3b + multilingual-e5 and fail identically on untouched v6.4.65; they are not part of the current Option-C lock contract.

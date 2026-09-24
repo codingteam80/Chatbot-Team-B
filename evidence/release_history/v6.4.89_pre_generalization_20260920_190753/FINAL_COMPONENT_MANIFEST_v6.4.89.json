@@ -1,0 +1,39 @@
+{
+  "version": "v6.4.89",
+  "milestone": "Semantic Completeness / Full Manual-QA Candidate",
+  "base": "v6.4.88 Response Shaping",
+  "fixes": {
+    "multi_item_rationale_scope": "Numbered rationale blocks are explicitly labeled as multi-point; the first item is never presented as the whole rationale.",
+    "broad_pointer_query_scope": "Broad pointer queries use Rule requirement statements across the document instead of silently narrowing to Rule 11 conversions.",
+    "pointer_response_shape": "Broad pointer inventory is rendered as compact Rule ranges with an explicit scope note."
+  },
+  "verified_explicit_pointer_rule_ids": [
+    "7.4",
+    "8.13",
+    "11.1",
+    "11.2",
+    "11.3",
+    "11.4",
+    "11.5",
+    "11.6",
+    "11.7",
+    "11.8",
+    "11.9",
+    "18.1",
+    "18.2",
+    "18.3",
+    "18.4",
+    "18.5",
+    "21.15",
+    "21.16",
+    "21.17",
+    "21.19",
+    "21.20",
+    "22.5",
+    "22.6"
+  ],
+  "architecture_changes": false,
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "kb_rebuild": false
+}

@@ -1,0 +1,40 @@
+DocuBot v6.4.81 — Phase 8 Certification Harness Hotfix
+======================================================================
+
+Scope
+-----
+Certification/tooling only. Production answer/retrieval/model/index behavior remains
+frozen at the fully-certified v6.4.79 baseline.
+
+Corrections from the v6.4.80 candidate attempt
+----------------------------------------------
+1. KB health is invoked as `python -m scripts.kb_health`, and kb_health.py now inserts
+   the project root before importing config.settings. This removes the observed
+   ModuleNotFoundError caused by script-path execution.
+2. The Phase-8 Qwen hardware probe now retrieves exact Rule 16.4 evidence through the
+   deterministic DocuBot path, then performs exactly ONE direct qwen2.5:7b generation
+   using only that evidence. No semantic repair/retry generation is allowed inside the
+   hardware probe, so latency is a clean one-call measurement.
+3. Candidate mode gates Qwen quality but does not misclassify current-machine hardware
+   latency as a production failure. Final office mode still enforces the <=30s hardware
+   acceptance ceiling; <=20s remains the target band.
+4. Failed certification runs no longer receive PRODUCTION_CANDIDATE.txt. PASS markers
+   are emitted only after all applicable gates pass; failed runs get
+   CERTIFICATION_FAILED.txt.
+5. A venv/dependency smoke check runs before expensive certification and verifies the
+   exact imports that previously caused launcher/import failures: config.settings,
+   rank_bm25, qdrant_client, llama_index.llms.ollama, and scripts.kb_health.
+6. Child-process failures are captured into the combined result logs instead of leaving
+   an ambiguous partial run.
+
+Unchanged
+---------
+- qwen2.5:7b generation model
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant production-v4 index
+- Chunking-v4 900/150
+- retrieval thresholds / Top-K
+- company documents and production index content
+- strict fallback: Information not found in company knowledge base.
+- Optimization #1 and #2 production routing

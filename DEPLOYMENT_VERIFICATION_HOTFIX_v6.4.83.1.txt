@@ -1,0 +1,9 @@
+DocuBot v6.4.83.1 Bootstrap Verification Hotfix
+========================================================================
+Applied: 2026-09-19T21:01:28
+Base component release: v6.4.83
+Changed: validator/setup verification attribute names only
+Correct settings: OLLAMA_FAST_MODEL / OLLAMA_COMPLEX_MODEL
+Retrieval/answer behavior changed: NO
+KB rebuild performed: NO
+Pre-hotfix verifier/setup preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.83_pre_verification_hotfix_20260919_210128

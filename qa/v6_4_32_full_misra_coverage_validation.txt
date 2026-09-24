@@ -1,0 +1,22 @@
+DocuBot v6.4.32 - Full MISRA Coverage Validation
+
+Purpose
+-------
+- Treat every indexed MISRA Rule and Directive as first-class coverage.
+- Current regression examples are not a whitelist.
+- Exhaustively validate exact structured retrieval and source-shaped explanation for every indexed reference.
+- Add unseen natural compliance scenarios across previously untested Rule/Directive families.
+- Keep secondary/non-MISRA data\all_documents behavior working and reject error-text false PASS results.
+
+Current indexed inventory
+-------------------------
+Rules      : 156
+Directives : 17
+Total      : 173
+
+Windows manual validation
+-------------------------
+Run: Run_MISRA_Full_Coverage.bat
+Output: logs\misra_full_coverage\DocuBot_MISRA_Full_Coverage_Result_YYYYMMDD_HHMMSS.zip
+
+The full coverage runner dynamically enumerates the authoritative BM25 corpus and tests every structured Rule/Directive. Unseen natural scenarios are representative generalization evidence, never the supported-feature boundary.

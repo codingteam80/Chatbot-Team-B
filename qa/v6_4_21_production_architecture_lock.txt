@@ -1,0 +1,44 @@
+DocuBot v6.4.21 - Production Architecture Lock
+================================================
+
+Purpose
+-------
+Freeze the Windows/Ollama-certified production architecture after the v6.4.20
+model-policy A/B decision. This checkpoint introduces no new RAG, routing,
+model, retrieval, chunking, prompt, answer, or UI behavior.
+
+Locked production policy
+------------------------
+- Fast/default LLM: llama3.2:3b
+- Complex LLM: qwen2.5:7b
+- Hybrid rule-based routing: enabled
+- Unified 3B candidate: rejected (77/78) and not promoted
+- Embedding: intfloat/multilingual-e5-base
+- Reranker: BAAI/bge-reranker-base
+- MIN_RETRIEVAL_SCORE: 0.55
+- Chunking: 900 / 150
+- Knowledge root: data/all_documents
+- Exact fallback: Information not found in company knowledge base.
+- Startup prewarm: auto, preserving v6.4.17 optimization
+- Post-complex fast-model recovery: auto, preserving v6.4.18 behavior
+
+Certified evidence before lock
+------------------------------
+- General Corpus Gate: PASS
+- Robustness baseline: 78/78 PASS, 0 FAIL, 0 ERROR
+- Runtime unseen-document proof: 4/4 PASS + cleanup PASS
+- Post-optimization certification: PASS
+- Model-policy A/B:
+  * Hybrid control: 78/78 PASS
+  * Unified 3B: 77/78 PASS, 1 FAIL -> REJECTED
+
+Lock enforcement
+----------------
+PRODUCTION_ARCHITECTURE_LOCK.json records the certified settings and SHA-256
+hashes of critical production Python files. Run:
+
+  Run_Production_Architecture_Lock_Check.bat
+
+before Production QA and before deployment packaging. Any setting drift, active
+DOCUBOT_OLLAMA_MODEL QA override, missing locked file, or critical-file hash
+change causes a FAIL and must be intentionally reviewed/versioned.

@@ -1,0 +1,68 @@
+DocuBot v6.4.14.2.3 - Tagalog Temporal Comparison + Structured Example Fidelity
+================================================================================
+
+PURPOSE
+-------
+Validate the final Cycle-1 R-015 recovery and the new source-faithful Example
+presentation without changing models, embeddings, reranker threshold, or index.
+
+WINDOWS BASELINE COMMAND
+------------------------
+Run:
+  Run_Robustness_QA_Baseline_Compare.bat
+
+Equivalent command:
+  python -m scripts.run_robustness_qa --suite full --seed 1789101877 --cycle 1
+
+REQUIRED AUTOMATED RESULT
+-------------------------
+- Questions executed: 78
+- PASS: 78
+- FAIL: 0
+- ERROR: 0
+
+R-015 MUST BE FACTUALLY CORRECT
+-------------------------------
+Question:
+  Nauna ba ang deklarasyon ng kalayaan noong Hunyo 1898 kaysa pagpirma sa Treaty of Paris?
+
+Required grounded dates:
+- Philippine declaration of independence: June 12, 1898
+- Treaty of Paris signing: December 10, 1898
+
+The answer must explicitly show that June 12, 1898 came before December 10, 1898.
+A one-date answer is not acceptable.
+
+STRUCTURED EXAMPLE FORMAT SPOT CHECK
+------------------------------------
+Use a NEW CHAT and ask an exact structured item that has an explicit Example block,
+for example:
+  Show the Example for Directive 4.6.
+
+Verify:
+- Source prose is readable and separate from code.
+- Code is shown as a fenced code block, not collapsed into one paragraph.
+- Original extracted code line order is preserved.
+- Compliant / Non-compliant comments remain visible when present.
+- Neighboring See also / Rationale / next Rule or Directive content is not merged
+  into the Example answer.
+
+Missing Example check:
+  Show the examples for Rule 1.2.
+
+Expected behavior:
+  No Example section is provided for Rule 1.2 in the available company knowledge.
+
+Source/Page/reference metadata should remain available for both present and
+verified-missing structured-detail answers.
+
+WHAT TO SEND BACK
+-----------------
+After the baseline run, send:
+- summary.txt
+- results.csv
+- results.json
+- newest test_evidence_*.log (preferred)
+
+Only after a genuine 78/78 with correct R-015 should the fresh project-data manual
+validation guide be used.

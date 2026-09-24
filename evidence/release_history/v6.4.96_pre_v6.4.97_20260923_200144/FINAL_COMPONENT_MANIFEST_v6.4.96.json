@@ -1,0 +1,44 @@
+{
+  "version": "v6.4.96",
+  "milestone": "Few-Shot Prompting / Silent Grounded Reasoning Hardening",
+  "base_runtime": "verified v6.4.95 Adaptive MultiQuery RAG / Generalization Hardening",
+  "runtime_files_changed": [
+    "config/settings.py",
+    "config/prompts.py"
+  ],
+  "prompt_strategy": {
+    "few_shot_enabled_by_default": true,
+    "few_shot_profile": "behavior-only-v1",
+    "few_shot_ab_disable": "DOCUBOT_FEW_SHOT_PROMPT=0",
+    "silent_reasoning_guidance_enabled_by_default": true,
+    "silent_reasoning_ab_disable": "DOCUBOT_REASONING_GUIDANCE=0",
+    "visible_chain_of_thought_requested": false,
+    "few_shot_examples_are_factual_sources": false,
+    "applies_to": [
+      "general grounded answer generation",
+      "MISRA compliance/intent answer behavior",
+      "MultiQuery retrieval rewrite generation"
+    ]
+  },
+  "architecture_lock": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55,
+    "multi_query_enabled_by_default": true,
+    "multi_query_alternative_count": 2,
+    "multi_query_fusion": "RRF"
+  },
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "multi_query_algorithm_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

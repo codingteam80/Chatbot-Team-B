@@ -1,0 +1,46 @@
+DOCUBOT v6.3.2 – REBUILD LOOP / CONNECTION RECOVERY TEST
+
+Purpose
+-------
+Validate the focused fix for the repeated full-rebuild condition seen in the
+v6.3.1 Windows app.log. The prior log showed successful 1,486-chunk rebuilds,
+then another full rebuild was requested immediately afterward.
+
+Install
+-------
+1. Stop DocuBot if it is running.
+2. Copy the v6.3.2 update files over the current project and choose Replace.
+3. Do NOT delete storage, Chroma, BM25, manifest, or cache folders.
+4. No pip install is required.
+5. Start normally:
+
+   .\run_docubot_with_log.ps1
+
+Expected behavior
+-----------------
+A. If the current active index is already the successful 1,486-chunk
+   structure-aware rebuild, DocuBot should NOT request another full rebuild.
+
+B. If recovery still requires one full rebuild, approve it once through the
+   normal Update Knowledge Base flow. After it completes, the app must NOT ask
+   for another full rebuild on the next rerun/restart.
+
+C. Then run these regression questions:
+   What does Rule 1.2 say?
+   Explain Rule 1.2.
+   What is Dir 4.12?
+   Explain Directive 4.12.
+   What is Section 6?
+   Explain Section 6.
+   What does Rule 99.99 say?
+   Who is Jose Rizal?
+   Explain who Jose Rizal was and why he was significant.
+   What is MISRA C?
+   Explain MISRA C.
+   Explain the employee leave policy.
+
+D. Structured Rule/Directive/Section questions must no longer return fallback
+   when the exact structured evidence exists.
+
+If another full rebuild is requested immediately after a successful rebuild,
+do not repeat it. Send logs/app.log and the latest test_evidence log.

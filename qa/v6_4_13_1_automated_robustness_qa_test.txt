@@ -1,0 +1,91 @@
+DocuBot v6.4.13.1 - Automated Robustness QA Runner
+===================================================
+
+Purpose
+-------
+Eliminate manual typing for the fresh/unseen-style robustness battery.
+The runner executes the real AnswerService -> retrieval -> reranker -> Ollama
+pipeline and captures results automatically.
+
+IMPORTANT: Expected-answer checks are post-answer only. They are not inserted
+into the question, prompt, retrieval query, conversation history, or model
+context.
+
+Easy Windows run
+----------------
+Double-click:
+    Run_Robustness_QA.bat
+
+The BAT automatically prefers:
+    .venv\Scripts\python.exe
+then:
+    venv\Scripts\python.exe
+then falls back to:
+    python
+
+CLI alternatives
+----------------
+Full randomized suite:
+    python -m scripts.run_robustness_qa --suite full
+
+Short smoke run:
+    python -m scripts.run_robustness_qa --suite quick
+
+Only standalone isolated questions:
+    python -m scripts.run_robustness_qa --suite standalone
+
+Only multi-turn chains:
+    python -m scripts.run_robustness_qa --suite chains
+
+Reproducible run:
+    python -m scripts.run_robustness_qa --suite full --seed 12345
+
+Rotate to a different wording set:
+    python -m scripts.run_robustness_qa --suite full --cycle 2
+    python -m scripts.run_robustness_qa --suite full --cycle 3
+
+What the FULL run contains
+--------------------------
+- 50 standalone semantic test families.
+- Each family has multiple paraphrase variants.
+- Standalone cases are isolated in separate new conversations.
+- 7 multi-turn conversation chains.
+- English, Tagalog, mixed phrasing, direct facts, explanation, lists,
+  structured Rule/Section questions, cross-topic relations, and negatives.
+- Questions/chains are shuffled by default.
+- A different random seed is used when --seed is omitted.
+
+Outputs
+-------
+Each run creates:
+    logs\robustness_qa\run_YYYY-MM-DD_HH-MM-SS\results.csv
+    logs\robustness_qa\run_YYYY-MM-DD_HH-MM-SS\results.json
+    logs\robustness_qa\run_YYYY-MM-DD_HH-MM-SS\summary.txt
+
+The existing detailed technical evidence logger continues to write:
+    logs\test_evidence\test_evidence_*.log
+    logs\test_evidence\test_evidence_*.csv
+
+Summary metrics include:
+- PASS / FAIL / ERROR counts
+- fallback count
+- direct-relation fast-path count
+- average / median / P95 / max latency
+- route/model counts
+- 10 slowest questions
+- failed questions and answers
+
+Suggested validation sequence
+-----------------------------
+1. First run:
+       Run_Robustness_QA.bat
+
+2. Second wording cycle:
+       python -m scripts.run_robustness_qa --suite full --cycle 2
+
+3. Third wording cycle:
+       python -m scripts.run_robustness_qa --suite full --cycle 3
+
+This gives materially different wording while testing the same underlying
+facts/relationships, which is much stronger evidence than replaying one fixed
+question list.

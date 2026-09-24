@@ -1,0 +1,55 @@
+DocuBot v6.4.100 — Concept-Level Semantic Matcher Hardening
+===========================================================
+
+Base
+----
+Exact verified v6.4.99 Semantic Concept Canonicalization + Deterministic Rescue Hardening.
+
+Why this patch exists
+---------------------
+The v6.4.99 unseen manual retest showed that Rule 2.7 was still retrieved at the
+candidate/vector stage but two new same-meaning unused-parameter paraphrases did
+not enter the deterministic MISRA concept path. They therefore fell through to
+MultiQuery/reranking and returned an empty final context after ~47s and ~74s.
+The goto-label family remained 3/3 correct at very low latency.
+
+Focused v6.4.100 change
+-----------------------
+1. Replace whole-sentence-style unused-parameter matching with a concept relation matcher.
+2. Detect a nearby parameter/argument entity plus an unused/not-referenced relation:
+   - unused / unreferenced / ignored
+   - never/not ... used or referenced
+   - hindi/di ... ginagamit or nagagamit, including filler words such as "naman"
+   - ordinary contractions such as "doesn't use"
+3. Keep the mapping identifier-free. The matcher emits only the authoritative source cue:
+   "there should be no unused parameters in functions"
+   The authoritative corpus still resolves that cue to Rule 2.7.
+4. Protect precision:
+   - specifically named macro parameters do not become Rule 2.7
+   - nearby "unused return value", labels, tags, typedefs, or variables do not become Rule 2.7
+5. Preserve v6.4.99 post-normalization rescue as a fallback for other multilingual concepts.
+
+Manual evidence that motivated this patch
+-----------------------------------------
+Failed in v6.4.99 despite Rule 2.7 candidate recall:
+- Does MISRA permit a function to declare an input parameter that the function never references?
+- Ano ang rule ng MISRA kapag may parameter sa function pero hindi naman nagagamit sa body?
+
+Expected after v6.4.100
+-----------------------
+Both questions above, plus unseen semantic equivalents, should enter the source-backed
+Rule 2.7 deterministic path before MultiQuery/reranker fallback. The previously healthy
+goto-label scope family must remain Rule 15.3.
+
+Architecture lock
+-----------------
+- Generation model: qwen2.5:7b
+- Embedding model: qwen3-embedding:8b
+- Reranker: BAAI/bge-reranker-v2-m3
+- Vector backend: Qdrant
+- MultiQuery: original + 2 alternatives, strict JSON structured output
+- Fusion: RRF
+- Vector/BM25/Final Top-K: 10/10/3
+- MIN_RETRIEVAL_SCORE: 0.55
+- Chunking: v4, 900/150
+- KB rebuild: no

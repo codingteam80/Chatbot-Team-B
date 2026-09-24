@@ -1,0 +1,45 @@
+DocuBot v6.4.64 — Phase-5 Semantic Claim Fidelity Closure Candidate
+
+Built from
+----------
+The complete v6.4.63 project that produced the 2026-09-18 office evidence: Option-C Technical QA 16/16 PASS and English Natural automated 19/19 PASS. Manual review found one remaining EN-007 semantic false-PASS.
+
+Root cause
+----------
+The production semantic guard isolated answer blocks with a newline-oriented regex. Markdown bullets such as "- **Rule 16.2**" were not recognized as the next Rule boundary. A later Rule 16.7 "Needs more context" phrase could therefore make earlier Rule 16.1/16.2/16.3 blocks appear uncertain even when those blocks actually claimed SATISFIED.
+
+Focused corrections
+-------------------
+1. Exact Rule/Directive answer segmentation independent of Markdown bullets/bold formatting.
+2. Explicit rejection of uncertain -> satisfied promotion, in addition to the existing uncertain -> violation guard.
+3. Syntax-only switch fact extraction: visible switch expression, case-label count, default-label count, total labels, and default position.
+4. Grounded generation contract includes exact CURRENT SWITCH FACTS.
+5. Rule 16.5 observation preserves the exact visible default position (first vs last).
+6. Rule 16.7 observation states that `x` is visible while its essential type remains unknown.
+7. Semantic guard rejects wrong case-label counts, wrong default position, and claims that a visible switch expression is absent.
+8. English Natural EN-007 now re-runs the production semantic alignment guard and explicitly rejects the previous false-PASS wording.
+
+Not changed
+-----------
+- qwen2.5:7b generation model
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant / BM25 architecture
+- retrieval thresholds and Top-K
+- chunking/index schema
+- company/technical documents
+- active storage/index contents
+
+Local validation
+----------------
+- v6.4.60-v6.4.64 focused block: 42/42 PASS.
+- v6.4.39-v6.4.64 retained block: 203 PASS / 2 baseline FAIL.
+- The two retained failures are the same old v6.4.53/v6.4.54 recovery-marker assertions already present before v6.4.64.
+- Replay of the actual v6.4.63 English result under the strengthened evaluator: EN-007 correctly FAILS; the other 18 cases remain PASS.
+
+Office acceptance gate
+----------------------
+1. Run_Option_C_Technical_QA.bat -> target 16/16 PASS.
+2. Run_English_Natural_Benchmark.bat -> target 19/19 PASS.
+3. Manual EN-007 review: one case label, one default label, default is last, `x` is visible, Rule 16.7 type remains Needs more context.
+4. No KB rebuild and no pip install are required.

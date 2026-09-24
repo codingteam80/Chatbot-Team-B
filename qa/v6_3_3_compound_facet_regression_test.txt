@@ -1,0 +1,80 @@
+DOCUBOT v6.3.3 – COMPOUND FACET + HYBRID REGRESSION TEST
+
+Purpose
+-------
+Validate the one remaining v6.3.2 answer-quality gap without changing the
+already-restored structured retrieval, hybrid routing, or KB/index settings.
+
+Install
+-------
+1. Stop DocuBot if it is running.
+2. Copy the v6.3.3 update files over the current project and choose Replace.
+3. Do NOT delete storage, Chroma, BM25, manifest, or cache folders.
+4. No pip install is required.
+5. No Knowledge Base rebuild is required from a healthy v6.3.2 index.
+6. Start normally:
+
+   .\run_docubot_with_log.ps1
+
+Primary compound regression
+---------------------------
+1. Who is Jose Rizal?
+   Expected: grounded identity/overview; fast Llama route.
+
+2. Explain who Jose Rizal was and why he was significant.
+   Expected:
+   - no fallback when supported evidence exists;
+   - answer covers BOTH who he was and why he was significant;
+   - route = COMPLEX / qwen2.5:7b;
+   - QA evidence contains COMPOUND FACET COVERAGE.
+
+Structured regression
+---------------------
+3. What does Rule 1.2 say?
+4. Explain Rule 1.2.
+5. What does Rule 10.6 say?
+6. What is Dir 4.12?
+7. Explain Directive 4.12.
+8. What is Section 6?
+9. Explain Section 6.
+10. What does Rule 99.99 say?
+
+Expected:
+- Known Rule/Directive exact answers remain exact.
+- Exact Rule/Directive statement/explanation uses deterministic No-LLM path.
+- Section 6 remains retrievable; direct Section answer stays concise and
+  Explain Section 6 remains richer/grounded.
+- Rule 99.99 returns exactly:
+  Information not found in company knowledge base.
+
+Follow-up context regression
+----------------------------
+Run these in the SAME conversation and in this order:
+
+11. What is MISRA C?
+12. What does Rule 1.2 say?
+13. Why is that rule important?
+14. Explain that rule.
+
+Expected:
+- Q13 and Q14 resolve to Rule 1.2, not to a previous unrelated topic.
+- WHY and Explain follow-ups remain grounded in the exact Rule 1.2 block.
+
+General answer regression
+-------------------------
+15. What is MISRA C?
+16. Explain MISRA C.
+17. Explain the employee leave policy.
+
+Expected:
+- simple fact -> llama3.2:3b
+- explanation -> qwen2.5:7b
+- leave explanation includes vacation leave, sick leave, eligibility, and
+  manager approval when supported by the source.
+
+Notes
+-----
+- Do not run Update Knowledge Base just for this code update if the current
+  v6.3.2 index is healthy.
+- If DocuBot unexpectedly requests another full rebuild, do not repeat it;
+  send logs/app.log and the latest test_evidence log.

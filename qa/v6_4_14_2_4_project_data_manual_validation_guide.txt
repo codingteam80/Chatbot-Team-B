@@ -1,0 +1,134 @@
+DocuBot v6.4.14.2.4 - Fresh Manual Validation Guide Based on Actual Project Data
+=================================================================================
+
+WHEN TO USE THIS GUIDE
+----------------------
+Use this only AFTER the v6.4.14.2.4 78-turn Windows/Ollama baseline reports:
+  78 PASS / 0 FAIL / 0 ERROR
+
+These questions were selected from the actual files currently shipped in
+`data/all_documents`. They are intentionally NOT executed by the automated
+unit/regression suite so they remain a fresh human validation set.
+
+GENERAL RULES
+-------------
+1. Keep the same Knowledge Base and existing storage/index.
+2. Use a NEW CHAT where marked below.
+3. Ask the questions exactly as written on the first pass.
+4. Do not paste expected answers into DocuBot.
+5. Check answer grounding, clarity, source filename, and Page/Pages/reference when available.
+6. For multi-answer questions, verify readable list formatting.
+7. For missing information, verify that DocuBot does not invent an answer.
+8. Save the newest evidence log after completing the guide.
+
+A. MULTI-FORMAT COMPANY DATA - NEW CHAT
+---------------------------------------
+1. According to the company standards, how often must passwords be changed?
+2. How often must all servers be patched?
+3. What protective equipment must welding personnel wear?
+4. Who is the System Administrator in the employee data?
+5. Which department does Maria Santos belong to, and what position does she hold?
+6. List the employees in the employee data together with their departments.
+
+B. GOMBURZA - NEW CHAT
+----------------------
+7. Who are the three priests represented by the name Gomburza?
+8. On what date were the Gomburza priests executed?
+9. What church-related issue were the Gomburza priests fighting over?
+10. Which Rizal novel does the document say was dedicated to their memory?
+
+Conversation continuation - do not start a new chat between 11-13:
+11. Give me a short description of José Burgos from the Gomburza material.
+12. What academic degrees are listed for him?
+13. What reform-related cause was he associated with?
+
+C. JAPANESE OCCUPATION - NEW CHAT
+---------------------------------
+14. When did Japan invade the Philippines according to the document?
+15. On what date did the defenders in Bataan surrender?
+16. When did General MacArthur return to the Philippines?
+17. What proportion of the islands does the document say the resistance forces controlled?
+
+D. PHILIPPINE-AMERICAN WAR - NEW CHAT
+-------------------------------------
+18. On what date did fighting in the Philippine-American War commence?
+19. When was Emilio Aguinaldo captured during that war?
+20. When was the war officially declared over by the United States?
+21. By what point had Philippine forces transitioned to guerrilla tactics?
+
+E. SPANISH-AMERICAN WAR - NEW CHAT
+----------------------------------
+22. What dates does the document give for the Spanish-American War?
+23. What event does the document identify as the immediate beginning of the conflict?
+24. Which territories or island possessions did the United States gain as a result?
+
+F. MISRA STRUCTURED DETAIL - NEW CHAT
+------------------------------------
+25. State MISRA Rule 8.4.
+26. What category is Rule 8.4 assigned to?
+27. What is the Analysis classification of Rule 8.4?
+28. Which C versions does Rule 8.4 apply to?
+29. What is the Amplification of Rule 8.4?
+30. What Rationale is given for Rule 8.4?
+31. What Exception is provided for Rule 8.4?
+32. Show the Example for Rule 8.4.
+
+For question 32, verify presentation fidelity:
+- prose explanation and code must not be collapsed into one paragraph;
+- code must remain in a fenced code block with source line order preserved;
+- compliant/non-compliant comments or labels must remain visible when present;
+- neighboring structured sections must not be merged into the Example answer.
+
+Missing structured-detail checks - continue in the same chat:
+33. What is the Analysis of Directive 4.6?
+34. What Exceptions are provided for Rule 1.2?
+
+Expected behavior for 33-34:
+- If that exact labeled subsection is absent from the exact structured item,
+  DocuBot should explicitly say in English that the requested section is not
+  provided in the available company knowledge.
+- It must not substitute another labeled block or an inline phrase.
+- The verified source/Page/reference should remain available.
+
+G. FRESH MULTI-TURN CONTEXT - NEW CHAT
+--------------------------------------
+35. Who is Maria Santos in the employee data?
+36. What department is she in?
+37. What position does she hold?
+
+NEW CHAT:
+38. Who were the Gomburza priests?
+39. When were they executed?
+40. What cause were they associated with?
+
+NEW CHAT:
+41. State MISRA Rule 8.4.
+42. What exception does it provide?
+43. Why does that rule matter?
+44. Which C versions does it cover?
+
+H. FRESH CROSS-DOCUMENT COMPARISONS - NEW CHAT FOR EACH
+-------------------------------------------------------
+45. Which happened first: the execution of Gomburza or the founding of the Katipunan?
+46. Which came later: the end of the Spanish-American War or the start of the Philippine-American War?
+47. Which came first: the Bataan surrender or MacArthur's return to the Philippines?
+
+For 45-47, verify that DocuBot binds the actual event dates before comparing them;
+it must not select unrelated dates from nearby timelines.
+
+I. NEGATIVE / STRICT GROUNDING - NEW CHAT
+-----------------------------------------
+48. What is the monthly company car allowance?
+49. State MISRA Rule 99.99.
+50. What is the annual birthday-leave entitlement?
+
+Expected behavior:
+- Do not invent unsupported facts.
+- A nonexistent structured identifier should use the exact company-KB fallback.
+- A normal unsupported company fact should use the exact company-KB fallback.
+
+WHAT TO SEND BACK
+-----------------
+After completing the manual guide, send:
+- the newest test_evidence_*.log (preferred), and
+- screenshots only for any answer/source-chip behavior that looks wrong in the UI.

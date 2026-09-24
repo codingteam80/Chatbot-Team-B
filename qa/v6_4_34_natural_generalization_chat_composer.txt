@@ -1,0 +1,29 @@
+DocuBot v6.4.34 — Natural MISRA Generalization + Chat Composer Refinement
+============================================================================
+
+Scope:
+1. Recover the five natural MISRA/code questions that failed in the user's
+   2026-09-15 manual Windows/Streamlit evidence without hardcoding questions
+   to Rule numbers.
+2. Keep all 173 indexed structured MISRA Rules/Directives first-class; the
+   five manual cases are regression examples only, never a whitelist.
+3. Refine the active chat composer toward the compact ChatGPT interaction
+   pattern: visible multiline editor, compact action row, Enter to send,
+   Shift+Enter newline, and exact multiline/code preservation in user bubbles.
+4. Preserve source-shaped assistant line breaks such as Category -> value,
+   Analysis -> value, and Applies to -> value in the browser.
+
+Manual regressions added to Run_MISRA_Natural_QA.bat:
+- direct self-recursion -> Rule 17.2
+- visible integer object converted to object pointer -> Rule 11.4
+- macro named as a C keyword -> Rule 20.4
+- #define NAME 2 followed by #if NAME -> Rule 20.8
+- visibly integer scalar used directly as if condition -> Rule 14.4
+
+Locked policies retained:
+- fast model: llama3.2:3b
+- complex model: qwen2.5:7b
+- embedding: intfloat/multilingual-e5-base
+- reranker: BAAI/bge-reranker-base
+- minimum retrieval score: 0.55
+- data/all_documents and existing storage remain unchanged.

@@ -1,0 +1,35 @@
+DocuBot v6.4.102 - Deterministic Evidence Finalization + Language Detection Guard
+================================================================================
+
+Purpose
+-------
+Close the two runtime gaps exposed by the v6.4.101 unseen manual test without
+lowering confidence thresholds or changing the retrieval/model architecture.
+
+Fixes
+-----
+1. Generalize unused-function-parameter semantics so negated use-family verbs
+   such as use/read/access/reference/consume converge to the same source-backed
+   concept before MultiQuery.
+2. Disambiguate English modal "May a/an/the ..." from Tagalog existential
+   "may ..." so English permission questions do not pay for unnecessary
+   multilingual LLM normalization.
+3. If normal retrieval already accepted structured MISRA Rule/Directive evidence
+   and authoritative concept resolution independently agrees on the same
+   reference, promote that exact Rule body before answer generation. This keeps
+   a later LLM from replacing proven evidence with "Information not found".
+4. Promotion requires reference overlap; it is not a global reranker-threshold
+   bypass and does not authorize unrelated Rule evidence.
+
+Preserved
+---------
+- qwen2.5:7b generation
+- qwen3-embedding:8b embeddings
+- BAAI/bge-reranker-v2-m3
+- BM25 + Qdrant -> RRF -> BGE reranker
+- Vector/BM25/Final Top-K = 10/10/3
+- MIN_RETRIEVAL_SCORE = 0.55
+- MultiQuery = original + exactly 2 alternatives
+- structured JSON MultiQuery output
+- chunking = 900/150
+- no KB rebuild

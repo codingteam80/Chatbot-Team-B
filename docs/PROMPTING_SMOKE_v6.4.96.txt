@@ -1,0 +1,61 @@
+DocuBot v6.4.96 — Prompt Strategy Smoke
+==============================================
+
+Purpose
+-------
+Add behavior-only few-shot prompting plus silent grounded reasoning guidance
+without changing the production RAG architecture.
+
+Default profile
+---------------
+- Few-shot prompting: ON
+- Silent grounded reasoning guidance: ON
+- Visible chain-of-thought: OFF / never requested
+- MultiQuery: remains ON from v6.4.95
+- MultiQuery alternatives: 2
+- MIN_RETRIEVAL_SCORE: 0.55 unchanged
+- Vector/BM25/Final Top-K: 10/10/3 unchanged
+- Chunking: 900/150 unchanged
+- KB rebuild: not required
+
+A/B switches
+------------
+Single-query baseline:
+  set DOCUBOT_MULTI_QUERY=0
+
+Disable few-shot examples:
+  set DOCUBOT_FEW_SHOT_PROMPT=0
+
+Disable silent reasoning guidance:
+  set DOCUBOT_REASONING_GUIDANCE=0
+
+Prompt design
+-------------
+The few-shot examples teach behavior only:
+- permission question -> direct Yes/No polarity
+- classification -> category only
+- rationale -> rationale only
+- unsupported fact -> strict fallback
+- MISRA uncertainty -> Needs more context
+- comparison -> compare exact statements
+- MultiQuery -> intent-preserving search rewrites
+
+The examples are explicitly marked as NOT COMPANY KNOWLEDGE and must not be
+used as factual evidence.
+
+The reasoning guidance is an internal evidence checklist. It does not ask the
+model to reveal chain-of-thought, scratch work, or intermediate analysis.
+
+Focused runtime retest
+----------------------
+Repeat the v6.4.95 unseen/failure-focused set first, especially:
+- What restrictions apply to goto labels?
+- Why should persistent side effects be avoided in the right operand of && or ||?
+- Is using <stdarg.h> allowed?
+- Are unused function parameters allowed?
+- Anong rule tungkol sa hindi ginagamit na parameter?
+- Bakit bawal yung side effect sa kanan ng &&?
+- May rule ba sa compiler optimization?
+- Ano rule kapag pointer galing standard library?
+
+Then compare quality/latency using the environment A/B switches above.

@@ -1,0 +1,122 @@
+DocuBot v6.4.41 - MISRA Semantic / Follow-Up Anchor / Relation Hardening
+========================================================================
+
+Purpose
+-------
+Validate the runtime fixes discovered from the v6.4.40 Windows/Ollama evidence.
+This is NOT a Rule/Directive whitelist. Every structured MISRA item remains
+important and must stay retrievable/citable. The authoritative inventory target
+remains 156 Rules + 17 Directives = 173 total Rule/Directive bodies.
+
+One-click certification
+-----------------------
+1. Run: Run_LLM_Certification_QA.bat
+2. Target: PASS on all 11 certification cases.
+3. Return the newest ZIP from logs\llm_certification.
+
+Important certification additions
+---------------------------------
+- CERT-D002: eligibility must resolve to the explicitly eligible/entitled source
+  population, not the nearby approver role.
+- CERT-H005: Rule 20.7 macro reasoning must preserve the literal expansion of:
+
+    #define SQUARE(x) x * x
+    int value = SQUARE(a + b);
+
+  Expected semantic direction:
+  - Rule 20.7 is relevant.
+  - Potential non-compliance.
+  - Literal substitution is a + b * a + b.
+  - Do NOT claim it becomes (a + b) * (a + b).
+
+- CERT-H006: a text-only question about a function call in the right-hand side
+  of && must independently retrieve Rule 13.5 and say Needs more context unless
+  persistent side effects are actually established.
+
+Manual same-chat follow-up sequence
+-----------------------------------
+Use ONE chat and ask these in order so context behavior is tested:
+
+A.
+May non-void function ako na may ilang execution path na walang return value.
+Ano ang relevant MISRA concern, at kaya mo bang i-confirm agad ang violation
+kung hindi mo nakikita ang buong function?
+
+Expected: Rule 17.4, Needs more context when the actual function/control flow is
+not shown completely.
+
+B.
+Kung may function call sa right-hand side ng &&, violation na ba agad iyon sa
+MISRA? Explain kung kailan confirmed at kung kailan needs more context.
+
+Expected: this is a NEW self-contained MISRA scenario. It must switch to Rule
+13.5 instead of reusing Rule 17.4. Function call alone is not enough to prove a
+persistent side effect; Needs more context is the safe conclusion.
+
+C.
+Bakit mo nasabi yan? Aling exact part ng scenario ang basis mo?
+
+Expected: follow B/Rule 13.5, not A/Rule 17.4.
+
+D.
+Kung aayusin ko ito, ano ang safest compliant direction based only sa company
+MISRA document?
+
+Expected: remain on the Rule 13.5 scenario and explain only what the company
+MISRA evidence supports.
+
+E.
+May iba pa bang relevant MISRA rule na supported ng same evidence, o yun lang
+talaga?
+
+Expected: do not invent another Rule/Directive. Return only additional items that
+are independently supported by the same scenario/evidence.
+
+Manual macro check
+------------------
+Question:
+Explain mo kung bakit potentially risky ito under MISRA. Ipakita mo kung ano ang
+problem sa expansion, hindi lang rule title.
+
+#define SQUARE(x) x * x
+int value = SQUARE(a + b);
+
+Expected:
+- Rule 20.7.
+- Potential non-compliance.
+- Actual literal substitution: a + b * a + b.
+- No invented parentheses in the expansion.
+
+Manual pointer check
+--------------------
+Question:
+MISRA review please. May applicable rule ba na violated at may rule ba na
+satisfied naman sa parehong code? Explain why.
+
+int data[8];
+int *p = data;
+p = p + 2;
+
+Expected:
+- Rule 18.4: Potential non-compliance; Why it applies must point to p = p + 2;.
+- Rule 18.1: Satisfied/no violation established for the visible in-range +2
+  pointer result within the same 8-element array.
+
+Manual company-policy relation check
+------------------------------------
+After asking for an Employee Leave Policy summary, ask:
+Who is actually eligible for the listed leave benefits according to that
+document?
+
+Expected: the eligibility/entitlement population from the policy (regular
+employees), NOT "manager". Manager is the approver relation, not eligibility.
+
+Unsupported/external safety checks
+----------------------------------
+- Ano ang latest MISRA rule na nirelease ngayong 2026 pero wala sa company
+  documents?
+- Based only on our company knowledge base, compare our leave approval policy
+  with Philippine labor law.
+
+Expected exact fallback when the requested outside fact is not present:
+Information not found in company knowledge base.

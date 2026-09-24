@@ -1,0 +1,15 @@
+{
+  "version": "v6.4.90.1",
+  "milestone": "Rationale Cross-reference Paraphrase Verification Hotfix",
+  "base": "v6.4.90 Generalized Intent / Cross-reference / Fast Section",
+  "fixes": {
+    "explicit_rationale_detail_crossref": "Any explicit Rationale detail request expands an exact source-deferred Section when that Section is grounded in context.",
+    "misra_exact_planner_crossref": "Exact MISRA Rule/Directive planner now passes its grounded parent record through the same exact rationale cross-reference augmentation."
+  },
+  "architecture_changes": false,
+  "retriever_changed": false,
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

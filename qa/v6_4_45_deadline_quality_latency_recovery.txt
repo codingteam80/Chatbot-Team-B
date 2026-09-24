@@ -1,0 +1,15 @@
+DocuBot v6.4.45 deadline quality/latency recovery
+
+Targets from actual Windows/Ollama v6.4.44 evidence:
+- remove dynamic-memory fake Rule 18.1 answer; authoritative natural target is Directive 4.12
+- keep Rule 13.5 text-only function-call questions grounded without inventing user code
+- preserve Employee Leave Policy eligibility/approval follow-ups and source provenance
+- exact company-only fallback for explicit outside/general-knowledge requests
+- preserve Rule 20.7 literal expansion when explicitly requested
+- reject contradictory Potential vs confirmed Violation statuses
+- reduce latency by deterministic finalization for source-provable cases
+- retain qwen2.5:7b for genuinely reviewer-style complex reasoning
+- retain all 173 structured MISRA references as first-class evidence
+
+Added Windows/Ollama gate:
+Run_Adversarial_Grounding_QA.bat (16 adversarial cases)

@@ -1,0 +1,17 @@
+DocuBot v6.4.18 - Post-Complex Fast-Model Residency Recovery
+
+Windows evidence from v6.4.17:
+- startup-prewarmed multilingual query: 9.450s vs 29.401s cold (67.9% lower query latency)
+- first fast query after Qwen residency: 14.328s
+- subsequent same fast query: 4.599s and 4.421s
+
+Change:
+- After complex Qwen generation/verification is complete, schedule an asynchronous load-only restore of llama3.2:3b.
+- A fast generation arriving during recovery waits for/reuses the same model load rather than racing a duplicate load.
+- Auto guard: >=12 GB total RAM and >=3 GB currently available.
+- Forced-model diagnostics and same-model deployments skip recovery.
+- Retrieval, thresholds, routing, prompts, models, embeddings, reranker, chunking and index schema are unchanged.
+
+Local validation:
+- 14/14 focused v6.4.17/v6.4.18 runtime tests PASS.
+- 383/383 release-relevant current tests PASS with warnings-as-errors, excluding only the already rejected v6.4.14.2.5 and superseded v6.4.10 historical tests.

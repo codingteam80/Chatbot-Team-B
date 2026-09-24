@@ -1,0 +1,37 @@
+DocuBot v6.4.65 — Phase-5 Certification Cleanup
+
+Built from
+----------
+The complete v6.4.64 project and the 2026-09-18 office evidence: English Natural 18/19 due one validator false-negative on an otherwise correct EN-007 final answer, and Option-C Technical 15/16 due a transient Windows embedded-Qdrant .lock PermissionError in OC-011.
+
+Focused corrections
+-------------------
+1. Semantic alignment now distinguishes affirmative satisfaction claims from uncertainty prose that merely contains the word "satisfied" (for example, "does not establish whether this requirement is satisfied").
+2. Real explicit positive claims such as "Status: Satisfied" remain rejected when deterministic state is Needs more context.
+3. Option-C Technical QA retries only the specific transient embedded-Qdrant PermissionError on qdrant/.lock, with bounded backoff and no deletion/modification of the lock file.
+4. QA result evidence records worker retry attempts; persistent lock contention still fails rather than being hidden.
+5. English benchmark and Technical QA labels advance to v6.4.65 / phase5-en-4.
+
+Not changed
+-----------
+- qwen2.5:7b generation model
+- qwen3-embedding:8b
+- BAAI/bge-reranker-v2-m3
+- Qdrant/BM25 retrieval architecture or active storage/index contents
+- retrieval thresholds, Top-K, chunking, or index schema
+- company/technical documents
+- production answer routing/finalization other than semantic validation precision
+
+Office acceptance gate
+----------------------
+1. Run_Option_C_Technical_QA.bat -> target 16/16 PASS.
+2. Run_English_Natural_Benchmark.bat -> target 19/19 PASS.
+3. EN-007 final answer must keep Rules 16.1/16.2/16.3/16.7 as Needs more context and Rules 16.4/16.5/16.6 as narrowly satisfied by visible facts.
+4. No KB rebuild and no pip install are required.
+
+Local validation
+----------------
+- v6.4.62-v6.4.65 semantic/certification slice: 28/28 PASS.
+- Retained v6.4.39-v6.4.65 block: 207 PASS / 2 baseline FAIL.
+- The same two v6.4.53/v6.4.54 recovery-marker failures reproduce on untouched v6.4.64.
+- Persistent Qdrant lock contention is never converted to PASS; only the exact transient .lock PermissionError is retried.

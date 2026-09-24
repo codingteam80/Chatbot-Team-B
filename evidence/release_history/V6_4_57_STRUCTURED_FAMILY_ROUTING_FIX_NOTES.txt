@@ -1,0 +1,20 @@
+DocuBot v6.4.57 — Option C Structured-Family Routing Fix
+
+Root cause confirmed by office diagnostic:
+- Rule 16.7 is present in active BM25 corpus (chunk 532).
+- Rule 16.7 is present in the authoritative PDF, structure parser, prepared cache, and family reconciliation.
+- The answer-service MISRA rule-body rescue was bounded to top_k=6 and executed before structured-family retrieval.
+- Therefore a seven-member family could be truncated to six before the complete family path ran.
+
+Correction:
+- Source-grounded structured-family retrieval now runs before the bounded MISRA rule-body cue rescue.
+- It is accepted only when the retriever returns structured-topic anchors.
+- Non-family requests fall through unchanged to the previous rescue/hybrid path.
+
+Architecture unchanged:
+- qwen2.5:7b generation
+- qwen3-embedding:8b
+- Qdrant
+- BAAI/bge-reranker-v2-m3
+- technical corpus unchanged
+- storage/index unchanged

@@ -1,0 +1,73 @@
+DocuBot v6.4.1 - Regression Recovery
+Fresh + Targeted + Core Regression Questions
+
+Purpose
+- Confirm the v6.4 latency gains remain intact.
+- Re-test the three issues found by fresh v6.4 Windows QA.
+- Use a NEW rotating set of questions so validation is not limited to memorized prompts.
+- Keep the locked structured/fallback behavior covered before Phase 2 latency work.
+
+A. Targeted regression checks
+1. What is the vacation leave entitlement and who is eligible for it?
+   Expected: Must answer BOTH parts from Employee Leave Policy; should not return fallback.
+2. Sino si Apolinario Mabini?
+   Expected: Useful grounded identity/overview, not name-only.
+3. Explain Section 7.
+   Expected: Grounded explanation more useful than title-only; should include Section 7 child topics plus supported detail(s).
+
+B. Fresh rotating questions - NEW for v6.4.1
+4. What position did Apolinario Mabini hold in the First Philippine Republic?
+5. What caused Apolinario Mabini's paralysis?
+6. What organization did Andres Bonifacio co-found?
+7. What title is Andres Bonifacio often called in the company knowledge?
+8. Sino si Andres Bonifacio?
+9. Ano ang Katipunan?
+10. Ipaliwanag kung sino si Andres Bonifacio at bakit siya mahalaga.
+11. What is Section 5?
+12. Explain Section 5.
+13. What does Rule 18.1 say?
+14. Explain Rule 18.1.
+15. How many vacation leave days do regular employees receive and who is eligible for them?
+16. Who approves leave requests and how much vacation leave is provided?
+17. What does Rule 97.97 say?
+
+Expected behavior for fresh questions
+- Use only COMPANY KNOWLEDGE.
+- Supported questions must not fall back because of wording changes.
+- Tagalog identity questions must return a useful supported identity/overview, not a title/name only.
+- Compound questions must answer every requested part in the original order.
+- Rule 97.97 must return exactly: Information not found in company knowledge base.
+- What is Section 5? should use deterministic / No LLM when exact structured metadata is available.
+- Explain Section 5. and Explain Rule 18.1. should remain grounded and complete enough to understand the requested item.
+
+C. Locked core smoke regression
+18. Who is Jose Rizal?
+19. Explain who Jose Rizal was and why he was significant.
+20. What does Rule 1.2 say?
+21. Explain Rule 1.2.
+22. What does Rule 10.6 say?
+23. What is Dir 4.12?
+24. Explain Directive 4.12.
+25. What is Section 6?
+26. Explain Section 6.
+27. What does Rule 99.99 say?
+28. What does Rule 1.2 say?
+29. Why is that rule important?
+30. Explain that rule.
+31. What is MISRA C?
+32. Explain MISRA C.
+33. Explain the employee leave policy.
+
+Latency evidence to inspect
+- LLM CALL LATENCY -> purpose + model + seconds
+- REQUEST LATENCY PROFILE -> retrieval_seconds + total_seconds
+- LATENCY OPTIMIZATION -> verifier skip event only when deterministic gate is satisfied
+- Direct exact Rule/Directive and direct Section lookups should remain No LLM where supported.
+
+Stop conditions
+- Any TEST RESULT = FAIL
+- Any Python traceback / ERROR / WARNING
+- Any supported answer unexpectedly returns strict fallback
+- Any unknown structured ID returns a fabricated answer
+- Any direct exact Section lookup unexpectedly invokes an LLM
+- Any Tagalog identity answer collapses to only a name/title despite supported identity context

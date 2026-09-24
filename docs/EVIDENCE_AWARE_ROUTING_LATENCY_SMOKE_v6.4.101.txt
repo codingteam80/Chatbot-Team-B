@@ -1,0 +1,46 @@
+DocuBot v6.4.101 Evidence-Aware Routing + Retry Latency Guard
+================================================================
+Base: verified v6.4.100 Concept-Level Semantic Matcher Hardening
+
+Purpose
+-------
+Restore end-to-end recall/latency when the correct MISRA Rule is already source-available but a narrow routing classifier would otherwise send the turn through expensive generic MultiQuery + reranker fallback.
+
+Focused runtime regressions addressed
+-------------------------------------
+1. "In MISRA C, is a callback parameter that is declared but never read considered acceptable?"
+   -> Rule 2.7, direct source-grounded No.
+2. "Kung may input parameter ang function pero wala ni isang statement na gumagamit dito, anong MISRA requirement ang applicable?"
+   -> Rule 2.7.
+3. "Which MISRA rule covers a function argument whose corresponding parameter is intentionally ignored?"
+   -> Rule 2.7.
+4. "Can a goto target be placed in a child block under MISRA C?"
+   -> Rule 15.3, direct source-grounded No.
+5. Nested-block Tagalog goto wording
+   -> Rule 15.3, direct source-grounded No when phrased as permission/validity.
+6. Block-scope goto destination lookup
+   -> Rule 15.3.
+
+Hardening
+---------
+- Source-backed natural MISRA lookup can bypass generic catalog routing.
+- Unused-parameter semantics recognize never-read and Tagalog/Taglish "wala ... gumagamit" relations.
+- Goto target/destination + child/nested/inner block maps to the Rule 15.3 source cue.
+- Specific Rule 15.3 scope questions do not broaden to generic Rule 15.1.
+- If a generic explicit-MISRA request returns no accepted context, authoritative source-backed evidence is promoted before a second multilingual pass.
+- Duplicate multilingual MultiQuery retry is skipped when the English query was already present in the first combined MISRA retrieval.
+- Rule 15.3 Yes/No rendering understands child/nested vs same/enclosing block direction.
+
+Preserved
+---------
+- qwen2.5:7b generation
+- qwen3-embedding:8b embedding
+- BAAI/bge-reranker-v2-m3
+- BM25 + Qdrant -> RRF -> BGE
+- Vector/BM25/Final Top-K = 10/10/3
+- MIN_RETRIEVAL_SCORE = 0.55
+- original + exactly 2 MultiQuery alternatives
+- structured MultiQuery JSON output
+- chunking 900/150
+- no KB rebuild
+- existing evidence/logs preserved

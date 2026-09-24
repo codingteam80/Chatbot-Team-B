@@ -1,0 +1,8 @@
+DocuBot v6.4.75 Exact Patch SHA256 Manifest
+================================================================
+e596bfcac99f059be00b4f9c6092a0bba7eaccb8e1bd994f5aef6b68eedd0cb6       84178  PRODUCTION_ARCHITECTURE_LOCK.json
+082fdd1514021deb4c5f477403148083ca5d8ba2f6125505d3cbc490f5bac0f5         821  README_FIRST_v6.4.75.txt
+5b7121e3caa05f5a7950b9e825195c2b715f8d9b19ba7c32924befcc1072a478        1214  Run_Phase7_Optimization1_Full_Certification.bat
+f3194140fe827182915a27e92b322ee0d2e64d153a7aa94c473c6aa26bb99b3c        1399  V6_4_75_PHASE7_OPTIMIZATION1_FULL_CERTIFICATION_NOTES.txt
+bb7c547b4c9e54ad035271cea249037fcf6e8b8b06c4ed0bceccc9d6bffbe51c       12349  scripts/run_phase7_optimization1_full_certification.py
+48762bf08327d221e6b9f72aeed0b945cb80b9e84fd1d443a6810818bcb07fa8        2825  tests/test_v6_4_75_phase7_optimization1_full_certification.py

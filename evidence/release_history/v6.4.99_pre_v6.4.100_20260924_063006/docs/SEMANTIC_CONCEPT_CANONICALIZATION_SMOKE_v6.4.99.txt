@@ -1,0 +1,56 @@
+DocuBot v6.4.99 — Semantic Concept Canonicalization + Deterministic Rescue Hardening
+====================================================================================
+
+Base
+----
+Exact verified v6.4.98 Runtime Intent + Evidence Selection Hardening.
+
+Reason for this patch
+---------------------
+The focused unseen/manual v6.4.98 retest exposed a same-meaning consistency gap:
+- "Is it acceptable in MISRA C for a function parameter to never be used?" found Rule 2.7 in vector recall but later fell through to an empty final context.
+- "Ano ang sinasabi ng MISRA tungkol sa parameter na dineclare pero hindi ginagamit sa function?" correctly finalized Rule 2.7 deterministically.
+- "May restriction ba sa MISRA kapag may function argument na unused?" again retrieved Rule 2.7 but eventually fell through after expensive multilingual/MultiQuery/reranker retries.
+- Three goto-label scope paraphrases consistently converged on Rule 15.3.
+
+Focused v6.4.99 change
+----------------------
+1. Treat ordinary paraphrases of an unused declared function parameter as one concept:
+   - unused parameter
+   - parameter never/not used
+   - parameter hindi/di ginagamit
+   - colloquial "function argument" + explicit unused/not-used wording
+2. Emit the same source-language requirement cue for all of those phrasings:
+   "there should be no unused parameters in functions"
+3. If a mixed-language query was not recognized as MISRA on the first pass, but its
+   normalized English query exposes a known MISRA source-language cue and the turn is
+   explicitly/inherited MISRA, promote it back to deterministic MISRA evidence rescue
+   before MultiQuery/reranker fallback.
+4. Do not change the global retrieval threshold to make the test pass.
+
+Expected focused retest behavior
+--------------------------------
+Concept A — unused parameter:
+- Is it acceptable in MISRA C for a function parameter to never be used?
+- Ano ang sinasabi ng MISRA tungkol sa parameter na dineclare pero hindi ginagamit sa function?
+- May restriction ba sa MISRA kapag may function argument na unused?
+Expected target for all three: Rule 2.7.
+
+Concept B — goto label scope regression guard:
+- Where is a label targeted by a goto allowed to be declared under MISRA C?
+- Sa MISRA, saan dapat naka-declare ang label na tina-target ng goto?
+- May restriction ba sa location ng label na nire-reference ng goto statement?
+Expected target for all three: Rule 15.3.
+
+Architecture lock
+-----------------
+- Generation model: qwen2.5:7b
+- Embedding model: qwen3-embedding:8b
+- Reranker: BAAI/bge-reranker-v2-m3
+- Vector backend: Qdrant
+- MultiQuery: original + 2 alternatives, strict JSON structured output
+- Fusion: RRF
+- Vector/BM25/Final Top-K: 10/10/3
+- MIN_RETRIEVAL_SCORE: 0.55
+- Chunking: v4, 900/150
+- KB rebuild: no

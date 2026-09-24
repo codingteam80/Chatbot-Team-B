@@ -1,0 +1,40 @@
+DocuBot v6.4.97 — Structured MultiQuery Smoke
+==============================================
+
+Purpose
+-------
+Verify the MultiQuery rewrite generator uses strict JSON-schema output without
+changing the locked RAG architecture.
+
+Expected runtime design
+-----------------------
+1. Keep the original user question.
+2. Ask qwen2.5:7b for exactly 2 retrieval-only alternatives.
+3. Request Ollama structured JSON: {"queries": ["...", "..."]}.
+4. Use temperature 0 and non-thinking mode for this rewrite call.
+5. Validate every returned variant with the existing identifier/answer guards.
+6. If structured generation is unavailable, safely fall back to the guarded
+   legacy text parser; the user's RAG request must not fail because MultiQuery
+   is an optional recall optimization.
+7. Retrieve with BM25 + Qdrant per query, fuse with RRF, then rerank with BGE
+   using the original user intent.
+
+Locked values
+-------------
+MultiQuery alternatives: 2
+RRF K: 60
+Vector Top-K: 10
+BM25 Top-K: 10
+Final Top-K: 3
+MIN_RETRIEVAL_SCORE: 0.55
+Chunking: 900 / 150
+Generation: qwen2.5:7b
+Embedding: qwen3-embedding:8b
+Reranker: BAAI/bge-reranker-v2-m3
+
+A/B compatibility switch
+------------------------
+DOCUBOT_MULTI_QUERY_STRUCTURED_OUTPUT=0
+
+Do not run the focused question set until the v6.4.97 validator and KB Health
+both report PASS on the deployment PC.

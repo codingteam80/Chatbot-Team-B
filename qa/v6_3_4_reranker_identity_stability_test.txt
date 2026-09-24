@@ -1,0 +1,100 @@
+DOCUBOT v6.3.4 – RERANKER NUMERICAL SAFETY + IDENTITY REGRESSION TEST
+
+Purpose
+-------
+Validate the two v6.3.3 Windows findings without changing the already-working
+compound, structured, hybrid-routing, or knowledge-base behavior.
+
+Install
+-------
+1. Stop DocuBot if it is running.
+2. Copy the v6.3.4 update files over the current project and choose Replace.
+3. Do NOT delete storage, Chroma, BM25, manifest, or cache folders.
+4. No pip install is required.
+5. No Knowledge Base rebuild is required from a healthy v6.3.3 index.
+6. Start normally:
+
+   .\run_docubot_with_log.ps1
+
+A. Identity stability – repeat 4 times
+-------------------------------------
+Ask this exact question FOUR times so the automatic Q-001 cycle can catch any
+intermittent reranker/verifier behavior:
+
+1. Who is Jose Rizal?
+2. Who is Jose Rizal?
+3. Who is Jose Rizal?
+4. Who is Jose Rizal?
+
+Expected for all four:
+- PASS in automatic QA.
+- Answer is more than only the name.
+- Includes a supported identity description such as Filipino nationalist,
+  writer, polymath, or national hero.
+- Route = FAST / llama3.2:3b.
+- No `Reranker Score: nan` or `inf` is allowed in final QA stages.
+- If a rare non-finite raw score occurs, QA must show
+  `RERANKER NUMERICAL SAFETY`; the score must be recovered to a finite value or
+  safely rejected as 0.0 without crashing or corrupting candidate ordering.
+
+B. Compound regression
+-----------------------
+5. Explain who Jose Rizal was and why he was significant.
+
+Expected:
+- no fallback when supported evidence exists;
+- covers BOTH who he was and why he was significant;
+- route = COMPLEX / qwen2.5:7b;
+- QA evidence contains COMPOUND FACET COVERAGE.
+
+C. Structured regression
+------------------------
+6. What does Rule 1.2 say?
+7. Explain Rule 1.2.
+8. What does Rule 10.6 say?
+9. What is Dir 4.12?
+10. Explain Directive 4.12.
+11. What is Section 6?
+12. Explain Section 6.
+13. What does Rule 99.99 say?
+
+Expected:
+- known Rule/Directive exact answers remain correct;
+- exact Rule/Directive direct/explain uses deterministic No-LLM path;
+- Section 6 remains retrievable; direct stays concise and Explain stays richer;
+- Rule 99.99 returns exactly:
+  Information not found in company knowledge base.
+
+D. Follow-up context regression – SAME conversation
+----------------------------------------------------
+Run these in order:
+
+14. What does Rule 1.2 say?
+15. Why is that rule important?
+16. Explain that rule.
+
+Expected:
+- Q15/Q16 resolve to Rule 1.2;
+- WHY returns the Rule 1.2 rationale;
+- Explain remains grounded in the exact Rule 1.2 block;
+- deterministic No-LLM path where supported.
+
+E. General hybrid regression
+----------------------------
+17. What is MISRA C?
+18. Explain MISRA C.
+19. Explain the employee leave policy.
+
+Expected:
+- simple fact -> llama3.2:3b;
+- explanation -> qwen2.5:7b;
+- leave explanation includes vacation leave, sick leave, eligibility, and
+  manager approval when supported by the source.
+
+What to send back
+-----------------
+Send the newest file under:
+  logs\test_evidence\test_evidence_*.log
+
+Also send logs\app.log only if there is a crash, warning, connection loss, or
+unexpected Knowledge Base rebuild request.

@@ -1,0 +1,16 @@
+DocuBot v6.5.2 Role-Aware Precision + Semantic Consensus + Latency Structural Fix
+================================================================================
+Applied: 2026-09-24T12:46:26
+Base: exact v6.5.0 production hashes + v6.5.1.1 benchmark harness (v6.5.0 manifest is expected to have been retired by v6.5.1)
+Chunk size/overlap changed: NO (900/150)
+Global threshold changed: NO (0.55)
+Models changed: NO
+Production Qdrant/BM25 rebuilt: NO
+Role-aware MISRA precision pool: YES
+Rule-level compact requirement reranking: YES
+MultiQuery-only semantic consensus precision gate: YES
+Intent-scoped MultiQuery variant reuse: YES
+Embedding/rerank work caches: YES
+Trailing Yes/No clause detection: YES
+Benchmark evaluator punctuation/backtick normalization: YES
+Backup: C:\user_dev\company-chatbot\evidence\release_history\v6.5.1.1_pre_v6.5.2_20260924_124626

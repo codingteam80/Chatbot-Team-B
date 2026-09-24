@@ -1,0 +1,24 @@
+DocuBot v6.4.80 — Phase 8 Production Lock Candidate
+====================================================
+
+Scope: production-lock/certification tooling and a canonical locked production
+launcher only. No production answer, retrieval, model, threshold, Top-K,
+Chunking-v4, index-content, or company-document behavior is changed from the
+fully certified v6.4.79 baseline.
+
+New final gates:
+- frozen technical-document SHA256 check
+- preserved v3 rollback SHA256 check
+- production-v4 + Architecture Lock
+- actual grounded qwen2.5:7b generation probe with semantic guard
+- complete retained v6.4.79 full certification
+- read-only KB health
+- explicit separation of current-machine candidate certification from the
+  actual office/deployment-PC hardware acceptance
+
+Office hardware policy:
+- <=20s grounded Qwen generation: target met
+- >20s and <=30s: accepted with warning
+- >30s: hardware acceptance fails
+
+The v3 rollback remains untouched. No KB rebuild or pip install is required.

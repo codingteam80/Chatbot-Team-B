@@ -1,0 +1,90 @@
+DocuBot v6.4.4 - Context, Multilingual Retrieval, and Grounding Recovery
+=======================================================================
+
+Purpose
+-------
+Validate the focused v6.4.4 recovery without making the chatbot dependent on
+history documents or any one domain. Use the fixed regressions plus fresh
+questions drawn from whatever supported documents are actually in the folder.
+
+A. Fixed regression - person/entity continuity
+-----------------------------------------------
+1. Who is Emilio Aguinaldo?
+2. What role did he hold in the First Philippine Republic?
+3. Why was he important?
+
+Expected behavior:
+- Turn 3 must still resolve "he" to Emilio Aguinaldo, even if retrieval after
+  turn 2 changed the broad current topic.
+- No answer should come from outside the indexed folder/storage.
+
+Fresh chain variant:
+1. Who is Apolinario Mabini?
+2. What position did he hold?
+3. Why was he significant?
+
+B. Fixed regression - Tagalog relation retrieval against English content
+--------------------------------------------------------------------------
+1. Kailan nilagdaan ang Treaty of Paris ng 1898?
+2. When was the Treaty of Paris of 1898 signed?
+
+Expected behavior:
+- Both should retrieve the same supported signing-date fact when that source is
+  present in the indexed storage.
+- Evidence should show a deterministic multilingual relation normalization for
+  the Tagalog question when applicable.
+- Do not lower the global 0.55 retrieval threshold.
+
+Fresh cross-domain variants to run only when matching source facts exist:
+- Ilang araw ang sick leave na ibinibigay?
+- Sino ang nag-aapruba ng leave request?
+- Kailan nagsimula ang process/policy/event named in another stored document?
+
+C. Compound facet cleanup
+-------------------------
+Question:
+How much sick leave is provided and who must approve a leave request?
+
+Expected evidence:
+- Compound facet 1: how much sick leave is provided
+- Compound facet 2: who must approve a leave request
+- The second facet must not contain residue such as "much sick leave provided".
+
+D. Verifier grounding / latency regression
+-------------------------------------------
+1. What is Section 6? Explain it as well.
+2. What is the Katipunan and explain why it was important.
+
+Expected behavior:
+- If the first grounded draft already covers every explicit facet, the compound
+  verifier is skipped.
+- A verifier must never expand a conservative draft with unsupported claims.
+- In the Section 6 corpus used in prior testing, do not introduce statements
+  such as "Advisory guidelines are less critical" because the source explicitly
+  says the categories do not imply a grading of importance.
+- Compare total latency with v6.4.3 evidence; an already-covered compound answer
+  should avoid the unnecessary second Qwen call.
+
+E. Domain-neutral fresh testing rule
+------------------------------------
+For every update, add NEW questions and NEW conversation chains from different
+files currently present in the configured folder/storage. Do not make all tests
+about MISRA, Philippine history, or leave policy. Suggested capability coverage:
+- exact fact/date/quantity
+- definition/overview
+- person/entity follow-up
+- object/section/rule follow-up
+- Tagalog-to-English-source retrieval
+- same-turn compound intent
+- cross-document retrieval
+- missing-information fallback
+- citation/source traceability
+
+Pass conditions
+---------------
+- No hardcoded document/topic answer logic.
+- No external knowledge.
+- Unsupported questions keep the exact fallback behavior.
+- Existing exact structured fast path remains intact.
+- No global threshold/model/embedding change.
+- No warnings-as-errors, syntax, compile, packaging, or regression failures.

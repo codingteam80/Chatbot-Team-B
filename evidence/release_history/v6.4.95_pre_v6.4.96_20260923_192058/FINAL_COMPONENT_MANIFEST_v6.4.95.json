@@ -1,0 +1,50 @@
+{
+  "version": "v6.4.95",
+  "milestone": "Adaptive MultiQuery RAG / Unseen Generalization Hardening",
+  "base_runtime": "verified v6.4.94 Operational Hardening / Portable KB",
+  "runtime_files_changed": [
+    "config/settings.py",
+    "config/prompts.py",
+    "retrieval/multi_query.py",
+    "retrieval/retriever.py",
+    "chat/query_normalizer.py",
+    "services/answer_service.py",
+    "services/misra_compliance.py"
+  ],
+  "fixes": {
+    "multi_query_rag": "Adaptive MultiQuery is enabled for semantic retrieval only after exact structured and BM25 fast paths. The original query plus up to two safe alternatives are fused with reciprocal-rank fusion before the existing hybrid ranking and BGE reranker.",
+    "multi_query_precision_guard": "The existing BGE reranker, Final Top-K 3, and 0.55 confidence threshold remain unchanged; variants may not invent structured identifiers.",
+    "multi_query_ab_toggle": "DOCUBOT_MULTI_QUERY=0 disables MultiQuery for baseline/A-B comparison without source edits.",
+    "followup_isolation": "Standalone why/what-rule/Tagalog technical questions no longer inherit prior grounded context unless the current turn contains an explicit deictic reference.",
+    "operator_preservation": "C logical operators && and || are preserved as semantic retrieval terms during normalization.",
+    "permission_intent": "Generic allowed/permitted questions route to Yes/No rather than AUTHORIZED ENTITY; entity authorization remains limited to who/which-entity wording.",
+    "structured_topic_specificity": "Natural topic queries prefer Rule statements that satisfy the user's extra topic terms before expanding an entire Section family.",
+    "permission_absence": "Text-only questions about omitting an explicitly required construct can return a grounded No when the source requires that construct to be present.",
+    "near_threshold_structured_rescue": "A directly matching authoritative Rule/Directive requirement just below 0.55 can be rescued within a narrow margin when lexical/MultiQuery evidence is strong; the global threshold itself is not lowered."
+  },
+  "architecture_lock": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55
+  },
+  "multi_query": {
+    "production_enabled_by_default": true,
+    "alternative_query_count": 2,
+    "total_query_count_max": 3,
+    "fusion": "reciprocal-rank fusion",
+    "rrf_k": 60,
+    "rerank_uses_original_intent": true
+  },
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

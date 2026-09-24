@@ -1,0 +1,30 @@
+{
+    "employee leave policy.docx": {
+        "file_name": "Employee Leave Policy.docx",
+        "source_relative_path": "Employee Leave Policy.docx",
+        "file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\Employee Leave Policy.docx",
+        "indexed_file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\Employee Leave Policy.docx",
+        "hash": "07a33ec0e4287c888b85cfa570a373bf2b5ceeae639cdb6c06070531ef761f9d",
+        "file_size": 13807,
+        "modified_time_ns": 1789602634000000000,
+        "index_schema_version": "structure-aware-pdf-v4-rule-aware-option-c-qdrant-qwen3-tech",
+        "embedding_model": "qwen3-embedding:8b",
+        "embedding_normalize": true,
+        "last_indexed": "2026-09-24 15:39:16",
+        "index_status": "indexed"
+    },
+    "misra_frominternet.pdf": {
+        "file_name": "MISRA_FromInternet.pdf",
+        "source_relative_path": "MISRA_FromInternet.pdf",
+        "file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\MISRA_FromInternet.pdf",
+        "indexed_file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\MISRA_FromInternet.pdf",
+        "hash": "3ebd84ca1855ca96c7f5fb45f2f030862f95a909a49fbf976b0fffbd4fa62f10",
+        "file_size": 1800548,
+        "modified_time_ns": 1789761964000000000,
+        "index_schema_version": "structure-aware-pdf-v4-rule-aware-option-c-qdrant-qwen3-tech",
+        "embedding_model": "qwen3-embedding:8b",
+        "embedding_normalize": true,
+        "last_indexed": "2026-09-24 15:39:16",
+        "index_status": "indexed"
+    }
+}

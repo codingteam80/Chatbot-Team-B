@@ -1,0 +1,39 @@
+DocuBot v6.4.73 — Phase 7 Performance Baseline
+================================================
+
+Scope
+-----
+Profiling/tooling only. The certified v6.4.72 production-v4 runtime remains the
+quality baseline. This release does not change the LLM, embedding model,
+reranker, retrieval thresholds, Top-K, chunking profile, index schema, prompts,
+answer logic, documents, or production Qdrant data.
+
+Why
+---
+The v6.4.70/v6.4.72 certified evidence shows three different ~30 second paths:
+- OC-007: ~32.2 s total with ~32.18 s inside one Qwen2.5 generation call.
+- EN-007: ~32.5 s total with ~3.05 s retrieval and ~29.45 s across two LLM calls.
+- OC-011: ~31.85 s total entirely in retrieval before strict fallback.
+
+Therefore Phase 7 starts with stage-level measurement rather than generic
+"speed tweaks".
+
+One-click office benchmark
+--------------------------
+Run:
+    Run_Phase7_Performance_Baseline.bat
+
+It requires the promoted v4 production baseline and a passing Production
+Architecture Lock. It measures exact fast control, first/warm OOD retrieval,
+first/warm OC-007, and first/warm EN-007 in one shared AnswerService process.
+It records existing request/LLM/lazy-load events plus non-invasive timings for
+BM25, Ollama embedding API, vector search, and hybrid merge. Reranker cold-load
+is taken from the existing certified lazy-component event; first-vs-repeat
+retrieval residual shows steady-state rerank/candidate cost without importing
+Torch early and contaminating the cold measurement.
+
+Output
+------
+logs\phase7_performance\DocuBot_Phase7_Performance_Baseline_Result_*.zip
+
+Upload that ZIP before any optimization is applied.

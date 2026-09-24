@@ -1,0 +1,27 @@
+DocuBot v6.4.17 - Low-Spec Startup Prewarm Optimization
+
+Measured Windows baseline that triggered this change:
+- cold structured/no LLM: 0.055s
+- cold multilingual fast query: 30.443s total
+- vector/embedding cold load: 13.282s
+- reranker cold load: 2.612s
+- fast LLM portion: 8.279s
+- warm repeated fast query after llama3.2:3b residency: about 4.6-4.8s
+
+Scope:
+1. Keep all certified retrieval/answer semantics unchanged.
+2. Auto-start background startup prewarm only when KB is healthy.
+3. Auto prewarm requires >=12 GB total RAM and >=4 GB currently available RAM unless overridden.
+4. Warm exact existing cached Chroma, multilingual-e5-base, bge-reranker-base resources.
+5. Use Ollama load-only API for existing llama3.2:3b fast model; no generation or answer is produced.
+6. Prevent a live semantic query from racing duplicate retrieval-model initialization.
+7. Benchmark cold vs startup-prewarmed copies of the same multilingual factual question.
+
+Environment controls:
+- DOCUBOT_STARTUP_PREWARM=auto|on|off
+- DOCUBOT_STARTUP_PREWARM_MIN_RAM_MB=12288
+- DOCUBOT_STARTUP_PREWARM_MIN_AVAILABLE_RAM_MB=4096
+- DOCUBOT_STARTUP_PREWARM_DELAY_SECONDS=0.75
+- DOCUBOT_OLLAMA_URL=http://127.0.0.1:11434
+
+No model, embedding model, reranker model, confidence threshold, chunking, index schema, or source-grounding rule changed.

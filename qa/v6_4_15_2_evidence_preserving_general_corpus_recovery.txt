@@ -1,0 +1,15 @@
+DocuBot v6.4.15.2 - Evidence-Preserving General Corpus Gate Recovery
+
+Scope
+- Preserve existing BM25/vector candidate order.
+- Append corpus lexical coverage as rescue evidence instead of re-ranking the base pool.
+- Protect the strongest pre-reranker candidates and rescue a new source only with strong lexical proof.
+- Treat intentional too-short Smart Build skips as visible non-blocking health warnings.
+- Keep missing, zero-chunk, and unknown skip failures blocking.
+- Preserve global retrieval threshold, models, embeddings, reranker, index schema, and requirements.
+
+Windows acceptance
+1. KB Health exits PASS even with only an intentional too-short file skip.
+2. Exact 78-turn Cycle 1 returns 78/78 PASS.
+3. Runtime unseen-document add/query/remove proof passes.
+4. General Corpus Gate returns PASS.

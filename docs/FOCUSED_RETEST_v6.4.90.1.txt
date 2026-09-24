@@ -1,0 +1,27 @@
+DocuBot v6.4.90.1 — Focused Rationale Cross-reference Retest
+================================================================
+
+RUN ONLY AFTER:
+- v6.4.90.1 validator = PASS
+- KB Health = PASS
+- result ZIP reviewed
+
+Use VS Code -> run.py, fresh chat.
+
+1. Why does Rule 10.6 exist?
+2. What is the rationale behind Rule 10.6?
+3. What is the reason for Rule 10.6?
+4. Explain the purpose of Rule 10.6.
+5. What are the rules for compiler switch?
+6. What are the rules for switch statement?
+7. ISO C Portability issue references?
+
+Expected:
+- #1-#4: all follow the exact source-deferred Section 8.10.3 and explain
+  the rationale itself; none should stop at "see Section 8.10.3".
+- #5: compiler/toolchain option path, not Rule 16 switch statements.
+- #6: Rules 16.1-16.7.
+- #7: Section 6.10.1 structured fast path.
+
+Do not run the full 24-question set again yet. After this focused retest passes,
+proceed to a fresh unseen-question robustness set.

@@ -1,39 +1,46 @@
+# External runtime components/models (NOT pip packages)
+# Windows Ollama runtime    : installed/verified by Setup_DocuBot_Production_Environment.bat
+# Ollama generation model  : qwen2.5:7b
+# Ollama embedding model   : qwen3-embedding:8b
+# Hugging Face reranker    : BAAI/bge-reranker-v2-m3
+# The one-click environment setup also creates/reuses the project venv,
+# installs this requirements.txt, downloads missing model weights, and runs
+# a read-only production preflight. It does NOT rebuild the knowledge base.
+
+# DocuBot runtime / UI
 streamlit==1.46.1
 
+# RAG / orchestration
 llama-index==0.12.45
 llama-index-llms-ollama==0.5.6
-llama-index-embeddings-huggingface==0.5.5
-
 langchain==0.3.26
 langchain-text-splitters==0.3.8
 
-chromadb==1.0.15
+# Vector / lexical retrieval
+qdrant-client==1.19.0
+rank-bm25==0.2.2
 
+# Embedding / reranking / model runtime
 sentence-transformers==5.0.0
 transformers==4.53.2
 torch>=2.7.0
+einops==0.8.1
+hf_xet==1.2.0
 
-rank-bm25==0.2.2
-
+# Document parsing / ingestion
 unstructured[all-docs]==0.18.1
-
-pandas==2.3.1
-numpy==2.3.1
-
 python-docx==1.2.0
+python-pptx==1.0.2
 openpyxl==3.1.5
 pypdf==5.7.0
 PyMuPDF==1.26.7
-
-tqdm==4.67.1
-
-python-dotenv==1.1.1
-
-joblib==1.5.1
-
-requests==2.32.4
+pandas==2.3.1
+numpy==2.3.1
 chardet==5.2.0
-pydantic==2.11.10
 
-einops==0.8.1
-hf_xet==1.2.0
+# Runtime utilities
+python-dotenv==1.1.1
+joblib==1.5.1
+tqdm==4.67.1
+requests==2.32.4
+pydantic==2.11.10

@@ -1,0 +1,26 @@
+DocuBot v6.4.10 - Sidebar Scroll Boundary Fix Manual Test
+
+Purpose
+- Confirm the upper sidebar branding/version/New Chat block stays fixed.
+- Confirm only Recent Chats cards scroll.
+- Confirm the last Recent Chats card can be shown fully.
+- Confirm the Recent Chats scrollbar sits on the outer right edge of the lower sidebar area.
+- Confirm existing colors, card width, active-chat styling, and main chat layout are unchanged.
+
+Manual UI checks
+1. Start DocuBot normally and create enough chats to overflow Recent Chats.
+2. Verify company logo, DocuBot title/subtitle/version, and New Chat do not move while scrolling the chat list.
+3. Scroll Recent Chats all the way to the bottom.
+4. Verify the final chat card is fully visible and is not clipped by the viewport bottom.
+5. Verify the vertical scrollbar is aligned at the far-right edge of the Recent Chats lower-sidebar region, not inside the card column.
+6. Switch between several chats and confirm active-chat highlighting still works.
+7. Create a New Chat and confirm the new item appears without moving the upper fixed block.
+8. Resize the browser height smaller and larger; repeat steps 3-5.
+
+Regression checks
+- Ask one known company-KB question and verify normal answer/source behavior.
+- Ask one absent-information question and verify the exact fallback remains:
+  Information not found in company knowledge base.
+- Confirm no Streamlit warning/error is displayed.
+
+No Knowledge Base rebuild is required for this UI-only update.

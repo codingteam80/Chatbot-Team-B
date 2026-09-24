@@ -1,0 +1,80 @@
+DocuBot v6.4.14.2.4 - Deterministic Temporal Finalization After Retrieval Retry
+================================================================================
+
+PURPOSE
+-------
+Close the single remaining Cycle-1 R-015 failure without changing retrieval
+thresholds, reranker behavior, models, embeddings, index schema, or the accepted
+structured Example/code presentation.
+
+WINDOWS BASELINE COMMAND
+------------------------
+Run:
+  Run_Robustness_QA_Baseline_Compare.bat
+
+Equivalent command:
+  python -m scripts.run_robustness_qa --suite full --seed 1789101877 --cycle 1
+
+REQUIRED AUTOMATED RESULT
+-------------------------
+- Questions executed: 78
+- PASS: 78
+- FAIL: 0
+- ERROR: 0
+
+R-015 REQUIRED BEHAVIOR
+-----------------------
+Question:
+  Nauna ba ang deklarasyon ng kalayaan noong Hunyo 1898 kaysa pagpirma sa Treaty of Paris?
+
+Expected grounded relation:
+- Philippine declaration of independence: June 12, 1898
+- Treaty of Paris signing: December 10, 1898
+- June 12, 1898 must be stated as earlier / first.
+- December 10, 1898 must be stated as later.
+
+Expected route when both dates are accepted:
+- LLM ROUTE: DETERMINISTIC
+- Model: No LLM
+- The final answer must contain both dates.
+- April 11, 1899 (the Treaty table's Effective date) must NOT replace either
+  requested event date.
+- Sources should preserve both the independence grounding document and the
+  Treaty of Paris grounding document when they are different files.
+
+RETRY-PATH CHECK
+----------------
+If the first bilingual retrieval returns no accepted context but the English-only
+retry succeeds, the same deterministic temporal finalization must still run.
+The retry must not fall back to llama3.2:3b merely because context arrived from
+the retry path.
+
+REGRESSION SPOT CHECK
+---------------------
+The existing structured Example behavior must remain intact. In a NEW CHAT ask:
+  Show the Example for Directive 4.6.
+
+Verify:
+- Example label remains visible.
+- Source prose remains separate from code.
+- Code remains fenced and keeps source line order.
+- Compliant / Non-compliant comments remain visible when present.
+- No neighboring structured block is merged into the Example answer.
+
+INSTALL / DATA NOTES
+--------------------
+- No pip install is required.
+- No Knowledge Base rebuild is required.
+- Keep the existing storage directory.
+- Global minimum retrieval score remains 0.55.
+
+WHAT TO SEND BACK
+-----------------
+After the baseline run, send:
+- summary.txt
+- results.csv
+- results.json
+- newest test_evidence_*.log (preferred)
+
+Only after a genuine 78/78 with correct R-015 should the fresh project-data
+manual validation guide be used.

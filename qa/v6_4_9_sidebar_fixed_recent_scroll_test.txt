@@ -1,0 +1,41 @@
+DOCUBOT v6.4.9 - SIDEBAR FIXED TOP + SCROLLABLE RECENT CHATS QA
+================================================================
+
+PURPOSE
+- Verify the upper sidebar branding/New Chat controls remain stationary.
+- Verify only the Recent Chats card list scrolls as history grows.
+- Verify chat switching, New Chat, and current-chat highlighting still work.
+- Verify the v6.4.8 RAG behavior remains unchanged.
+
+A. SIDEBAR UI MANUAL CHECK
+1. Start DocuBot normally and expand the sidebar.
+2. Confirm the company logo, DocuBot title/subtitle/version, and New Chat button
+   remain in the same upper layout as v6.4.8.
+3. Create/open enough chats to exceed the visible Recent Chats area.
+4. Put the pointer over Recent Chats and scroll downward.
+5. PASS: only the chat cards move; the upper branding/New Chat area stays fixed.
+6. PASS: the main page does not jump and the whole sidebar does not scroll.
+7. PASS: the Recent Chats heading remains visible above the scrolling cards.
+8. Switch among old chats and confirm the active card highlight still updates.
+9. Click New Chat and confirm it still creates a new conversation normally.
+
+B. SMALL RAG REGRESSION CHAIN
+Run each line as a separate message in the same chat:
+1. Who is Andres Bonifacio?
+2. What organization did he help found?
+
+Expected:
+- First answer remains grounded/deterministic when the strict v6.4.8 identity fast
+  path applies.
+- Second answer resolves the person correctly and returns only grounded company
+  knowledge.
+
+C. STRUCTURED REGRESSION CHAIN
+Run each line as a separate message in the same chat:
+1. What does Rule 1.2 say?
+2. What category does it belong to?
+3. What does it apply to?
+
+Expected:
+- Exact structured path remains deterministic/No LLM where applicable.
+- No prompt leaks, warnings, or UI navigation regressions.

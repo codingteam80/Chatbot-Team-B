@@ -1,0 +1,185 @@
+DocuBot v6.4.60 — Option C English-Natural Quality / Conservative Cleanup Technical/MISRA Trial Guide
+
+V6.4.58 ROOT FIX
+- Office diagnostic proved Rule 16.7 exists in BM25, PDF, parser, prepared cache, and family reconciliation.
+- Root cause: MISRA rule-body cue rescue used Top-K 6 before complete structured-family retrieval.
+- Fix: structured-family retrieval is attempted first and accepted only when the retriever marks source-grounded structured-topic anchors.
+- Unsupported list topics retain the prior MISRA rescue/hybrid behavior.
+- No index rebuild is required from v6.4.56.
+
+DocuBot v6.4.56 — Option C Authoritative-Source Resolution Technical/MISRA Trial Guide
+==========================================================================
+
+PURPOSE
+-------
+This trial focuses DocuBot on MISRA and future technical/technology documents.
+Default trial stack:
+  Corpus    : data\technical_documents
+  Embedding : qwen3-embedding:8b (Ollama)
+  Vector DB : Qdrant local
+  Reranker  : BAAI/bge-reranker-v2-m3
+  LLM       : qwen2.5:7b only for generative answers
+  Fast path : deterministic MISRA/direct-grounded answers
+
+IMPORTANT
+---------
+- v6.4.49-style Chroma/E5 storage remains untouched as rollback.
+- Stop DocuBot before building the Option-C index.
+- This v6.4.56 package is still a TRIAL until the actual office Windows/Ollama QA passes.
+- v6.4.52 intentionally invalidated only the prepared-ingestion cache so the
+  technical PDF is reparsed before the new Option-C index is rebuilt.
+
+OFFICE SETUP / TEST SEQUENCE
+----------------------------
+1. Double-click: Setup_DocuBot_Option_C.bat
+   - Updates/checks Python requirements.
+   - Reuses qwen2.5:7b / qwen3-embedding:8b if already installed.
+   - Probes Qdrant, Ollama embedding, and the reranker before continuing.
+
+2. Stop any running DocuBot window, then double-click:
+   Build_DocuBot_Option_C_Technical_Index.bat
+   - Performs a safe full build of the isolated technical Qdrant index.
+   - Reparses the technical source because the v6.4.52 ingestion-cache schema changed.
+   - Does not overwrite the old Chroma index.
+
+3. Double-click: Run_Option_C_Technical_QA.bat
+   Target: 16/16 PASS.
+   Keep the generated result ZIP and console output.
+
+4. If QA passes, double-click: Start_DocuBot_Option_C_Trial.bat
+
+ROLLBACK
+--------
+Stop the Option-C trial and double-click:
+  Start_DocuBot_Certified_Default.bat
+This explicitly selects the v6.4.49 legacy all-documents + Chroma +
+multilingual-e5-base + bge-reranker-base + llama3.2:3b/qwen2.5:7b routing profile.
+Note: v6.4.48 remains the last fully Windows/Ollama-certified checkpoint.
+
+
+V6.4.59 DYNAMIC GUIDANCE + CHATGPT-LIKE RESPONSE UX
+------------------------------------------------------
+- Actual office v6.4.58 Option-C Technical QA on 2026-09-17: 16/16 PASS.
+  Rule 16.1-16.7 family completeness, Rule 16.6 minimum-count application,
+  and Rule 4.2 trigraph polarity are all retained.
+- Manual testing exposed a separate intent/UI issue: prospective questions such
+  as planning an if-else -> switch refactor could be routed as a current
+  compliance Assessment and assigned a violation status without actual code.
+- v6.4.60 keeps prospective guidance distinct from code/compliance assessment and adds English-first intent, comparison, follow-up/topic-reset, context-hygiene, and UI safe-area improvements.
+  Guidance lists supported requirements and explicitly avoids declaring a
+  current violation/compliance status unless the current turn provides evidence
+  that supports one.
+- Structured switch-family guidance remains source-grounded and preserves the
+  complete family; compiler/command-line switch wording is not silently
+  reinterpreted as a C switch-statement query.
+- Assistant responses now use an unboxed, content-driven conversational layout:
+  short answers stay compact, longer Markdown answers can grow to a bounded
+  readable width, sources/actions remain lightweight, and the temporary
+  "Searching knowledge base..." state is an inline spinner rather than a fake
+  response card.
+- Same-file source chunks are aggregated for display, so a complete structured
+  family can show a compact page/reference span instead of only the first chunk.
+- Sample manual questions are regression examples only. Routing is based on
+  intent and source evidence, not exact question strings or canned answers.
+- No Setup/build/index migration is required: there is no model, embedding,
+  reranker, confidence threshold, active-corpus, cache-schema, or index-schema
+  change. Rerun the 16-case Option-C QA after patching, then perform manual UI
+  spot checks.
+
+TECHNICAL CORPUS
+----------------
+The bundled trial starts with:
+  data\technical_documents\MISRA_FromInternet.pdf
+Add future approved technical/technology documents to data\technical_documents,
+then stop DocuBot and rerun Build_DocuBot_Option_C_Technical_Index.bat.
+
+V6.4.56 AUTHORITATIVE-SOURCE RESOLUTION
+----------------------------------------
+- Actual office v6.4.55 QA: 15/16 PASS; only OC-014 still omitted Rule 16.7.
+- The live OC-014 chunks showed Rule 16.1-16.6 only and no source-recovery marker.
+- v6.4.56 resolves the authoritative PDF from the active technical corpus by
+  filename instead of depending only on the historical absolute path stored in
+  index metadata, then dynamically enumerates explicit Rule-family members.
+- No model, embedding, reranker, threshold, chunking, or index-schema change.
+- No rebuild is required for this correction.
+
+V6.4.55 PREPARED-SOURCE FAMILY RECOVERY
+---------------------------------------
+- Actual office v6.4.54 QA reached 15/16 PASS. OC-015 and OC-016 stayed fixed;
+  only OC-014 still omitted Rule 16.7.
+- The prepared ingestion artifact for the same technical PDF contains explicit
+  structured Rule 16.7 source text even when the active BM25 family records do
+  not expose that member.
+- Structured family completion is now layered and source-backed: active BM25
+  records -> prepared ingestion cache -> structured PDF parser -> conservative
+  direct PDF-text Rule scan -> indexed Appendix A summary.
+- The direct PDF-text guard accepts only explicit Rule <major>.<n> entries with
+  normative shall/should source wording, rejecting attribute-only rows and bare
+  cross-references.
+- No Rule requirement text is hardcoded. There is no model, embedding, reranker,
+  threshold, Top-K, chunking, index-schema, active-corpus, or storage change.
+- A new index rebuild is not required for v6.4.55. The prepared cache was already
+  created by the v6.4.52 rebuild; direct PDF text remains an independent fallback.
+
+V6.4.54 INDEXED-SUMMARY FAMILY RECOVERY
+--------------------------
+- Switch-statement family retrieval preserves exact Rule metadata but can safely
+  recover an explicit "Rule 16.x" heading when a prepared chunk retained the
+  heading text but lost its structured metadata. No Rule number is inferred from prose.
+- The prepared-ingestion cache schema is bumped so the office rebuild reparses
+  the technical PDF instead of reusing the previous prepared chunk cache.
+- Explicit "Review/check/analyze ... under Rule N.N" wording now enters the
+  guarded MISRA application path even when the word MISRA is omitted.
+- Text-only yes/no questions about known source concepts can enter the guarded
+  MISRA path; trigraph questions map by source wording, not by hard-coded Rule ID.
+- "trigraph(s)" uses the authoritative source cue "Trigraphs should not be used",
+  so the nearby sentence that permits digraphs cannot reverse the answer.
+- v6.4.51 anchor preservation, semantic reranking, exact numeric-minimum
+  finalization, and responsive Markdown UI are retained.
+
+EXPECTED SAFETY BEHAVIOR
+------------------------
+- Unsupported Rule/Directive IDs -> exact fallback without unnecessary LLM work.
+- History/general questions such as Jose Rizal -> fallback in the technical profile.
+- Exact/direct MISRA questions retain deterministic fast paths.
+- Complex technical explanations use qwen2.5:7b only.
+- Generated claims with high-confidence unsupported identifiers/numbers/entities/
+  acronyms are blocked rather than returned as grounded facts.
+
+IF SETUP FAILS
+--------------
+Do not continue to the QA run. Read the first [FAIL] line. The old rollback stack
+remains available. If the office PC is offline, the updated Python packages and
+both Ollama models must already be present before setup can pass.
+
+
+V6.4.54 OFFICE FOLLOW-UP
+------------------------
+- Office v6.4.52 QA reached 15/16 PASS. OC-015 and OC-016 were recovered.
+- The remaining OC-014 failure was a completeness mismatch: active BM25 exposed
+  Rule 16.1 through Rule 16.6 while the authoritative technical PDF still
+  contained Rule 16.7 on page 146.
+- Office v6.4.53 QA again reached 15/16 PASS. OC-015 and OC-016 stayed fixed.
+- OC-014 still returned Rule 16.1 through Rule 16.6 only. Its runtime evidence
+  contained no `_structured_source_recovered` chunk, proving that the live PDF
+  supplement did not add a family member on that Windows run.
+- v6.4.54 keeps the live-PDF guard but adds a second bounded recovery source:
+  the already-indexed authoritative `Appendix A: Summary of guidelines` chunk.
+  Only literal `Rule <major>.<n>` headings and their adjacent summary text are
+  accepted; prose cross-references are ignored.
+- No Rule requirement text is hardcoded; no model, embedding, reranker, Top-K,
+  confidence threshold, active corpus, chunking, index schema, or storage
+  architecture is changed.
+- A new index rebuild is not required for this correction because the Appendix A
+  summary is already in the active technical index. Re-running QA after patching
+  is sufficient; the normal Build step remains safe but optional.
+V6.4.55 OFFICE FOLLOW-UP
+------------------------
+- Office v6.4.54 QA: 15/16 PASS.
+- OC-014 remains the only failure: Rule 16.1 through Rule 16.6 are returned,
+  while Rule 16.7 is absent from the structured family answer.
+- v6.4.55 targets that exact index-to-source completeness gap without changing
+  the answer model or retrieval confidence policy.
+- Apply the exact patch to v6.4.54 and rerun Run_Option_C_Technical_QA.bat.
+  A rebuild is not required. Target: 16/16 PASS.
+

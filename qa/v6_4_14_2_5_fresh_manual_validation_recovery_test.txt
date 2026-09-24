@@ -1,0 +1,31 @@
+DocuBot v6.4.14.2.5 - Fresh Project-Data Manual Validation Recovery
+
+BASE
+- Strictly based on v6.4.14.2.4.
+- Actual Windows/Ollama Cycle-1 evidence before this patch: 78/78 PASS, 0 FAIL, 0 ERROR.
+- Fresh manual validation before this patch: 28/50 PASS, 22/50 FAIL.
+
+TARGETED DEFECT FAMILIES
+1. Cross-format CSV/HTML compact-fact retrieval.
+2. Historical source targeting, relation binding, and answer completeness.
+3. MISRA structured-detail intent/reference targeting.
+4. Generalized temporal comparison and follow-up context.
+
+SAFETY CONSTRAINTS
+- Do not lower the global 0.55 confidence threshold.
+- Do not change llama3.2:3b / qwen2.5:7b routing policy.
+- Do not change intfloat/multilingual-e5-base or BAAI/bge-reranker-base.
+- Do not change chunking, index schema, or requirements.
+- Preserve strict fallback behavior, Leave Policy behavior, and Example/code formatting.
+
+LOCAL REGRESSION GATE
+- Run: python -m pytest -q tests with PYTHONWARNINGS=error.
+- Compile all Python files.
+- Package cleanly with caches/logs/mutable storage excluded.
+- Re-extract ZIP and rerun tests from the extracted package.
+
+WINDOWS VALIDATION GATE
+1. Run Run_Robustness_QA_Baseline_Compare.bat. Required: 78/78 PASS, 0 FAIL, 0 ERROR.
+2. Then rerun the 50 fresh manual questions in normal Streamlit UI with TEST_EVIDENCE_MODE=True.
+3. Return the newest logs/test_evidence/test_evidence_*.log for review.
+4. Do not mark roadmap Item 2 complete until the fresh manual evidence is reviewed.

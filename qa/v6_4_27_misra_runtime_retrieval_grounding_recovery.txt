@@ -1,0 +1,39 @@
+DocuBot v6.4.27 - MISRA Runtime Retrieval + Grounding Recovery
+================================================================
+Base: v6.4.26 generated package.
+Trigger: actual Windows/Ollama MISRA Natural QA evidence from 2026-09-14.
+Observed v6.4.26 result: 2/6 PASS, 4 FAIL, 0 ERROR.
+
+Recovery scope
+--------------
+1. Removed the generic MISRA retrieval prefix that over-weighted words such as
+   rule/directive/rationale/example and pulled broad index/appendix sections.
+2. Added intent/code-derived semantic cues with no Rule/Directive numbers. The
+   cues describe visible constructs (assignment used as a condition, goto,
+   compiler language extension, signed/unsigned assignment, etc.) using wording
+   that can match the actual indexed MISRA rule statements.
+3. Tightened Rule/Directive grounding: only chunks whose structured metadata
+   identifies them as a Rule/Directive body can authorize that identifier.
+   Line-start IDs inside appendices, tables, lists, and cross-references no
+   longer count as grounding.
+4. MISRA generation context now marks every block with an explicit
+   CITABLE RULE/DIRECTIVE field. Generic supporting blocks are marked NONE.
+5. Prompt forbids inventing consequences (for example undefined behaviour)
+   unless the retrieved evidence explicitly supports them.
+6. MISRA QA result ZIP is now written under logs/misra_natural_qa and includes
+   compact chunk evidence in results.json for easier diagnosis.
+
+Unchanged
+---------
+- llama3.2:3b fast model
+- qwen2.5:7b complex model
+- embedding/reranker/global 0.55 threshold/chunking
+- data/all_documents corpus
+- storage/index files
+- secondary/non-MISRA company-document path
+- v6.4.25 LAN foundation
+- Shift+Enter multiline input behavior
+
+Build focused MISRA recovery checks: 15/15 PASS.
+Windows/Ollama v6.4.27 MISRA Natural QA rerun is still required before this
+recovery is considered runtime-certified.

@@ -1,0 +1,132 @@
+DOCUBOT v6.3 – HYBRID LLM ROUTING / NO-LLM FAST-PATH VALIDATION
+=================================================================
+
+PURPOSE
+-------
+Validate that one normal DocuBot session routes each accepted company-knowledge
+question to the intended path without changing the existing knowledge-base index.
+
+PRECONDITIONS
+-------------
+- Start from locally validated v6.2.1 data/index/storage.
+- qwen2.5:7b must already be available in local Ollama from the previous A/B test.
+- No pip install is required.
+- No Knowledge Base rebuild is required.
+- Start normally (do NOT pass -Model):
+
+  .\run_docubot_with_log.ps1
+
+EXPECTED STARTUP TEXT
+---------------------
+LLM routing: Hybrid
+Fast model: llama3.2:3b
+Complex model: qwen2.5:7b
+Exact structured answers: deterministic when safe
+
+WHAT TO CHECK IN QA EVIDENCE
+----------------------------
+Each answered question should contain an EVENT named "LLM ROUTE" when accepted
+context exists. Check the route/model shown there.
+
+TEST SET
+--------
+
+A. NO-LLM EXACT STRUCTURED FAST PATH
+
+1. What does Rule 1.2 say?
+   Expected route: DETERMINISTIC
+   Expected model: No LLM
+   Expected answer begins: Rule 1.2: Language extensions should not be used
+
+2. Explain Rule 1.2.
+   Expected route: DETERMINISTIC
+   Expected model: No LLM
+   Expected: statement + grounded rationale/detail from Rule 1.2.
+
+3. What is Dir 4.12?
+   Expected route: DETERMINISTIC
+   Expected model: No LLM
+   Expected answer: Dir 4.12: Dynamic memory allocation shall not be used
+
+4. Explain Directive 4.12.
+   Expected route: DETERMINISTIC
+   Expected model: No LLM
+   Expected: exact directive + grounded scope/rationale.
+
+5. What does Rule 99.99 say?
+   Expected: Information not found in company knowledge base.
+   Expected behavior: fallback occurs before answer generation; do not guess.
+
+B. FAST MODEL – llama3.2:3b
+
+6. Who is Jose Rizal?
+   Expected route: FAST
+   Expected model: llama3.2:3b
+   Expected: grounded identity/overview; existing QA matcher should PASS.
+
+7. What is MISRA C?
+   Expected route: FAST
+   Expected model: llama3.2:3b
+   Expected: concise grounded overview.
+
+8. What is Section 6?
+   Expected route: FAST
+   Expected model: llama3.2:3b
+   Expected: direct Section 6 definition/detail.
+
+C. COMPLEX MODEL – qwen2.5:7b
+
+9. Explain MISRA C.
+   Expected route: COMPLEX
+   Expected model: qwen2.5:7b
+   Expected: richer grounded explanation; no outside knowledge.
+
+10. Explain Section 6.
+    Expected route: COMPLEX
+    Expected model: qwen2.5:7b
+    Expected: substantive Section 6 explanation. Existing deterministic section
+    fallback may still enrich the final output if the model answer is too short.
+
+11. Explain the employee leave policy.
+    Expected route: COMPLEX
+    Expected model: qwen2.5:7b
+    Expected: entitlements + approval + eligibility when present in source.
+
+12. Explain who Jose Rizal was and why he was significant.
+    Expected route: COMPLEX
+    Expected model: qwen2.5:7b
+    Expected: grounded multi-point explanation.
+
+D. FOLLOW-UP REFERENCE – RUN IN ONE NEW CHAT, EXACT ORDER
+
+13. What is MISRA C?
+    Expected route: FAST / llama3.2:3b
+
+14. What does Rule 1.2 say?
+    Expected route: DETERMINISTIC / No LLM
+
+15. Why is that rule important?
+    Expected route: DETERMINISTIC / No LLM
+    Expected resolved target: Rule 1.2
+
+16. Explain that rule.
+    Expected route: DETERMINISTIC / No LLM
+    Expected resolved target: Rule 1.2
+
+PASS CRITERIA
+-------------
+- No runtime crash or traceback.
+- Exact Rule/Directive direct/explain/reason requests show deterministic routing
+  when the exact structured context supports the requested answer.
+- Simple factual questions route to llama3.2:3b.
+- Explicit explanation/synthesis questions route to qwen2.5:7b.
+- No-result questions still fall back rather than escalating to a model guess.
+- Sources remain present for valid answers and absent for fallback answers.
+- Existing v6.2.1 short-fact retrieval and Smart Update behavior do not regress.
+
+NOTE ABOUT SPEED
+----------------
+The first request to either local Ollama model can be slower because that model
+may need to become resident. On memory-constrained PCs, switching between the
+3B and 7B models can also add latency. That is measured and optimized in the
+next roadmap phase; v6.3 first validates routing correctness and safe fallback.

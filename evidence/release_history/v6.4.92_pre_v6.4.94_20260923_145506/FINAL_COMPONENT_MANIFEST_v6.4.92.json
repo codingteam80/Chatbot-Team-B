@@ -1,0 +1,33 @@
+{
+  "version": "v6.4.92",
+  "milestone": "Compiler Configuration Routing & Rule Family UX",
+  "base_runtime": "v6.4.91 / v6.4.91.1 verification baseline",
+  "runtime_files_changed": [
+    "retrieval/retriever.py",
+    "services/answer_service.py"
+  ],
+  "behavior_changes": [
+    "Compiler/toolchain switch/option/flag/settings wording resolves to the indexed Compiler configuration Section instead of Rule 20.9.",
+    "C switch-statement questions remain routed to Rules 16.1-16.7.",
+    "Preprocessor questions remain separate from compiler configuration.",
+    "Bare major Rule families such as Rule 17 now return a grounded child-rule overview before asking for an exact child rationale."
+  ],
+  "architecture_lock": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55
+  },
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "chunking_changed": false,
+  "storage_changed": false,
+  "kb_rebuild": false
+}

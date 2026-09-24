@@ -1,0 +1,11 @@
+DocuBot v6.4.83 Deployment Bootstrap Finalization
+========================================================================
+Applied: 2026-09-19T20:21:36
+Base: v6.4.82 cleanup/finalization local validation PASS
+Scope: deployment/bootstrap tooling and documentation only
+Answer/retrieval behavior changed: NO
+Knowledge-base rebuild performed: NO
+Superseded v6.4.82 tooling preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.82_deployment_tooling_20260919_202136
+
+Fresh-PC setup: Setup_DocuBot_Production_Environment.bat
+Normal runtime: VS Code -> run.py

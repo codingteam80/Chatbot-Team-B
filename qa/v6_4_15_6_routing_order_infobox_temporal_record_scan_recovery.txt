@@ -1,0 +1,14 @@
+DocuBot v6.4.15.6 - Routing Order + Infobox Role + Temporal Record-Scan Recovery
+
+Windows evidence target:
+- KB Health remains HEALTHY.
+- Certified 78-turn baseline returns 78 PASS / 0 FAIL / 0 ERROR.
+- R-006 must return the role/position tied to the named subject, never the person name or another person's nickname.
+- R-015 must return both grounded exact dates and their order.
+- Runtime unseen-document proof must execute only after the 78-turn baseline passes.
+
+Engineering constraints:
+- No topic/person/document-specific hardcoding.
+- No model, embedding, reranker, threshold, or index-schema change.
+- Role recovery may use subject-bound prose or compact infobox/table labels from accepted context.
+- Temporal record scan may inspect only already-loaded BM25 records and must still pass the strict deterministic event/date binding finalizer.

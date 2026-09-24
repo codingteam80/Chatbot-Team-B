@@ -1,0 +1,85 @@
+{
+  "version": "v6.4.85",
+  "milestone": "Phase 8 Manual QA Correctness & Formatting Hotfix Candidate",
+  "base": "v6.4.84 project hygiene candidate / compatible v6.4.83.1 answer-code baseline",
+  "office_hardware_acceptance": "DEFERRED",
+  "active_components": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "lexical_retriever": "rank_bm25",
+    "vector_backend": "qdrant",
+    "vector_profile": "v4",
+    "reranker": "BAAI/bge-reranker-v2-m3",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "storage": "storage/option_c_qwen3_qdrant_v4",
+    "runtime": "Ollama + project venv",
+    "normal_entrypoint": "run.py",
+    "optimization_1": "active",
+    "optimization_2": "active",
+    "fallback": "strict"
+  },
+  "retrieval_parameters": {
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "vector_weight": 0.4,
+    "bm25_weight": 0.6,
+    "minimum_reranker_score": 0.55
+  },
+  "preserved_evidence": [
+    "Technical 16/16",
+    "English Natural 19/19",
+    "Chunking-v4 certification/A-B evidence",
+    "Optimization #1/#2 evidence",
+    "Phase-7 speed/latency evidence",
+    "Phase-8 production-lock candidate evidence",
+    "Architecture-lock/release-history evidence"
+  ],
+  "deployment_bootstrap": {
+    "entrypoint": "Setup_DocuBot_Production_Environment.bat",
+    "python_baseline": "3.11",
+    "python_packages": "requirements.txt",
+    "ollama_install": "WinGet Ollama.Ollama when missing; otherwise existing installation",
+    "ollama_models": [
+      "qwen2.5:7b",
+      "qwen3-embedding:8b"
+    ],
+    "reranker_cache": "BAAI/bge-reranker-v2-m3",
+    "kb_rebuild": "never automatic",
+    "final_preflight": "read-only KB health"
+  },
+  "project_hygiene": {
+    "applied_patch_workdirs_removed": true,
+    "python_caches_removed": true,
+    "historical_qa_sources_moved_to_evidence": true,
+    "old_validation_tooling_moved_to_evidence": true,
+    "unused_local_pdf_server_removed": true,
+    "normal_entrypoint": "run.py -> streamlit app.py",
+    "active_data_dir": "data/technical_documents",
+    "evidence_preserved": true
+  },
+  "manual_qa_hotfix": {
+    "status": "PATCHED; USER RETEST REQUIRED",
+    "observed_failures": [
+      "Rule category questions misrouted as Yes/No compliance",
+      "Broad MISRA rule inventories fell through noisy generic retrieval",
+      "Grouped plural Rule references were not parsed completely",
+      "Source Example blocks were flattened by compliance finalization",
+      "Natural empty-else question missed Rule 15.7 evidence",
+      "Malformed Rule identifiers could semantically substitute unrelated rules",
+      "Exact Rule summaries could leak raw code fragments through generic overview formatting"
+    ],
+    "fix_scope": [
+      "structured-reference parsing/routing",
+      "source-grounded Rule inventory retrieval",
+      "deterministic multi-Rule explanation",
+      "structured summary rendering",
+      "multiline source Example rendering",
+      "malformed exact-reference fail-closed guard",
+      "natural empty-else Rule 15.7 grounding"
+    ],
+    "architecture_changes": "NONE",
+    "kb_rebuild": "NONE"
+  }
+}

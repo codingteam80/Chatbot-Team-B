@@ -1,59 +1,36 @@
 import streamlit as st
 
-# Import HuggingFace embedding wrapper from LlamaIndex
-from llama_index.embeddings.huggingface import (
-    HuggingFaceEmbedding
-)
-
-# Embedding settings
 from config.settings import (
-    EMBED_MODEL_NAME,
+    DEFAULT_BATCH_SIZE,
     DEFAULT_NORMALIZE_EMBEDDINGS,
-    DEFAULT_BATCH_SIZE
+    EMBEDDING_BACKEND,
+    EMBED_MODEL_NAME,
 )
-
-# Cached embedding model
-#_embedding_model = None
 
 
 @st.cache_resource(show_spinner=False)
 def get_embedding_model():
-    
-    print(
-        f"[EMBEDDING] Loading model: "
-        f"{EMBED_MODEL_NAME}"
-    )
+    """Return the single finalized production embedding adapter.
 
-    # =====================================
-    # EMBEDDING MODEL
-    # Converts text into vectors
-    # =====================================
+    v6.4.82 removes the legacy HuggingFace/E5 production branch.  The active
+    embedding component is Ollama qwen3-embedding:8b only.
+    """
 
-    model = HuggingFaceEmbedding(
-
-        # E5 multilingual model
-        model_name=EMBED_MODEL_NAME,
-
-        # Normalize vectors
-        # Improves cosine similarity search
-        normalize=DEFAULT_NORMALIZE_EMBEDDINGS,
-
-        # Number of texts embedded together
-        embed_batch_size=DEFAULT_BATCH_SIZE
-    )
+    if EMBEDDING_BACKEND != "ollama":
+        raise RuntimeError(
+            "Final production supports only the Ollama Qwen3 embedding backend."
+        )
 
     print(
-        "[EMBEDDING] Model loaded successfully"
+        f"[EMBEDDING] Loading model: {EMBED_MODEL_NAME} "
+        f"({EMBEDDING_BACKEND})"
     )
 
-    print(
-        f"[EMBEDDING] Normalize: "
-        f"{DEFAULT_NORMALIZE_EMBEDDINGS}"
-    )
+    from embeddings.ollama_embedding import OllamaEmbeddingModel
 
-    print(
-        f"[EMBEDDING] Batch Size: "
-        f"{DEFAULT_BATCH_SIZE}"
-    )
+    model = OllamaEmbeddingModel()
 
+    print("[EMBEDDING] Model loaded successfully")
+    print(f"[EMBEDDING] Normalize: {DEFAULT_NORMALIZE_EMBEDDINGS}")
+    print(f"[EMBEDDING] Batch Size: {DEFAULT_BATCH_SIZE}")
     return model

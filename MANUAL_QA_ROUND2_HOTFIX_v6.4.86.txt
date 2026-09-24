@@ -1,0 +1,9 @@
+DocuBot v6.4.86 Manual QA Round-2 Hotfix
+========================================================================
+Applied: 2026-09-20T11:14:12
+Base runtime: v6.4.85 + v6.4.85.1 validator correction
+Scope: structured parsing/routing/finalization/formatting
+Model stack changed: NO
+Retrieval parameters changed: NO
+KB rebuild performed: NO
+Pre-hotfix source preserved: C:\user_dev\company-chatbot\evidence\release_history\v6.4.85_pre_round2_hotfix_20260920_111412

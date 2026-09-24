@@ -1,0 +1,136 @@
+DOCUBOT v6.3.1 – STRUCTURED INDEX RECOVERY / HYBRID REGRESSION TEST
+===================================================================
+
+PURPOSE
+-------
+Repair the stale/generic runtime index that could be overwritten by the prior
+v6.3 update ZIP, then verify all previously validated structured, factual,
+follow-up, short-document, and hybrid-routing behavior before moving forward.
+
+INSTALL / START
+---------------
+1. Copy the v6.3.1 files over the current project and choose Replace.
+2. Do NOT delete the current storage folder manually.
+3. No pip install is required.
+4. Start normally:
+
+   .\run_docubot_with_log.ps1
+
+EXPECTED FIRST START ON A MACHINE THAT RAN THE AFFECTED v6.3 ZIP
+----------------------------------------------------------------
+- DocuBot should detect legacy/generic PDF index metadata.
+- The normal Update Knowledge Base flow should say a safe full rebuild is
+  required and show the confirmation checkbox only for this repair.
+- Confirm it and click Update Knowledge Base once.
+- The rebuild should use the staging/rollback path and fresh structure-aware
+  PDF parsing. Do not use a separate maintenance/rebuild button; there is none.
+
+After the repair succeeds, restart/refresh. The warning should disappear when
+there are no source changes.
+
+A. STRUCTURED EXACT REGRESSION
+------------------------------
+1. What does Rule 1.2 say?
+   Expected: Rule 1.2: Language extensions should not be used
+   Expected route: DETERMINISTIC / No LLM
+
+2. What does Rule 10.6 say?
+   Expected: exact Rule 10.6 statement
+   Expected route: DETERMINISTIC / No LLM
+
+3. Explain Rule 1.2.
+   Expected: exact statement + grounded rationale/detail
+   Expected route: DETERMINISTIC / No LLM
+
+4. What is Dir 4.12?
+   Expected: Dir 4.12: Dynamic memory allocation shall not be used
+   Expected route: DETERMINISTIC / No LLM
+
+5. Explain Directive 4.12.
+   Expected: exact directive + grounded rationale/scope
+   Expected route: DETERMINISTIC / No LLM
+
+6. What is Section 6?
+   Expected: direct Section 6 definition/detail
+
+7. Explain Section 6.
+   Expected: substantive grounded section explanation
+
+8. What does Rule 99.99 say?
+   Expected exactly: Information not found in company knowledge base.
+
+B. FOLLOW-UP STRUCTURED CONTEXT – SAME NEW CHAT / EXACT ORDER
+-------------------------------------------------------------
+9. What is MISRA C?
+10. What does Rule 1.2 say?
+11. Why is that rule important?
+12. Explain that rule.
+
+Expected for 10-12: resolved target remains Rule 1.2. 11-12 must not fall back
+or drift back to the broad MISRA topic.
+
+C. EXPLICIT CURRENT-SUBJECT RESOLUTION
+--------------------------------------
+Run in one chat:
+13. Explain the employee leave policy.
+14. Explain who Jose Rizal was and why he was significant.
+
+Expected for 14:
+- Resolved Question must remain about Jose Rizal.
+- It must NOT contain "Employee Leave Policy".
+- Expected route: COMPLEX / qwen2.5:7b.
+- Answer must remain grounded in the Jose Rizal source.
+
+D. EXISTING FACTUAL / EXPLANATION BASELINE
+------------------------------------------
+15. Who is Jose Rizal?
+    Expected route: FAST / llama3.2:3b
+
+16. What is MISRA C?
+    Expected route: FAST / llama3.2:3b
+
+17. Explain MISRA C.
+    Expected route: COMPLEX / qwen2.5:7b
+
+18. Explain the employee leave policy.
+    Expected: vacation 47 days, sick 17 days, manager approval, regular
+    employee eligibility when those facts are present in the source.
+
+E. v6.2.1 COMPACT-FACT REGRESSION
+---------------------------------
+If v62_incremental_test.txt is not present, add it with:
+
+DocuBot v6.2 incremental indexing validation document.
+The internal project code is V62-TEST-ALPHA.
+This file exists only to validate new-file incremental indexing.
+
+Click Update Knowledge Base and ask:
+19. What is the internal project code in the v6.2 incremental test document?
+    Expected: V62-TEST-ALPHA
+
+Change ALPHA to BETA, update again, ask the same question:
+    Expected: V62-TEST-BETA
+
+Delete the file, update again, ask the same question:
+    Expected: Information not found in company knowledge base.
+
+F. NO-CHANGE INDEX FAST PATH
+----------------------------
+After all intended source changes are settled, run:
+
+   python -m scripts.smart_build
+
+Expected:
+- Mode: noop
+- No parsing
+- No embedding-model load
+- No vector rewrite
+
+PASS CRITERIA
+-------------
+- No traceback, runtime warning, or repeated rebuild loop.
+- Rule/Directive/Section exact retrieval is restored.
+- Hybrid routing remains correct.
+- Explicit current subjects are not contaminated by previous chat topics.
+- Compact short-fact retrieval remains fixed.
+- Normal source updates remain incremental after the one-time repair.

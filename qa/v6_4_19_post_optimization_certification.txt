@@ -1,0 +1,29 @@
+DocuBot v6.4.19 - Post-Optimization Certification Harness
+===========================================================
+
+Base runtime behavior: v6.4.18 post-complex fast-model recovery.
+Certified quality baseline retained from v6.4.15.9.
+
+Scope
+-----
+This checkpoint is validation/instrumentation only. It does not change retrieval,
+chunking, embeddings, reranking, answer generation, prompts, routing thresholds,
+model identities, or UI behavior.
+
+Added validation:
+1. Isolated real AnswerService Qwen -> Llama follow-up measurements at 0s, 3s,
+   6s, and 9s user read-time delay.
+2. Recovery state and Ollama residency are captured immediately after the complex
+   answer and immediately before the fast follow-up.
+3. Run_Post_Optimization_Validation.bat runs the certified General Corpus Gate
+   and the latency benchmark in one pass, then emits a combined certification
+   report.
+4. Existing individual gate/latency BAT files still pause when run directly;
+   --no-pause is used only by the combined validator.
+
+Acceptance target
+-----------------
+- General Corpus Gate PASS: healthy KB, 78/78, unseen proof 4/4 + cleanup PASS.
+- Latency benchmark COMPLETE with no errors.
+- Use 0/3/6/9-second follow-up rows to decide whether asynchronous post-complex
+  recovery is sufficient before considering any model-policy A/B.

@@ -1,0 +1,41 @@
+DocuBot v6.4.76 — Phase 7 Certification Harness Hotfix
+=======================================================
+
+SCOPE
+-----
+Certification/tooling only. The v6.4.74 Optimization #1 runtime behavior is
+unchanged.
+
+FIX 1 — ARCHITECTURE LOCK EVIDENCE CLASSIFICATION
+-------------------------------------------------
+Historical root-level V6_4_*_NOTES.txt release-note files are audit evidence,
+not production runtime dependencies. Missing or hash-mismatched release notes
+now produce non-blocking WARN entries. Production code/config/index-policy
+files remain strict hash/existence gates.
+
+FIX 2 — ALWAYS PACKAGE DIAGNOSTIC EVIDENCE
+------------------------------------------
+The Phase-7 Optimization #1 full-certification runner now writes a combined
+result ZIP even when production-v4 preflight, Architecture Lock, or OOD safety
+fails before the three full suites start. The ZIP records NOT RUN for suites
+that were correctly skipped.
+
+NO RUNTIME RETUNING
+-------------------
+No change to:
+  - qwen2.5:7b
+  - qwen3-embedding:8b
+  - BAAI/bge-reranker-v2-m3
+  - retrieval thresholds or Top-K
+  - Chunking-v4 (900 / 150)
+  - production Qdrant/index contents
+  - OOD fast-path logic
+  - deterministic MISRA reviewer fast-path logic
+  - answer/fallback contracts
+
+BASELINE
+--------
+Apply over v6.4.75. Re-run:
+  Run_Phase7_Optimization1_Full_Certification.bat
+
+A combined result ZIP should be produced on both PASS and FAIL.

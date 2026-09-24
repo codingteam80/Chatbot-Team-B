@@ -1,43 +1,50 @@
+from __future__ import annotations
+
+import importlib.util
+import json
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import shutil
+import sys
+import tempfile
+import traceback
+from datetime import datetime
 from pathlib import Path
 
-import chromadb
-
-from utils.file_utils import get_all_documents
-from utils.ingestion_cache import IngestionCache
-from utils.manifest import ManifestManager
-from ingestion.ingest import process_document_task
-from embeddings.embedding_model import get_embedding_model
-from scripts.build_index import (
-    build_index,
-    load_records_from_collection,
-    recover_active_collection_if_needed,
-    prepare_records_for_storage,
-    upsert_prepared_records,
-)
-from retrieval.bm25_index import (
-    BM25Indexer,
-    CORPUS_FILE,
-    INDEX_FILE,
-    discard_bm25_snapshot,
-    get_bm25_resources,
-    restore_bm25_resources,
-    snapshot_bm25_resources,
-)
-from retrieval.chroma_search import get_chroma_collection
 from config.settings import (
-    CHROMA_COLLECTION_NAME,
-    CHROMA_DIR,
-    INGESTION_MAX_WORKERS,
+    DOCUMENT_DIR,
+    EMBED_MODEL_NAME,
+    EMBED_OLLAMA_URL,
+    INDEX_SCHEMA_VERSION,
+    QDRANT_DIR,
+    BM25_DIR,
+    METADATA_DIR,
 )
+from retrieval.bm25_index import CORPUS_FILE, INDEX_FILE
+from utils.file_utils import get_all_documents
+from utils.manifest import ManifestManager
+
+
+ROOT = Path(__file__).resolve().parents[1]
+KB_UPDATE_LOG_DIR = ROOT / "logs" / "kb_update"
+
+
+# Common technical/office files have native DocuBot loaders and do not require
+# the optional universal parser just to import the ingestion pipeline.
+_NATIVE_PARSER_MODULES = {
+    ".pdf": ("fitz",),
+    ".docx": ("docx",),
+    ".pptx": ("pptx",),
+    ".xlsx": ("pandas", "openpyxl"),
+    ".txt": (),
+    ".csv": (),
+    ".json": (),
+    ".xml": (),
+}
 
 
 def compare_manifests(old_manifest, new_manifest):
-    added = []
-    updated = []
-    deleted = []
-    unchanged = []
+    """Classify source-document changes without touching active indexes."""
+    added, updated, deleted, unchanged = [], [], [], []
 
     for document_key, new_info in new_manifest.items():
         old_info = old_manifest.get(document_key)
@@ -50,11 +57,7 @@ def compare_manifests(old_manifest, new_manifest):
             or ManifestManager.index_signature(new_info)
             != ManifestManager.index_signature(old_info)
         )
-
-        if changed:
-            updated.append(document_key)
-        else:
-            unchanged.append(document_key)
+        (updated if changed else unchanged).append(document_key)
 
     for document_key in old_manifest:
         if document_key not in new_manifest:
@@ -68,83 +71,338 @@ def compare_manifests(old_manifest, new_manifest):
     }
 
 
-def get_collection():
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    recovered = recover_active_collection_if_needed(client)
-    if recovered is not None:
-        return recovered
-    return client.get_or_create_collection(CHROMA_COLLECTION_NAME)
+def bm25_is_ready() -> bool:
+    return INDEX_FILE.is_file() and CORPUS_FILE.is_file()
 
 
-def bm25_is_ready():
-    return CORPUS_FILE.exists() and INDEX_FILE.exists()
+def _manifest_requires_full_rebuild(manifest) -> bool:
+    if not manifest:
+        return False
+    for info in manifest.values():
+        if not isinstance(info, dict):
+            return True
+        if info.get("index_schema_version") != INDEX_SCHEMA_VERSION:
+            return True
+        if info.get("embedding_model") != EMBED_MODEL_NAME:
+            return True
+    return False
 
 
-def _manifest_requires_full_rebuild(old_manifest):
-    """Return True when the stored vectors use a different global index identity."""
-    if not old_manifest:
+def _module_available(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, AttributeError, ValueError):
         return False
 
-    current_signature = ManifestManager.current_index_signature()
-    return any(
-        ManifestManager.index_signature(info) != current_signature
-        for info in old_manifest.values()
-    )
+
+def _qdrant_storage_preflight() -> tuple[bool, str]:
+    """Verify local Qdrant storage can be opened/closed before a rebuild.
+
+    Local Qdrant uses a storage lock on Windows. Detect another DocuBot/Python
+    process holding that lock before spending time parsing and embedding all
+    documents, which is a common cross-PC deployment failure mode.
+    """
+    if not Path(QDRANT_DIR).exists():
+        return True, ""
+    client = None
+    try:
+        from retrieval.qdrant_search import open_qdrant_client
+
+        client = open_qdrant_client()
+        # A lightweight collection listing forces the local storage backend to
+        # open. Different qdrant-client releases expose slightly different APIs.
+        getter = getattr(client, "get_collections", None)
+        if callable(getter):
+            getter()
+        else:
+            collection_exists = getattr(client, "collection_exists", None)
+            if callable(collection_exists):
+                from config.settings import QDRANT_COLLECTION_NAME
+                collection_exists(QDRANT_COLLECTION_NAME)
+        return True, ""
+    except Exception as error:
+        return False, (
+            "The active local Qdrant storage cannot be opened exclusively/read safely. "
+            "Close other DocuBot/Python processes using this project and retry. "
+            f"Detail: {type(error).__name__}: {error}"
+        )
+    finally:
+        close = getattr(client, "close", None) if client is not None else None
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                pass
+
+
+def _ollama_embedding_preflight() -> tuple[bool, str]:
+    """Fast local readiness check before a potentially expensive rebuild."""
+    try:
+        import requests
+
+        url = str(EMBED_OLLAMA_URL).rstrip("/") + "/api/tags"
+        response = requests.get(url, timeout=(2.0, 5.0))
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as error:
+        return False, (
+            "Ollama is not reachable for KB embeddings. Start Ollama or run "
+            "Setup_DocuBot_Production_Environment.bat. "
+            f"Detail: {type(error).__name__}: {error}"
+        )
+
+    installed = set()
+    for item in payload.get("models") or []:
+        if not isinstance(item, dict):
+            continue
+        for key in ("name", "model"):
+            value = str(item.get(key) or "").strip()
+            if value:
+                installed.add(value)
+
+    if EMBED_MODEL_NAME not in installed:
+        return False, (
+            f"Required embedding model '{EMBED_MODEL_NAME}' is not installed. "
+            "Run Setup_DocuBot_Production_Environment.bat."
+        )
+
+    return True, ""
+
+
+def _tree_size_bytes(path: Path) -> int:
+    total = 0
+    try:
+        if path.is_file():
+            return int(path.stat().st_size)
+        if not path.exists():
+            return 0
+        for item in path.rglob("*"):
+            try:
+                if item.is_file():
+                    total += int(item.stat().st_size)
+            except OSError:
+                continue
+    except OSError:
+        return total
+    return total
+
+
+def _writable_directory_probe(path: Path) -> tuple[bool, str]:
+    """Verify that update/rollback temp files can be created on this PC."""
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix="docubot_kb_probe_",
+            suffix=".tmp",
+            dir=str(path),
+            delete=False,
+        ) as handle:
+            handle.write("ok")
+            probe = Path(handle.name)
+        probe.unlink(missing_ok=True)
+        return True, ""
+    except Exception as error:
+        return False, f"{type(error).__name__}: {error}"
+
+
+def _filesystem_preflight(documents) -> tuple[list[str], list[str], dict]:
+    issues: list[str] = []
+    notes: list[str] = []
+    diagnostics = {
+        "python_executable": sys.executable,
+        "working_directory": os.getcwd(),
+    }
+
+    probe_dirs = {
+        "Qdrant parent": Path(QDRANT_DIR).parent,
+        "BM25 parent": Path(BM25_DIR).parent,
+        "metadata": Path(METADATA_DIR),
+        "KB update logs": KB_UPDATE_LOG_DIR,
+    }
+    probe_results = {}
+    for label, path in probe_dirs.items():
+        ok, detail = _writable_directory_probe(path)
+        probe_results[label] = {"path": str(path), "writable": ok, "detail": detail}
+        if not ok:
+            issues.append(
+                f"{label} is not writable on this PC: {path}. Detail: {detail}"
+            )
+    diagnostics["write_probes"] = probe_results
+
+    try:
+        usage = shutil.disk_usage(Path(QDRANT_DIR).parent)
+        active_bytes = (
+            _tree_size_bytes(Path(QDRANT_DIR))
+            + _tree_size_bytes(Path(BM25_DIR))
+            + _tree_size_bytes(Path(METADATA_DIR))
+        )
+        source_bytes = sum(
+            int(Path(document).stat().st_size)
+            for document in (documents or [])
+            if Path(document).is_file()
+        )
+        required_free = max(
+            256 * 1024 * 1024,
+            int(active_bytes * 2.2 + source_bytes * 4.0 + 128 * 1024 * 1024),
+        )
+        diagnostics["disk"] = {
+            "free_bytes": int(usage.free),
+            "required_free_bytes": int(required_free),
+            "active_index_bytes": int(active_bytes),
+            "source_bytes": int(source_bytes),
+        }
+        if usage.free < required_free:
+            issues.append(
+                "Insufficient free disk space for a transactional KB rebuild and rollback copy. "
+                f"Free={usage.free // (1024**2)} MB, required~={required_free // (1024**2)} MB."
+            )
+    except Exception as error:
+        notes.append(
+            "Disk-space preflight could not be measured; the update can still continue if other checks pass. "
+            f"Detail: {type(error).__name__}: {error}"
+        )
+
+    return issues, notes, diagnostics
+
+
+def get_kb_update_preflight(documents=None):
+    """Return a concise, non-destructive KB-update readiness report."""
+    docs = list(documents if documents is not None else get_all_documents())
+    issues = []
+    notes = []
+    fs_issues, fs_notes, fs_diagnostics = _filesystem_preflight(docs)
+    issues.extend(fs_issues)
+    notes.extend(fs_notes)
+
+    if Path(DOCUMENT_DIR).name.casefold() != "technical_documents":
+        issues.append(
+            "The active knowledge root is not data/technical_documents. "
+            "Do not rebuild until config/settings.py is corrected."
+        )
+
+    if not docs:
+        issues.append(
+            "No supported source documents were found under data/technical_documents."
+        )
+
+    needed_modules = {"qdrant_client", "rank_bm25", "requests"}
+    needs_unstructured = False
+    for document in docs:
+        ext = Path(document).suffix.lower()
+        native_modules = _NATIVE_PARSER_MODULES.get(ext)
+        if native_modules is None:
+            needs_unstructured = True
+        else:
+            needed_modules.update(native_modules)
+
+    missing = sorted(name for name in needed_modules if not _module_available(name))
+    if missing:
+        issues.append(
+            "Missing Python dependencies: " + ", ".join(missing)
+            + ". Run Setup_DocuBot_Production_Environment.bat."
+        )
+
+    if needs_unstructured and not _module_available("unstructured"):
+        issues.append(
+            "At least one current source file needs the optional 'unstructured' "
+            "parser, but it is not installed. Run Setup_DocuBot_Production_Environment.bat."
+        )
+    elif not needs_unstructured and not _module_available("unstructured"):
+        notes.append(
+            "unstructured is not installed, but the current source set uses native "
+            "DocuBot loaders and can still be rebuilt safely."
+        )
+
+    if not issues:
+        qdrant_ok, qdrant_issue = _qdrant_storage_preflight()
+        if not qdrant_ok:
+            issues.append(qdrant_issue)
+
+    if not issues:
+        ollama_ok, ollama_issue = _ollama_embedding_preflight()
+        if not ollama_ok:
+            issues.append(ollama_issue)
+
+    return {
+        "ok": not issues,
+        "documents": docs,
+        "issues": issues,
+        "notes": notes,
+        "document_root": str(DOCUMENT_DIR),
+        "python_executable": sys.executable,
+        "filesystem": fs_diagnostics,
+    }
+
+
+def _write_failure_log(stage: str, error=None, details=None) -> Path:
+    KB_UPDATE_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = KB_UPDATE_LOG_DIR / f"kb_update_failure_{stamp}.txt"
+    lines = [
+        "DocuBot KB Update Failure",
+        "=" * 72,
+        f"Stage: {stage}",
+        f"Time : {datetime.now().isoformat(timespec='seconds')}",
+    ]
+    if details:
+        lines.append("Details:")
+        if isinstance(details, (list, tuple)):
+            lines.extend(f"- {item}" for item in details)
+        else:
+            lines.append(str(details))
+    if error is not None:
+        lines.append(f"Error: {type(error).__name__}: {error}")
+        lines.append("")
+        lines.append(traceback.format_exc())
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
 
 
 def get_update_plan():
-    """Classify the next KB action without mutating active indexes.
+    """Return the canonical production update plan.
 
-    Modes:
-      - noop: no source/index work is required
-      - incremental: add/update/delete or auxiliary BM25 repair can proceed safely
-      - full_rebuild: the active vector index must be regenerated as one transaction
+    The active source root is data/technical_documents only.  The portable
+    manifest format prevents a project copy to a different Windows path from
+    being misclassified as a delete+add of every unchanged source file.
     """
+
     documents = get_all_documents()
     old_manifest = ManifestManager.load()
     new_manifest = ManifestManager.build(documents, previous_manifest=old_manifest)
     changes = compare_manifests(old_manifest, new_manifest)
 
-    collection_count = None
-    collection_error = None
     try:
-        collection_count = get_collection().count()
+        from retrieval.qdrant_search import qdrant_collection_count
+
+        collection_count = qdrant_collection_count()
+        collection_error = None
     except Exception as error:
+        collection_count = None
         collection_error = str(error)
 
-    full_rebuild_reason = None
-
-    if _manifest_requires_full_rebuild(old_manifest):
-        full_rebuild_reason = (
-            "The embedding/index identity changed, so existing vectors are no longer compatible."
-        )
-    elif collection_error and documents:
-        full_rebuild_reason = (
-            "The active Chroma index could not be opened safely."
-        )
-    elif not old_manifest and documents and (collection_count or 0) > 0:
-        full_rebuild_reason = (
-            "An existing vector index has no usable tracking manifest."
-        )
-    elif old_manifest and documents and collection_count == 0:
-        full_rebuild_reason = (
-            "The active vector index is missing or empty while indexed documents are tracked."
-        )
-
+    reason = None
     has_document_changes = any(
         changes[name] for name in ("added", "updated", "deleted")
     )
 
-    if full_rebuild_reason:
-        mode = "full_rebuild"
-    elif has_document_changes or (documents and not bm25_is_ready()):
-        mode = "incremental"
-    else:
-        mode = "noop"
+    if _manifest_requires_full_rebuild(old_manifest):
+        reason = "The production schema/embedding identity changed."
+    elif collection_error and documents:
+        reason = f"The active Qdrant index could not be opened safely: {collection_error}"
+    elif not old_manifest and documents and (collection_count or 0) > 0:
+        reason = "An existing Qdrant index has no usable tracking manifest."
+    elif old_manifest and documents and collection_count == 0:
+        reason = "The active Qdrant index is missing or empty while documents are tracked."
+    elif has_document_changes:
+        reason = "Source-document changes require the certified transactional Qdrant rebuild."
+    elif documents and not bm25_is_ready():
+        reason = "BM25 companion data is missing or incomplete."
 
     return {
-        "mode": mode,
-        "reason": full_rebuild_reason,
+        "mode": "full_rebuild" if reason else "noop",
+        "reason": reason,
         "documents": documents,
         "old_manifest": old_manifest,
         "new_manifest": new_manifest,
@@ -156,426 +414,87 @@ def get_update_plan():
 
 def check_changes():
     plan = get_update_plan()
-
     if plan["mode"] != "noop":
         return True
 
-    old_manifest = plan["old_manifest"]
-    new_manifest = plan["new_manifest"]
-
-    # Enrich legacy manifests with cheap stat fingerprints and embedding identity
-    # once, without parsing or embedding unchanged source documents.
-    if new_manifest != old_manifest:
+    # Portable manifest metadata enrichment is allowed when content/index
+    # identity is unchanged; it does not touch Qdrant or BM25.
+    if plan["new_manifest"] != plan["old_manifest"]:
         try:
-            ManifestManager.save(new_manifest)
+            ManifestManager.save(plan["new_manifest"])
         except Exception:
-            # Metadata enrichment is an optimization and must not block startup.
             pass
-
     return False
 
 
-def canonical_path(file_path):
-    return os.path.normcase(str(Path(file_path).resolve()))
-
-
-def append_result_to_backup(backup, result):
-    ids = result.get("ids") or []
-    documents = result.get("documents") or []
-    metadatas = result.get("metadatas") or []
-    embeddings = result.get("embeddings")
-
-    for index, chunk_id in enumerate(ids):
-        if chunk_id in backup["seen_ids"]:
-            continue
-
-        backup["seen_ids"].add(chunk_id)
-        backup["ids"].append(chunk_id)
-        backup["documents"].append(documents[index])
-        backup["metadatas"].append(metadatas[index])
-        backup["embeddings"].append(
-            embeddings[index] if embeddings is not None else None
-        )
-
-
-def get_existing_file_payload(collection, manifest_info):
-    """Read old vectors before mutation so an update can be rolled back."""
-    backup = {
-        "ids": [],
-        "documents": [],
-        "metadatas": [],
-        "embeddings": [],
-        "records": [],
-        "seen_ids": set(),
-    }
-
-    candidate_paths = []
-    for field_name in ("indexed_file_path", "file_path"):
-        candidate_path = manifest_info.get(field_name)
-        if candidate_path and candidate_path not in candidate_paths:
-            candidate_paths.append(candidate_path)
-
-    for candidate_path in candidate_paths:
-        result = collection.get(
-            where={"file_path": candidate_path},
-            include=["documents", "metadatas", "embeddings"],
-        )
-        append_result_to_backup(backup, result)
-
-    if not backup["ids"]:
-        file_name = manifest_info.get("file_name") or Path(
-            manifest_info.get("file_path", "")
-        ).name
-
-        if file_name:
-            result = collection.get(
-                where={"file_name": file_name},
-                include=["documents", "metadatas", "embeddings"],
-            )
-            target_path = canonical_path(manifest_info.get("file_path", ""))
-            filtered = {
-                "ids": [],
-                "documents": [],
-                "metadatas": [],
-                "embeddings": [],
-            }
-            result_embeddings = result.get("embeddings")
-
-            for index, metadata in enumerate(result.get("metadatas") or []):
-                if canonical_path(metadata.get("file_path", "")) != target_path:
-                    continue
-
-                filtered["ids"].append(result["ids"][index])
-                filtered["documents"].append(result["documents"][index])
-                filtered["metadatas"].append(metadata)
-                filtered["embeddings"].append(
-                    result_embeddings[index] if result_embeddings is not None else None
-                )
-
-            append_result_to_backup(backup, filtered)
-
-    backup.pop("seen_ids", None)
-    backup["records"] = [
-        {"text": document, "metadata": metadata}
-        for document, metadata in zip(backup["documents"], backup["metadatas"])
-    ]
-    return backup
-
-
-def delete_payload(collection, payload):
-    if payload.get("ids"):
-        collection.delete(ids=payload["ids"])
-
-
-def restore_payload(collection, payload):
-    if not payload.get("ids"):
-        return
-
-    if any(embedding is None for embedding in payload.get("embeddings", [])):
-        raise RuntimeError(
-            "Old Chroma payload cannot be restored because embeddings were not returned."
-        )
-
-    collection.upsert(
-        ids=payload["ids"],
-        documents=payload["documents"],
-        metadatas=payload["metadatas"],
-        embeddings=payload["embeddings"],
-    )
-
-
-def rebuild_bm25_from_chroma(collection):
-    records = load_records_from_collection(collection)
-    BM25Indexer().build(records)
-    return len(records)
-
-
-def _prepare_changed_documents(changes, new_manifest):
-    """Parse files concurrently and batch-embed while other parses continue."""
-    work = []
-    for change_type in ("added", "updated"):
-        for document_key in changes[change_type]:
-            info = new_manifest[document_key]
-            work.append((change_type, document_key, Path(info["file_path"]), info["hash"]))
-
-    if not work:
-        return {}, [], 0
-
-    worker_count = min(max(1, INGESTION_MAX_WORKERS), len(work))
-    prepared = {}
-    failures = []
-    cache_hits = 0
-    embed_model = None
-
-    with ThreadPoolExecutor(
-        max_workers=worker_count,
-        thread_name_prefix="docubot-update",
-    ) as executor:
-        futures = {
-            executor.submit(process_document_task, file_path, file_hash): (
-                change_type,
-                document_key,
-                file_path,
-            )
-            for change_type, document_key, file_path, file_hash in work
-        }
-
-        for future in as_completed(futures):
-            change_type, document_key, file_path = futures[future]
-            result = future.result()
-            file_name = file_path.name
-
-            if result.get("cache_hit"):
-                cache_hits += 1
-
-            if result.get("error") is not None:
-                failures.append((file_name, str(result["error"])))
-                continue
-
-            records = result.get("records") or []
-            skip_reason = result.get("skip_reason")
-
-            if not records:
-                if not skip_reason:
-                    failures.append((file_name, "no valid chunks generated"))
-                    continue
-
-                prepared[document_key] = {
-                    "change_type": change_type,
-                    "file_name": file_name,
-                    "status": "skipped",
-                    "skip_reason": skip_reason,
-                    "payload": None,
-                    "record_count": 0,
-                }
-                continue
-
-            if embed_model is None:
-                print("Loading embedding model once for changed documents...")
-                embed_model = get_embedding_model()
-
-            payload, failed_count = prepare_records_for_storage(records, embed_model)
-            if failed_count > 0 or len(payload["records"]) != len(records):
-                failures.append((file_name, "one or more chunk embeddings failed"))
-                continue
-
-            prepared[document_key] = {
-                "change_type": change_type,
-                "file_name": file_name,
-                "status": "ready",
-                "skip_reason": None,
-                "payload": payload,
-                "record_count": len(records),
-            }
-
-    return prepared, failures, cache_hits
-
-
-def _rollback_chroma(collection, rollback_actions):
-    rollback_errors = []
-
-    for action in reversed(rollback_actions):
-        kind = action[0]
-        try:
-            if kind == "delete_new":
-                ids = action[1]
-                if ids:
-                    collection.delete(ids=ids)
-            elif kind == "restore_old":
-                restore_payload(collection, action[1])
-            elif kind == "replace_new_with_old":
-                new_ids, old_payload = action[1], action[2]
-                if new_ids:
-                    collection.delete(ids=new_ids)
-                restore_payload(collection, old_payload)
-        except Exception as error:
-            rollback_errors.append(str(error))
-
-    return rollback_errors
-
-
 def smart_build():
-    plan = get_update_plan()
-    documents = plan["documents"]
-    old_manifest = plan["old_manifest"]
-    new_manifest = plan["new_manifest"]
-    changes = plan["changes"]
+    """Safely rebuild the production KB, returning False instead of crashing UI."""
+    try:
+        plan = get_update_plan()
+        changes = plan["changes"]
 
-    print()
-    print("===== SMART KNOWLEDGE BASE UPDATE =====")
-    print()
-    print(f"Mode            : {plan['mode']}")
-    print(f"Documents found : {len(documents)}")
-    print(f"Added           : {len(changes['added'])}")
-    print(f"Updated         : {len(changes['updated'])}")
-    print(f"Deleted         : {len(changes['deleted'])}")
-    print(f"Unchanged/skip  : {len(changes['unchanged'])}")
-    print()
+        print("\n===== DOCUBOT PRODUCTION KB UPDATE =====")
+        print(f"Source root      : {DOCUMENT_DIR}")
+        print(f"Mode             : {plan['mode']}")
+        print(f"Documents found  : {len(plan['documents'])}")
+        print(f"Added            : {len(changes['added'])}")
+        print(f"Updated          : {len(changes['updated'])}")
+        print(f"Deleted          : {len(changes['deleted'])}")
+        print(f"Unchanged        : {len(changes['unchanged'])}")
 
-    if plan["mode"] == "full_rebuild":
-        print(f"Full rebuild required: {plan['reason']}")
-        return build_index()
+        if plan["mode"] == "noop":
+            print("No production document/index changes detected.")
+            return True
 
-    collection = get_collection()
+        preflight = get_kb_update_preflight(plan["documents"])
+        if not preflight["ok"]:
+            print("[FAIL] KB update preflight did not pass. Previous index was preserved.")
+            for issue in preflight["issues"]:
+                print(f"- {issue}")
+            log_path = _write_failure_log("preflight", details=preflight["issues"])
+            print(f"Diagnostic log: {log_path}")
+            return False
 
-    has_document_changes = any(
-        changes[name] for name in ("added", "updated", "deleted")
-    )
+        for note in preflight["notes"]:
+            print(f"[INFO] {note}")
 
-    if not has_document_changes and bm25_is_ready():
-        if new_manifest != old_manifest:
-            ManifestManager.save(new_manifest)
-        pruned = IngestionCache.prune(
-            [info.get("hash") for info in new_manifest.values()]
-        )
-        print("No document changes detected.")
-        print("All unchanged files were skipped; no parsing or embedding was run.")
-        if pruned:
-            print(f"Removed {pruned} stale cache entries.")
+        if plan.get("reason"):
+            print(f"Reason           : {plan['reason']}")
+        print("Action           : transactional full Qdrant v4 rebuild")
+
+        try:
+            from scripts.build_qdrant_index import build_qdrant_index
+        except Exception as error:
+            log_path = _write_failure_log("build-module import", error=error)
+            print("[FAIL] KB update could not start. Previous index was preserved.")
+            print(f"Diagnostic log: {log_path}")
+            return False
+
+        if not build_qdrant_index():
+            log_path = _write_failure_log(
+                "transactional rebuild",
+                details="build_qdrant_index returned False; review console output above.",
+            )
+            print(f"Diagnostic log: {log_path}")
+            return False
+
+        post_plan = get_update_plan()
+        if post_plan["mode"] != "noop":
+            details = post_plan.get("reason") or "Committed index did not pass post-check."
+            log_path = _write_failure_log("post-build health", details=details)
+            print("[FAIL] Rebuild finished but the committed KB did not pass the post-check.")
+            print(f"Diagnostic log: {log_path}")
+            return False
+
+        print("[PASS] Production Qdrant v4 + BM25 update completed successfully.")
         return True
 
-    prepared, preparation_failures, cache_hits = _prepare_changed_documents(
-        changes,
-        new_manifest,
-    )
-
-    if preparation_failures:
-        print("[ERROR] Update preparation failed. Active indexes were not changed.")
-        for file_name, reason in preparation_failures:
-            print(f"- {file_name}: {reason}")
-        return False
-
-    # Enrich unchanged entries with cheap stat/embedding signature metadata.
-    final_manifest = dict(old_manifest)
-    for document_key in changes["unchanged"]:
-        final_manifest[document_key] = new_manifest[document_key]
-
-    rollback_actions = []
-    try:
-        bm25_snapshot = snapshot_bm25_resources()
     except Exception as error:
-        print(f"[ERROR] Could not create BM25 safety snapshot: {error}")
-        print("Active indexes were not changed.")
+        log_path = _write_failure_log("unexpected smart_build failure", error=error)
+        print("[FAIL] KB update stopped safely. Previous working index was preserved.")
+        print(f"Diagnostic log: {log_path}")
         return False
-
-    successful_added = []
-    successful_updated = []
-    successful_deleted = []
-    skipped_documents = []
-
-    try:
-        # Apply deletions only after all new/updated documents are safely parsed
-        # and embedded. This keeps the active KB untouched during expensive work.
-        for document_key in changes["deleted"]:
-            old_info = old_manifest[document_key]
-            file_name = old_info.get("file_name") or Path(
-                old_info.get("file_path", "")
-            ).name
-            old_payload = get_existing_file_payload(collection, old_info)
-            delete_payload(collection, old_payload)
-            rollback_actions.append(("restore_old", old_payload))
-            final_manifest.pop(document_key, None)
-            successful_deleted.append(file_name)
-            print(f"[DELETED] {file_name} ({len(old_payload['ids'])} chunks)")
-
-        for change_type in ("added", "updated"):
-            for document_key in changes[change_type]:
-                item = prepared[document_key]
-                new_info = dict(new_manifest[document_key])
-                file_name = item["file_name"]
-                old_payload = None
-
-                if change_type == "updated":
-                    old_payload = get_existing_file_payload(
-                        collection,
-                        old_manifest[document_key],
-                    )
-                    delete_payload(collection, old_payload)
-
-                if item["status"] == "skipped":
-                    if change_type == "updated":
-                        rollback_actions.append(("restore_old", old_payload))
-                    new_info["index_status"] = "skipped"
-                    new_info["skip_reason"] = item["skip_reason"]
-                    final_manifest[document_key] = new_info
-                    skipped_documents.append((file_name, item["skip_reason"]))
-                    print(f"[SKIPPED] {file_name}: {item['skip_reason']}")
-                    continue
-
-                payload = item["payload"]
-                try:
-                    upsert_prepared_records(collection, payload)
-                except Exception:
-                    if change_type == "updated":
-                        restore_payload(collection, old_payload)
-                    raise
-
-                if change_type == "updated":
-                    rollback_actions.append(
-                        ("replace_new_with_old", payload["ids"], old_payload)
-                    )
-                    successful_updated.append(file_name)
-                    print(f"[UPDATED] {file_name} ({item['record_count']} chunks)")
-                else:
-                    rollback_actions.append(("delete_new", payload["ids"]))
-                    successful_added.append(file_name)
-                    print(f"[ADDED] {file_name} ({item['record_count']} chunks)")
-
-                final_manifest[document_key] = new_info
-
-        print()
-        print("Rebuilding BM25 from current Chroma text only...")
-        bm25_chunk_count = rebuild_bm25_from_chroma(collection)
-
-        ManifestManager.save(final_manifest)
-
-    except Exception as error:
-        print(f"[ERROR] Incremental update commit failed: {error}")
-        rollback_errors = _rollback_chroma(collection, rollback_actions)
-        restore_bm25_resources(bm25_snapshot)
-        try:
-            ManifestManager.save(old_manifest)
-        except Exception:
-            pass
-
-        if rollback_errors:
-            print("[ERROR] One or more rollback operations also failed:")
-            for reason in rollback_errors:
-                print(f"- {reason}")
-        else:
-            print("Previous Chroma/BM25/manifest state was restored.")
-
-        return False
-    finally:
-        discard_bm25_snapshot(bm25_snapshot)
-
-    active_hashes = [info.get("hash") for info in final_manifest.values()]
-    pruned_cache_entries = IngestionCache.prune(active_hashes)
-
-    get_chroma_collection.clear()
-    get_bm25_resources.clear()
-
-    print()
-    print("===== INCREMENTAL UPDATE SUMMARY =====")
-    print(f"Added successfully   : {len(successful_added)}")
-    print(f"Updated successfully : {len(successful_updated)}")
-    print(f"Deleted successfully : {len(successful_deleted)}")
-    print(f"Unchanged skipped    : {len(changes['unchanged'])}")
-    print(f"Validation skipped   : {len(skipped_documents)}")
-    print(f"Chunk cache hits     : {cache_hits}")
-    print(f"BM25 chunks          : {bm25_chunk_count}")
-    print(f"Cache entries pruned : {pruned_cache_entries}")
-
-    if skipped_documents:
-        print()
-        print("Validation-skipped documents:")
-        for file_name, reason in skipped_documents:
-            print(f"- {file_name}: {reason}")
-
-    print("======================================")
-    print()
-    return True
 
 
 if __name__ == "__main__":
-    smart_build()
+    raise SystemExit(0 if smart_build() else 1)

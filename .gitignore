@@ -23,3 +23,7 @@ storage/bm25/
 # OS
 .DS_Store
 Thumbs.db
+storage/metadata/
+storage/cache/
+storage/storage.zip
+logs/

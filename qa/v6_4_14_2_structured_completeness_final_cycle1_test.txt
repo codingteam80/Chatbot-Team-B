@@ -1,0 +1,66 @@
+DocuBot v6.4.14.2 - Structured Completeness + Final Cycle-1 Recovery
+
+PURPOSE
+-------
+Validate the final v6.4.14.x Cycle-1 recovery while protecting structured-document
+semantics. This release is not considered 78/78 validated until the real Windows /
+Ollama baseline-comparison runner completes and its reports are reviewed.
+
+AUTOMATED BASELINE COMPARISON
+-----------------------------
+Double-click:
+
+    Run_Robustness_QA_Baseline_Compare.bat
+
+Expected run identity:
+- Suite: full
+- Cycle: 1
+- Seed: 1789101877
+- Shuffle: True
+- Planned turns: 78
+
+Send these generated files for review:
+- summary.txt
+- results.csv
+- results.json
+- test evidence log if available
+
+TARGET
+------
+- PASS: 78
+- FAIL: 0
+- ERROR: 0
+
+STRUCTURED-DOCUMENT SPOT CHECKS
+-------------------------------
+The following are manual spot checks only. They must remain grounded in the actual
+source document and must not synthesize a missing labeled block.
+
+1. What is the rationale of Rule 1.2?
+   - Return only the explicit Rationale block.
+
+2. What is the amplification of Rule 1.2?
+   - If the source has no explicit Amplification block for Rule 1.2, return the
+     standard company-knowledge fallback. Do not relabel Rationale as Amplification.
+
+3. Show the examples for Rule 1.2.
+   - An inline phrase such as "For example" inside Rationale is not an Example block.
+     If no explicit Example/Examples block exists, return the standard fallback.
+
+4. What are the exceptions for Directive 4.6?
+   - Return only the explicit Exception/Exceptions block.
+
+5. Ask an exact Article / Chapter / Part identifier that exists in a test document.
+   - Retrieval must remain exact and use the same section metadata path.
+
+6. Ask a Rule/Directive/Section answer whose metadata contains page information.
+   - Source presentation should preserve Page/Pages and the exact structured reference.
+
+RELEASE SAFETY
+--------------
+- Do not lower the global 0.55 confidence threshold to force a pass.
+- Do not hardcode MISRA, history, leave, or any test-corpus facts into production logic.
+- Preserve the accepted v6.4.12 sidebar/UI behavior.
+- No pip install is required.
+- No Knowledge Base rebuild is required.
+- Keep the existing storage directory.

@@ -1,0 +1,42 @@
+DocuBot v6.4.29 - Authoritative MISRA Runtime + Source Format Recovery
+====================================================================
+
+Trigger evidence
+----------------
+Actual Windows/Ollama v6.4.28 result returned 2/7 PASS, 5 FAIL, 0 ERROR.
+M-001 through M-004 still fell back with zero accepted chunks. F-001 returned
+Rule 1.2 but omitted Category, Analysis and Applies to even though those labels
+were present in the accepted source chunk. M-005 safe MISRA C++ fallback and
+G-001 secondary company-document behavior passed.
+
+Recovery
+--------
+1. Natural MISRA rule-body rescue now reads the authoritative on-disk
+   storage/bm25/corpus.pkl directly before touching any Streamlit/process-local
+   cached retriever object. The normal global retriever and 0.55 threshold stay
+   unchanged.
+2. Only actual structured MISRA Rule/Directive body records are eligible for
+   deterministic cue rescue. No canned question maps directly to a Rule number.
+3. If authoritative rescue does not match, the previous cached-BM25 rescue and
+   then the existing source-scoped hybrid/reranker path remain available.
+4. Runtime QA records an explicit rescue probe: record count, citable rule-body
+   count, semantic cues, and matched structured references. This distinguishes
+   source/index problems from answer-path problems in returned evidence.
+5. Exact Rule/Directive explanation formatting now deterministically preserves
+   the source labels Category, Analysis, Applies to, then the available
+   Amplification/Rationale/Examples/Exceptions/See also blocks in source-like
+   order. Missing labels are not invented.
+6. Existing concise exact statement questions remain concise; the expanded
+   formatting applies to explanation intent such as "Explain Rule 1.2."
+
+Unchanged policy
+----------------
+- llama3.2:3b fast model
+- qwen2.5:7b complex model
+- intfloat/multilingual-e5-base embeddings
+- BAAI/bge-reranker-base
+- global minimum retrieval score 0.55
+- existing chunking/index policy
+- data/all_documents corpus behavior
+- no learning-from-Q&A feature
+- no cleanup/deletion scope

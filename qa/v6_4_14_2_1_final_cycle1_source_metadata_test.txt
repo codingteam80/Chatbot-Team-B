@@ -1,0 +1,94 @@
+DocuBot v6.4.14.2.1 - Final Cycle-1 100% Recovery + Source Metadata
+
+PURPOSE
+-------
+Validate the final Cycle-1 recovery plus explicit structured missing-detail behavior,
+source Page/Pages/reference propagation, and the remaining conversation/quality fixes.
+The release is not considered 78/78 validated until the real Windows/Ollama runner
+completes and its reports are reviewed.
+
+AUTOMATED BASELINE COMPARISON
+-----------------------------
+Double-click:
+
+    Run_Robustness_QA_Baseline_Compare.bat
+
+Expected run identity:
+- Suite: full
+- Cycle: 1
+- Seed: 1789101877
+- Shuffle: True
+- Planned turns: 78
+
+Send for review:
+- summary.txt
+- results.csv
+- results.json
+- test evidence log if available
+
+TARGET
+------
+- PASS: 78
+- FAIL: 0
+- ERROR: 0
+
+STRUCTURED MISSING-DETAIL SPOT CHECKS
+-------------------------------------
+1. What is the rationale of Rule 1.2?
+   - Return only the explicit Rationale block.
+
+2. What is the amplification of Rule 1.2?
+   - If Rule 1.2 exists but has no explicit Amplification block, answer exactly in
+     this form (wording may vary only for the reference):
+       No Amplification section is provided for Rule 1.2 in the available company knowledge.
+   - Do not relabel Rationale as Amplification.
+   - Keep the source/Page/reference metadata because the Rule was found and checked.
+
+3. Show the examples for Rule 1.2.
+   - An inline phrase such as "for example" inside Rationale is not an Example block.
+   - If no explicit Example/Examples block exists, clearly say that no Example section
+     is provided for Rule 1.2 in the available company knowledge.
+
+4. What are the exceptions for Directive 4.6?
+   - Return only the explicit Exception/Exceptions block.
+
+5. Ask for a completely nonexistent Rule/Directive/Section identifier.
+   - The exact fallback must remain:
+       Information not found in company knowledge base.
+
+SOURCE METADATA SPOT CHECKS
+---------------------------
+- For an exact structured answer or verified missing-detail answer, the source chip
+  should preserve filename + Page/Pages + structured reference when those metadata
+  exist (for example Page 47 · Rule 1.2 or Pages 36–38 · Dir 4.6).
+
+ARTICLE / CHAPTER / PART QA
+---------------------------
+- Use a real/synthetic QA fixture that contains an actual Article, Chapter, or Part
+  identifier and ask that concrete identifier (for example "What is Article 3?").
+- Do NOT use the literal instruction text "Ask an exact Article / Chapter / Part..."
+  as the question. Exact lookup must use the shared section metadata path.
+
+QUALITY SPOT CHECKS
+-------------------
+- Give a short profile of Jose Rizal from the knowledge base.
+  -> Must not fail only because the stored filename contains a Unicode marker/accent.
+- Nauna ba ang deklarasyon ng kalayaan noong Hunyo 1898 kaysa pagpirma sa Treaty of Paris?
+  -> Must compare two grounded event dates and explicitly answer the ordering.
+- Treaty chain: signing date -> Which countries were parties to it?
+  -> "it" must retain the Treaty referent.
+- Tagalog Katipunan chain: short explanation -> Sino ang isa sa mga nagtatag nito?
+  -> "nito" must retain the Katipunan referent.
+- What does it say about decidability? after a Section 6 overview chain.
+  -> Prefer the explanatory decidability passage, not a compact presentation/schema row.
+- Ano ang Katipunan sa maikling paliwanag?
+  -> Prefer a concise grounded entity overview rather than incidental alphabet/Rizal details.
+
+RELEASE SAFETY
+--------------
+- Do not lower the global 0.55 confidence threshold.
+- Do not hardcode test-corpus facts into production logic.
+- Preserve the accepted v6.4.12 sidebar/UI behavior.
+- No pip install is required.
+- No Knowledge Base rebuild is required.
+- Keep the existing storage directory.

@@ -1,0 +1,28 @@
+DocuBot v6.4.94 — Operational Smoke / Next Gate
+================================================
+
+RUN ONLY AFTER:
+- v6.4.94 validator = PASS
+- KB Health = PASS
+- result ZIP reviewed
+
+Normal launch:
+  VS Code -> run.py
+
+Smoke checks:
+1. Confirm DocuBot opens normally and no obsolete PDF server/port 8502 message appears.
+2. Confirm a normal source card opens the PDF from data\technical_documents.
+3. Ask: What are the rules for compiler switch?
+   Expected: clarification between a specific compiler switch/flag and general compiler configuration.
+4. Ask: What compiler options should be reviewed?
+   Expected: Section 5.3.1 compiler configuration guidance.
+5. Ask Rule 17 overview, then ask: Is it ok to use trigraphs?
+   Expected: trigraph question is standalone and starts with No.; no Rule 17 follow-up contamination.
+6. If the UI says the KB is unchanged, DO NOT force a rebuild just for testing.
+7. If a real authorized source file is later added/modified under data\technical_documents,
+   Update Knowledge Base must fail safely with the old index preserved if an environment dependency is unavailable.
+
+MultiQuery / RAGAS:
+- v6.4.94 only prepares the centralized MultiQuery experiment setting/prompt.
+- Production MultiQuery remains OFF by default.
+- Next phase: unseen Golden set -> baseline Precision/Recall/RAGAS -> MultiQuery A/B -> promote only if metrics justify it.

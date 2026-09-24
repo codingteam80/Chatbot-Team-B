@@ -1,0 +1,46 @@
+{
+  "version": "v6.4.99",
+  "milestone": "Semantic Concept Canonicalization + Deterministic Rescue Hardening",
+  "base_runtime": "verified v6.4.98 Runtime Intent + Evidence Selection Hardening",
+  "runtime_files_changed": [
+    "services/misra_compliance.py",
+    "services/answer_service.py"
+  ],
+  "hardening": {
+    "unused_parameter_semantic_paraphrase_convergence": true,
+    "function_argument_colloquial_alias_guarded": true,
+    "never_or_not_used_parameter_phrase_support": true,
+    "post_multilingual_normalization_misra_promotion": true,
+    "authoritative_rule_body_rescue_before_multiquery_fallback": true,
+    "v6_4_98_runtime_intent_hardening_preserved": true
+  },
+  "multi_query": {
+    "enabled_by_default": true,
+    "alternative_count": 2,
+    "structured_output_enabled_by_default": true,
+    "response_format": "Ollama JSON schema",
+    "temperature": 0,
+    "thinking_requested": false,
+    "original_query_retained": true,
+    "fusion": "RRF",
+    "algorithm_changed": false
+  },
+  "architecture_lock": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55
+  },
+  "model_stack_changed": false,
+  "retrieval_threshold_or_topk_changed": false,
+  "multi_query_algorithm_changed": false,
+  "chunking_changed": false,
+  "kb_rebuild": false
+}

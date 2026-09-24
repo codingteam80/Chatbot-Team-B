@@ -1,0 +1,14 @@
+DocuBot v6.4.82 Cleanup / Finalization
+========================================================================
+Applied: 2026-09-19T10:19:42
+Base: v6.4.81 Phase-8 candidate PASS
+Legacy archive: C:\user_dev\company-chatbot_Legacy_Archive_v6.4.81_20260919_101942
+Historical logs/test evidence: PRESERVED in project logs/
+Office hardware acceptance: DEFERRED
+
+Payload files copied: 28
+Legacy paths moved out of active project: 111
+Evidence/history items organized inside project: 46
+
+Normal execution: VS Code -> run.py
+Canonical stack: Qwen2.5:7B + Qwen3-Embedding-8B + BM25 + Qdrant v4 + BGE reranker

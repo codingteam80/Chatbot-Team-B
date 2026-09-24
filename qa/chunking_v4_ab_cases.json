@@ -1,0 +1,72 @@
+[
+  {
+    "id": "AB-001",
+    "question": "Why is a Boolean-controlled switch discouraged?",
+    "expected_phrases": ["if-else", "more appropriate"],
+    "expected_reference": "16.7",
+    "focus": "rationale parent-anchor"
+  },
+  {
+    "id": "AB-002",
+    "question": "Give an example where the default label is in the wrong position in a switch.",
+    "expected_phrases": ["default is mixed with the case labels"],
+    "expected_reference": "16.5",
+    "focus": "example parent-anchor and See-also isolation"
+  },
+  {
+    "id": "AB-003",
+    "question": "Why does a switch need a default label?",
+    "expected_phrases": ["defensive programming"],
+    "expected_reference": "16.4",
+    "focus": "rationale parent-anchor"
+  },
+  {
+    "id": "AB-004",
+    "question": "What is the concern with a switch that has only one path?",
+    "expected_phrases": ["single path", "redundant"],
+    "expected_reference": "16.6",
+    "focus": "rationale parent-anchor"
+  },
+  {
+    "id": "AB-005",
+    "question": "Why is pointer arithmetic with plus or minus discouraged?",
+    "expected_phrases": ["pointer", "array subscript"],
+    "expected_reference": "18.4",
+    "focus": "long rationale identity retention"
+  },
+  {
+    "id": "AB-006",
+    "question": "Why should macro parameter expressions be parenthesized?",
+    "expected_phrases": ["operator precedence"],
+    "expected_reference": "20.7",
+    "focus": "rationale parent-anchor"
+  },
+  {
+    "id": "AB-007",
+    "question": "Why is recursion dangerous in safety-related C code?",
+    "expected_phrases": ["stack", "worst-case"],
+    "expected_reference": "17.2",
+    "focus": "rationale parent-anchor"
+  },
+  {
+    "id": "AB-008",
+    "question": "Why does MISRA prohibit dynamic memory allocation?",
+    "expected_phrases": ["dynamic memory", "undefined"],
+    "expected_reference": "4.12",
+    "focus": "Directive rationale parent-anchor"
+  },
+  {
+    "id": "AB-009",
+    "question": "Why are persistent side effects on the right side of logical AND or OR a problem?",
+    "expected_phrases": ["right-hand operand", "side effects"],
+    "expected_reference": "13.5",
+    "focus": "Rule rationale parent-anchor"
+  },
+  {
+    "id": "AB-010",
+    "question": "What is MISRA's concern with trigraphs?",
+    "expected_phrases": ["trigraph"],
+    "expected_reference": "4.2",
+    "focus": "short Rule retrieval identity"
+  }
+]

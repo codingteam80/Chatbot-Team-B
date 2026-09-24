@@ -1,0 +1,9 @@
+DocuBot v6.4.58 Structured-Family Context-Cap Fix
+
+Office v6.4.57 evidence: OC-014 remained 15/16 overall. The LLM route reported a complete structured-family deterministic path but source_count=6. Diagnostic evidence had already proved Rule 16.7 exists in BM25, PDF, parser, cache, and direct family reconciliation.
+
+Root cause: retrieval/retriever.py build_context() sliced every result set to the generic query context limit (6) after retrieve() had already returned the complete seven-member structured family.
+
+Fix: when the returned result set is wholly marked as one structured topic family, preserve the full bounded family through context assembly. Ordinary retrieval retains the existing generic Top-K cap.
+
+No model, embedding, reranker, threshold, source data, cache schema, or index schema change.

@@ -1,0 +1,32 @@
+{
+  "version": "v6.4.91",
+  "milestone": "Answer Contract & UX Hardening",
+  "base": "v6.4.90.3 Centralized Causal Intent",
+  "runtime_files_changed": [
+    "services/answer_service.py",
+    "services/misra_compliance.py",
+    "retrieval/retriever.py"
+  ],
+  "improvements": {
+    "yes_no_contract": "Determinable MISRA yes/no questions start with Yes. or No. before the grounded explanation. Classification-choice questions remain non-binary.",
+    "bare_rule_family_clarification": "A bare major identifier such as Rule 17 is resolved to its indexed 17.x family and asks the user for an exact child Rule instead of a generic fallback.",
+    "rationale_cross_reference_sources": "When a Rule rationale explicitly defers to an exact Section, both the Rule and followed Section remain visible as supporting sources.",
+    "single_item_structured_list_format": "One-item structured list answers preserve heading, scope note, and bullet layout instead of being flattened into malformed bullets.",
+    "comparison_wording": "Comparison difference wording is less repetitive while preserving the exact authoritative Rule statements.",
+    "quiet_apply_output": "Normal apply/validation output uses concise PASS/INFO messages. True blocking conditions still stop safely with one concise FAIL."
+  },
+  "unchanged": {
+    "generation_model": "qwen2.5:7b",
+    "embedding_model": "qwen3-embedding:8b",
+    "reranker": "BAAI/bge-reranker-v2-m3",
+    "vector_backend": "qdrant",
+    "chunking_profile": "v4",
+    "chunk_size": 900,
+    "chunk_overlap": 150,
+    "vector_top_k": 10,
+    "bm25_top_k": 10,
+    "final_top_k": 3,
+    "minimum_retrieval_score": 0.55,
+    "kb_rebuild": false
+  }
+}

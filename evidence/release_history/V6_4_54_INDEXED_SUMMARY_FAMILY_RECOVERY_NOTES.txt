@@ -1,0 +1,33 @@
+DocuBot v6.4.54 — Option C Indexed-Summary Family Recovery
+================================================================
+
+Office evidence
+---------------
+- v6.4.53 actual office QA: 15/16 PASS.
+- OC-015 Rule 16.6 minimum-count handling: PASS.
+- OC-016 trigraph polarity: PASS.
+- Only OC-014 failed because Rule 16.7 was absent from the returned structured
+  family. The OC-014 result contained Rule 16.1–16.6 and no source-recovered
+  supplement.
+
+Correction
+----------
+- Retain direct structured Rule records as the primary source.
+- Retain the v6.4.53 live source-PDF reconciliation as the first supplement.
+- If a family is still incomplete, parse only authoritative indexed chunks whose
+  section is explicitly `Summary of guidelines` (Appendix A).
+- Recover only literal `Rule <major>.<n>` headings and the text up to the next
+  Rule heading. Bare cross-references are not accepted.
+- The recovery is dynamic/source-grounded; no Rule 16.7 requirement text is
+  embedded in production code.
+
+Architecture
+------------
+Unchanged: qwen3-embedding:8b + BM25/Qdrant + BAAI/bge-reranker-v2-m3 +
+qwen2.5:7b generation when needed. No threshold, Top-K, chunking, index schema,
+source-data, or storage change.
+
+Office acceptance
+-----------------
+Apply the exact patch to v6.4.53 and run Run_Option_C_Technical_QA.bat.
+A rebuild is not required for this patch. Target: 16/16 PASS.

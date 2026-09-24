@@ -1,0 +1,28 @@
+DocuBot v6.4.90.3 — Final Focused Generalization Retest
+=========================================================
+
+RUN ONLY AFTER:
+- v6.4.90.3 validator = PASS
+- KB Health = PASS
+- result ZIP reviewed
+
+Use VS Code -> run.py and a fresh chat.
+
+1. Why does Rule 10.6 exist?
+2. What is the reason for Rule 10.6?
+3. What motivated Rule 10.6?
+4. What is the basis for Rule 10.6?
+5. What is Rule 10.6 trying to achieve?
+6. What are the rules for compiler switch?
+7. What are the rules for switch statement?
+8. ISO C Portability issue references?
+
+Expected:
+- #1-#5 use the same grounded causal-intent behavior and follow Section 8.10.3.
+- #6 remains compiler/toolchain guidance and must not become Rule 16.x.
+- #7 remains Rule 16.1-16.7 switch-statement guidance.
+- #8 remains deterministic Section 6.10.1 fast-path output.
+
+If these pass, the next stage is a NEW unseen robustness set across unrelated
+MISRA topics and phrasing. The project is not accepted based only on these
+known prompts.

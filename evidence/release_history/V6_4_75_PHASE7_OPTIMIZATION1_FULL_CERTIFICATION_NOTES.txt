@@ -1,0 +1,42 @@
+DocuBot v6.4.75 — Phase 7 Optimization #1 Full Certification
+================================================================
+
+Purpose
+-------
+Certify the v6.4.74 latency candidate without changing its fast-path logic.
+This release is certification/tooling only.
+
+Required gates in one run
+-------------------------
+1. v6.4.74 Optimization #1 trial: 7/7 quality guards and 7/7 optimization guards.
+2. Option-C Technical QA: 16/16 PASS.
+3. English Natural Benchmark: 19/19 PASS.
+4. Active-corpus OOD safety probe: identity-style wording around terms that really
+   exist in the company corpus must not take the zero-footprint OOD shortcut;
+   non-identity wording must never use that shortcut.
+
+Production baseline
+-------------------
+Chunking profile: v4
+Production storage: storage/option_c_qwen3_qdrant_v4
+Generation: qwen2.5:7b
+Embedding: qwen3-embedding:8b
+Reranker: BAAI/bge-reranker-v2-m3
+Chunk size / overlap: 900 / 150
+
+No model, threshold, Top-K, chunking, index, source document, or storage-content
+change is made by v6.4.75.
+
+Run
+---
+Run_Phase7_Optimization1_Full_Certification.bat
+
+Expected combined evidence
+--------------------------
+logs\phase7_optimization1_certification\
+DocuBot_Phase7_Optimization1_Full_Certification_Result_*.zip
+
+Acceptance
+----------
+Optimization #1 becomes the accepted Phase-7 baseline only after the combined
+result reports PASS for all four gates above.

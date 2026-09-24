@@ -1,0 +1,49 @@
+DocuBot v6.4.68 — Phase-6 Chunking-v4 Experimental A/B Trial
+================================================================
+
+BASELINE
+- Certified Control A: v6.4.67.
+- Office Option-C Technical: 16/16 PASS.
+- Accepted English Natural: 19/19 PASS.
+- Current production chunking/profile stays v3 by default.
+
+EXPERIMENT B
+- Opt-in only: DOCUBOT_CHUNKING_PROFILE=v4.
+- Isolated storage: storage\experiments\chunking_v4.
+- Production Control A stays at storage\option_c_qwen3_qdrant.
+- Same Qwen2.5:7B generation model.
+- Same Qwen3-Embedding-8B.
+- Same BGE-reranker-v2-m3.
+- Same vector/BM25 weights, thresholds, Top-K, 900 chunk size, 150 overlap.
+- Same technical source PDF.
+
+V4 CHUNK REPRESENTATION
+- Keep existing structure-aware PDF Rule/Directive detection.
+- Inherit the parent Rule/Directive anchor into Rationale, Example,
+  Amplification, Exception, Note roles.
+- Split inline See also tails into their own cross_reference units.
+- Preserve all source text; do not drop cross references.
+- Reset parent scope at a new non-subordinate document section.
+- Use a separate v4 index schema/cache token.
+
+SAFETY
+- Experimental builder refuses to target the certified production storage root.
+- Default settings remain v3 and the original production storage path.
+- Production builder BAT does not set the v4 profile.
+- A/B benchmark snapshots both Qdrant stores read-only and does not modify them.
+- No automatic promotion: any v4 retrieval regression rejects the experiment.
+
+WORKFLOW
+1. Apply this trial patch to v6.4.67.
+2. Run Run_Phase6_Chunking_v4_Trial.bat.
+3. It builds Experimental B, then runs the retrieval-only A/B benchmark.
+4. Upload logs\chunking_v4_ab\DocuBot_Chunking_v4_AB_Result_*.zip.
+5. If B is promising with no coverage regression, run full Technical 16/16
+   and English 19/19 against B before any production promotion.
+6. If B is equal/worse, keep Control A and delete the experimental folder if desired.
+
+LOCAL PRE-PACKAGE VALIDATION
+- New Phase-6 focused tests cover parent anchors, See-also isolation,
+  scope reset, actual MISRA 16.5/16.7 extraction, default-v3 safety,
+  experimental storage isolation, and A/B rejection policy.
+- Actual embeddings/Qdrant A/B must run on the office Windows/Ollama machine.

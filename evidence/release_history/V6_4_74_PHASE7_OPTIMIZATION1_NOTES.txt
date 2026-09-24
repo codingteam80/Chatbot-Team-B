@@ -1,0 +1,41 @@
+DocuBot v6.4.74 — Phase 7 Optimization #1 Trial
+================================================
+
+Purpose
+-------
+Reduce the two largest measured wastes from the v6.4.73 lower-spec profiling
+baseline without changing models, retrieval thresholds, Top-K, Chunking-v4,
+Qdrant data, or the source-grounding contract.
+
+Optimization A — self-verified deterministic MISRA reviewer finalization
+--------------------------------------------------------------------------
+For visible-code multi-rule MISRA reviews, DocuBot first builds the existing deterministic
+assessment. The LLM is skipped only if that answer:
+  1) is built from strong structured/rule-body evidence,
+  2) cites only accepted references, and
+  3) passes the existing generated_assessment_is_aligned semantic guard.
+
+This directly targets EN-007 and OC-007, where profiling showed 10–30 seconds
+spent on Qwen generation even though deterministic visible-code states were
+already complete.
+
+Optimization B — conservative identity-only OOD fast fail
+---------------------------------------------------------
+For identity-style questions such as "Who was Jose Rizal?", after the existing
+BM25 identity fast path fails, DocuBot may skip vector/reranker loading only when:
+  - the requested subject contains at least two meaningful tokens, and
+  - none of those tokens appears anywhere in the active company corpus or source
+    titles.
+
+Any token footprint, non-identity wording, compound/list intent, or source-scoped
+retrieval keeps the normal certified semantic path.
+
+Trial
+-----
+Run_Phase7_Optimization1_Trial.bat
+
+Expected output:
+  logs\phase7_optimization1\DocuBot_Phase7_Optimization1_Result_*.zip
+
+The trial reuses the same seven v6.4.73 scenarios and requires both the existing
+quality guards and the new optimization-activation guards to pass.

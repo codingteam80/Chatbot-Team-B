@@ -1,0 +1,37 @@
+DocuBot v6.4.37 - Generic Multiline Natural MISRA Interpretation
+=================================================================
+Base: v6.4.36 expanded natural MISRA generalization + composer reset.
+
+Trigger evidence (actual Windows/Streamlit/Ollama manual session, 2026-09-15):
+- test_evidence_2026-09-15_07-52-00.log/.csv recorded 15 ad-hoc natural MISRA/code questions.
+- 1/15 returned a grounded deterministic answer; 14/15 returned the safe fallback.
+- Evidence proved the backend received each full multiline question and code snippet, not only the first line.
+- The repeated failure point was semantic interpretation: natural MISRA mode was detected but many constructs produced semantic_cues=[] and then generic hybrid/reranker retrieval rejected all context at the unchanged 0.55 threshold.
+- The previously successful x++/logical-condition case also exposed a quality problem: cue matching could call Rule 13.3 a potential violation even when no additional side effect was present in the same full expression.
+
+v6.4.37 focused recovery:
+1) Added a conservative code-only interpretation view for mixed natural-language + multiline prompts. The original full question remains intact for intent/history/retrieval; syntax/data-flow analysis uses only C-like lines so prose such as "Okay ba yung if(p)?" cannot be mistaken for executable code.
+2) Added generic visible-construct interpretation across the complete snippet, with no question-to-Rule mapping:
+   - file-scope/static-vs-automatic initialization context -> Rule 9.1 source body
+   - unbraced selection/iteration body -> Rule 15.6
+   - increment/decrement full-expression assessment -> Rule 13.3 with compliant/non-compliant state
+   - known out-of-range array index -> Rule 18.1
+   - pointer + / - / += / -= arithmetic -> Rule 18.4
+   - signed operand used in shift -> Rule 10.1
+   - unreachable statement after return -> Rule 2.1
+   - obvious overwritten/unused dead store -> Rule 2.2
+   - for(;;) exception + single early break -> Rule 14.2 + Rule 15.4 compliant assessment
+   - switch with at least two clauses when no switch violation is present -> Rule 16.6 compliant assessment
+   - pointer used directly as controlling expression -> Rule 14.4
+   - signed/unsigned comparison under usual arithmetic conversions -> Rule 10.4
+   - automatic local with only conditional assignment before later read -> Rule 9.1
+   - unparenthesized function-like macro parameter expansion -> Rule 20.7
+   - non-void function with a visible fall-through exit path -> Rule 17.4
+3) Deterministic MISRA finalization now carries a per-candidate assessment state. Strong source-proven constructs may be reported as compliant when the source requirement/exception is visibly satisfied instead of every cue being labeled a violation.
+4) Fixed Rule 13.3/13.5 false-positive pressure: control keywords are no longer treated as function calls, and &&/|| only emits the persistent-side-effect cue when the right-hand operand visibly contains such a side effect.
+5) All matching still resolves only against the authoritative 173 structured Rule/Directive bodies (156 Rules + 17 Directives). No Rule/Directive number is inserted by the natural-language detector.
+6) Models/retrieval/indexing remain unchanged: llama3.2:3b + qwen2.5:7b, multilingual-e5-base, BAAI/bge-reranker-base, global 0.55 threshold, chunking, data/all_documents, and storage unchanged.
+
+Windows validation required before locking v6.4.37:
+- Run_MISRA_Natural_QA.bat, now expanded with M-025..M-039 for the latest 15 human-natural scenarios and explicit compliant/non-compliant checks.
+- Re-run several free-form manual phrasings that were not copied from the QA runner and return the latest logs/test_evidence .log/.csv.

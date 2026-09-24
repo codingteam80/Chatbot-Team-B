@@ -1,0 +1,35 @@
+DocuBot v6.4.81 — FINAL Office / Deployment-PC Acceptance Checklist
+=====================================================================
+
+Run this only on the actual target office/deployment PC after the v6.4.81 hotfix is applied.
+
+1. Close any other DocuBot QA/Streamlit process that may hold local Qdrant resources.
+2. Do NOT rebuild the KB and do NOT run pip install unless a separate blocker is proven.
+3. Confirm Ollama is running and the existing project venv is present.
+4. Run: Run_Phase8_Office_Acceptance.bat
+5. Required gates:
+   - production-v4 preflight PASS
+   - Production Architecture Lock PASS
+   - frozen technical source + v3 rollback hashes PASS
+   - runtime/venv dependency smoke PASS
+   - grounded qwen2.5:7b single-call quality PASS
+   - retained Phase-7 Full Certification PASS
+     * Optimization #1 7/7 quality + 7/7 activation
+     * Optimization #2 2/2 quality + 2/2 activation, zero LLM on optimized path
+     * Technical 16/16
+     * English Natural 19/19
+     * OOD safety + Optimization #2 negative-control safety
+   - production KB health HEALTHY
+6. Qwen hardware acceptance:
+   - <=20 seconds: PASS_TARGET
+   - >20 and <=30 seconds: PASS_WITHIN_CEILING
+   - >30 seconds: FAIL
+7. Final Overall must be PASS and the ZIP must contain PRODUCTION_LOCKED.txt.
+8. A failed run contains CERTIFICATION_FAILED.txt and exact gate diagnostics; it never contains a PASS marker.
+9. Launch the final locked build with: Start_DocuBot_Production_Locked.bat
+10. Perform a short UI spot check: exact Rule query, natural review, unsupported/OOD query, and follow-up.
+11. Confirm strict fallback remains exactly:
+    Information not found in company knowledge base.
+12. Keep Start_DocuBot_v3_Rollback.bat and v3 storage untouched.
+
+Upload the combined Phase-8 result ZIP for final sign-off.

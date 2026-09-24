@@ -1,0 +1,37 @@
+DocuBot v6.4.26 - MISRA-first Natural Compliance + Shift+Enter
+================================================================
+
+ACTIVE SCOPE
+1. MISRA-first behavior. Other data/all_documents topics remain supported.
+2. Natural/intention-based MISRA code-compliance assessment for varied
+   English, Tagalog, mixed-language, pasted C/C++ code, and text scenarios.
+3. Keep llama3.2:3b + qwen2.5:7b hybrid model policy unchanged.
+4. No learning-from-Q&A work in this release.
+5. No cleanup/deletion scope in this release.
+
+SAFETY CONTRACT
+- MISRA compliance mode filters accepted candidates to MISRA-named sources.
+- qwen2.5:7b is used for natural compliance assessment unless the QA-only
+  forced-model override is intentionally active.
+- Rule/Directive identifiers in the answer must be present in accepted MISRA
+  evidence; invented identifiers cause the safe no-result fallback.
+- An explicitly requested MISRA C++ family cannot be answered from the current
+  MISRA C-only source.
+- Exact ordinary Rule/Directive lookups remain on the existing structured path.
+- Secondary company-document questions remain on the existing general path.
+
+CHAT INPUT
+- Enter = send.
+- Shift+Enter = newline.
+- Multiline pasted C/C++ code is preserved.
+- While an answer is processing, the editor remains writable but the send
+  button/plain-Enter submit remains disabled.
+
+WINDOWS RUNTIME TEST
+Double-click:
+    Run_MISRA_Natural_QA.bat
+
+It generates:
+    DocuBot_MISRA_Natural_QA_Result_YYYYMMDD_HHMMSS.zip
+
+Return that ZIP for Windows/Ollama evidence review.

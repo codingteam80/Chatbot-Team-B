@@ -1,0 +1,18 @@
+DocuBot v6.4.15.5 - Subject-Bound Role + Temporal BM25 Grounding Recovery
+
+Windows evidence basis
+- KB Health: HEALTHY
+- Cycle-1 baseline: 76/78 PASS, 2 FAIL, 0 ERROR
+- Remaining real blockers before this build: R-006 role/focus leak and R-015 incomplete temporal comparison
+
+Production changes
+1. Role/position association requires an explicit subject-role grammar. Nearby roles/nicknames owned by another subject are excluded.
+2. Top/highest role questions rank directly subject-bound apex-role candidates generically.
+3. Certified temporal finalization remains first. If one event/date is absent from accepted context, BM25-only facet evidence from the already indexed corpus may supplement deterministic grounding. Supplemental evidence is not sent to the LLM unless strict two-date finalization succeeds.
+4. No threshold/model/embedding/reranker/index schema change.
+
+Validation target
+- Run_General_Corpus_Gate.bat
+- Gate 1: KB Health PASS
+- Gate 2: 78/78 PASS
+- Gate 3: Runtime unseen-document proof PASS

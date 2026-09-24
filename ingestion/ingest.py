@@ -6,13 +6,14 @@ from ingestion.cleaner import TextCleaner
 from ingestion.splitter import DocumentSplitter
 from ingestion.metadata import MetadataBuilder
 from ingestion.pdf_structure import PDFStructureExtractor
+from ingestion.chunking_v4 import RuleAwareChunkingV4
 
 from utils.file_utils import get_all_documents
 from utils.hash_utils import FileHasher
 from utils.ingestion_cache import IngestionCache
 from utils.logger import log
 
-from config.settings import INGESTION_MAX_WORKERS, MIN_DOCUMENT_LENGTH
+from config.settings import CHUNKING_PROFILE, INGESTION_MAX_WORKERS, MIN_DOCUMENT_LENGTH
 
 
 class IngestionPipeline:
@@ -40,6 +41,9 @@ class IngestionPipeline:
 
         if not sections:
             return None
+
+        if CHUNKING_PROFILE == "v4":
+            return self._split_pdf_structure_v4(file_path, sections)
 
         prepared = []
         cleaned_sections = []
@@ -101,6 +105,78 @@ class IngestionPipeline:
             self.last_skip_reason = "no valid chunks"
             return []
 
+        return prepared
+
+    def _split_pdf_structure_v4(self, file_path: Path, sections):
+        """Experimental parent-anchored Rule/Directive subsection chunks.
+
+        This path is reachable only when DOCUBOT_CHUNKING_PROFILE=v4. The
+        certified v3 branch above is intentionally left unchanged.
+        """
+        units = RuleAwareChunkingV4.expand(sections)
+        cleaned_units = []
+        total_clean_length = 0
+
+        for unit in units:
+            clean_text = self.cleaner.clean(unit.text)
+            if not clean_text:
+                continue
+            cleaned_units.append((unit, clean_text))
+            total_clean_length += len(clean_text)
+
+        if total_clean_length < MIN_DOCUMENT_LENGTH:
+            self.last_skip_reason = (
+                f"too short [{total_clean_length} chars; "
+                f"minimum {MIN_DOCUMENT_LENGTH}]"
+            )
+            log(
+                f"Skipped (too short): {file_path.name} "
+                f"[rule-aware PDF v4]"
+            )
+            return []
+
+        prepared = []
+        for unit_index, (unit, clean_text) in enumerate(cleaned_units):
+            parts = self.splitter.split(clean_text)
+            if not parts:
+                continue
+
+            unit_metadata = unit.metadata()
+            for part_index, part in enumerate(parts):
+                part = part.strip()
+                if not part:
+                    continue
+
+                # SentenceSplitter can split a long unit. Re-anchor every later
+                # part to its parent/section so semantic and lexical retrieval
+                # do not lose the Rule/Directive identity.
+                anchor_lines = []
+                parent_title = str(unit_metadata.get("parent_title") or "").strip()
+                section_title = str(unit_metadata.get("section_title") or "").strip()
+                if parent_title:
+                    anchor_lines.append(parent_title)
+                if section_title and section_title.casefold() != parent_title.casefold():
+                    anchor_lines.append(section_title)
+
+                if part_index > 0 and anchor_lines:
+                    prefix = "\n".join(anchor_lines)
+                    if not part.casefold().startswith(prefix.casefold()):
+                        part = f"{prefix}\n{part}"
+
+                metadata = dict(unit_metadata)
+                metadata.update(
+                    {
+                        "section_index": unit_index,
+                        "section_part": part_index + 1,
+                        "section_parts": len(parts),
+                        "parser_strategy": "pdf_rule_aware_v4",
+                    }
+                )
+                prepared.append({"text": part, "metadata": metadata})
+
+        if not prepared:
+            self.last_skip_reason = "no valid chunks"
+            return []
         return prepared
 
     def _split_generic_document(self, file_path: Path):

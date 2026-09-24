@@ -1,0 +1,29 @@
+DocuBot v6.4.36 - Expanded Natural MISRA Generalization + Composer Reset
+=======================================================================
+Base: v6.4.35 Streamlit composer launch hotfix.
+
+Trigger evidence (actual Windows/Streamlit/Ollama manual session, 2026-09-15):
+- test_evidence_2026-09-15_05-56-08.log/.csv recorded 11 ad-hoc natural MISRA questions.
+- 2/11 returned grounded deterministic Rule 13.3 answers (sizeof with increment/decrement).
+- 9/11 returned the safe fallback despite relevant MISRA source material being present for several cases.
+- Browser screenshot confirmed the v6.4.35 composer launches successfully, auto-grows for multiline input, but retained the previous large height after submit/clear while the answer was processing.
+
+v6.4.36 focused recovery:
+1) Generic syntax-driven source-language cues for additional visible constructs:
+   - multiple return points when the user's assessment focus is return/exit behavior -> Rule 15.5 body text
+   - switch without default -> Rule 16.4 body text
+   - non-empty switch clause without visible unconditional break -> Rule 16.3 body text
+   - string literal assigned to non-const char pointer -> Rule 7.4 body text
+   - old-style empty parameter list declaration -> Rule 8.2 body text
+   - signed integer operands in a visible bitwise operation -> Rule 10.1 body text
+   - visible signed/unsigned parameter assignment-category mismatch -> Rule 10.3 body text
+   - integer zero used directly as pointer initializer -> Rule 11.9 body text
+   - if/else-if chain without terminal else -> Rule 15.7 body text
+2) No question-to-Rule mapping. Detectors emit exact requirement wording and still resolve only against actual structured Rule/Directive body records in the authoritative MISRA corpus.
+3) Fixed an adjacent false-positive in the existing increment/decrement detector so a harmless x++ inside switch syntax does not accidentally trigger Rule 13.3 merely because the enclosing switch(...) appeared in the same semicolon slice.
+4) Chat composer now explicitly resets to the compact 48px editor / 94px composer height when the draft becomes empty and immediately before either Enter-submit or send-button submit. This prevents a previous multiline height from remaining visible during "Searching knowledge base...".
+5) Enter=send, Shift+Enter=newline, multiline preservation, Streamlit-safe server-side text_area height=68, models, retrieval threshold, embeddings/reranker, chunking, and data/all_documents remain unchanged.
+
+Windows validation required before locking v6.4.36:
+- Run_MISRA_Natural_QA.bat (expanded with M-016..M-024 for the nine actual manual fallback patterns).
+- Browser visual spot-check: paste a multiline snippet, submit it, confirm the emptied composer immediately returns to compact height while processing and remains compact after the answer arrives.

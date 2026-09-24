@@ -1,0 +1,32 @@
+DocuBot v6.4.33 - Full MISRA Coverage Validator Hotfix
+=======================================================
+
+Trigger evidence
+----------------
+Actual Windows/Ollama v6.4.32 full-coverage result:
+- Exact structured coverage: 172/173 PASS, 1 FAIL, 0 ERROR
+- Unseen natural generalization: 7/7 PASS
+- Secondary non-MISRA regression G-001: PASS
+- Only failure: Rule 1.1 reported "source code example was flattened instead of fenced".
+
+Root cause
+----------
+The Rule 1.1 Example is prose/list content about compiler language extensions
+(__inline, __zpage, __near, __far). It does not contain a C source-code block.
+The v6.4.32 validator had an over-broad regex that treated the ordinary English
+word "for" as the C for keyword, creating a false-positive code-fence failure.
+
+v6.4.33 correction
+------------------
+- Code-example detection now requires concrete C syntax markers instead of a
+  keyword appearing in prose.
+- The same conservative rule is applied to the source Example renderer so prose
+  beginning with words such as "For", "If", "struct", or "union" is not fenced
+  merely because it contains a C keyword.
+- Real C source lines (preprocessor directives, declarations, statements,
+  control expressions, braces/comments, function calls) continue to be fenced.
+- Full indexed MISRA inventory remains dynamic and unchanged: 173 references =
+  156 Rules + 17 Directives. No Rule/Directive whitelist was introduced.
+
+No model, retrieval, embedding, reranker, threshold, chunking, or corpus setting
+is changed by this hotfix.

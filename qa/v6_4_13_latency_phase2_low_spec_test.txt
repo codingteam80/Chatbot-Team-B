@@ -1,0 +1,73 @@
+DocuBot v6.4.13 - Latency Phase 2 / Low-Spec Regression QA
+============================================================
+
+IMPORTANT
+- Execute each numbered question exactly as written.
+- A conversation chain means separate messages in the same chat.
+- Use New Chat between chains.
+- Do not type arrows, brackets, slash alternatives, or placeholders literally.
+- Start the first chain after a fresh Streamlit/Ollama process start when measuring cold latency.
+
+CHAIN A - Direct relation without semantic cold-load
+1. Who is Apolinario Mabini?
+2. What position did he hold?
+Expected:
+- Q1 remains deterministic BM25 identity.
+- Q2 resolves to Apolinario Mabini and should show BM25 FIRST PASS / DIRECT RELATION FAST PATH when the stored chunk explicitly states the position.
+- Q2 should not show VECTOR STARTED or RERANKER STARTED when the fast path qualifies.
+- Answer remains grounded in the cited company file.
+
+CHAIN B - Organization relation
+1. Who is Andres Bonifacio?
+2. What organization did he help found?
+Expected:
+- Identity remains deterministic and grounded.
+- The direct organization relation may use DIRECT RELATION FAST PATH when the accepted chunk explicitly states the founding relation.
+- Expected organization from the current regression corpus: Katipunan.
+
+NEW CHAT
+3. Ilang araw ang sick leave na ibinibigay?
+Expected current regression-corpus answer: 17 days.
+When the compact Employee Leave Policy chunk is found by BM25, vector/reranker loading should be skipped.
+
+NEW CHAT
+4. Sino ang nag-aapruba ng leave request?
+Expected current regression-corpus answer: Manager.
+When the approval sentence is explicit in BM25 context, vector/reranker loading should be skipped.
+
+NEW CHAT
+5. Kailan nilagdaan ang Treaty of Paris ng 1898?
+Expected current regression-corpus answer: December 10, 1898.
+Record whether DIRECT RELATION FAST PATH safely bypasses the semantic stack.
+
+NEW CHAT - Negative grounding guard
+6. What is the employee parking reimbursement limit?
+Expected: Information not found in company knowledge base.
+This question must NOT be accepted merely by the new BM25 direct-relation gate.
+
+NEW CHAT - Structured deterministic stability
+7. What does Rule 1.2 say?
+8. What category does it belong to?
+9. What does it apply to?
+Expected: exact structured deterministic path, No LLM, no semantic model loading.
+
+NEW CHAT - Complex model / model residency evidence
+10. What is Section 6? Explain it as well.
+Expected:
+- Complex route remains qwen2.5:7b when required by the existing router.
+- LLM CALL LATENCY should record context_window=8192 and keep_alive=2m by default.
+
+NEW CHAT - Fast model immediately after Qwen
+11. Ano ang pangunahing layunin ng Katipunan?
+Expected:
+- Fast route when generation is needed.
+- LLM CALL LATENCY should record context_window=4096 and keep_alive=15m by default.
+- Compare latency with the earlier Windows evidence to quantify any remaining Qwen -> Llama model swap penalty.
+
+REVIEW CHECKLIST
+- No prompt leak.
+- No execution Error.
+- No incorrect BM25 fast-path acceptance for absent information.
+- Correct citations/source traceability.
+- Preserve v6.4.12 sidebar behavior.
+- Record cold/warm retrieval, VECTOR READY, RERANKER READY, LLM CALL LATENCY, and total request latency.

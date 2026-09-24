@@ -1,0 +1,67 @@
+DocuBot v6.4 - Answer Latency Optimization Phase 1
+Fresh + Core Regression Questions
+
+Purpose
+- Confirm v6.3.4 quality remains intact.
+- Measure LLM call latency and total request latency.
+- Verify direct Section lookups use the new deterministic path.
+- Verify safe verifier skipping does not weaken fallback/grounding behavior.
+- Use fresh questions so the release is not validated only on repeated prompts.
+
+A. Fresh rotating questions (new for this release)
+1. Who is Apolinario Mabini?
+2. Explain who Apolinario Mabini was and why he was significant.
+3. Who was Andres Bonifacio?
+4. Explain who Andres Bonifacio was and why he was significant.
+5. What was La Liga Filipina?
+6. What was the Propaganda Movement?
+7. What is Section 7?
+8. Explain Section 7.
+9. What does Rule 9.4 say?
+10. Explain Rule 9.4.
+11. Who is eligible for the employee leave policy?
+12. What is the vacation leave entitlement and who is eligible for it?
+13. Sino si Apolinario Mabini?
+14. Ipaliwanag kung sino si Apolinario Mabini at bakit siya mahalaga.
+15. What does Rule 98.98 say?
+
+Expected behavior for fresh questions
+- Answers must be grounded only in COMPANY KNOWLEDGE.
+- No supported question should fall back merely because wording is new.
+- Rule 98.98 should return exactly: Information not found in company knowledge base.
+- What is Section 7? should log LLM ROUTE = DETERMINISTIC / No LLM.
+- Explain Section 7. should remain a complex Qwen explanation.
+- Compound who+why questions should remain complete. If the deterministic coverage
+  gate is satisfied, the log may show LATENCY OPTIMIZATION = COMPOUND VERIFIER SKIPPED.
+- Tagalog questions should remain grounded and should not switch to outside knowledge.
+
+B. Locked core smoke regression
+16. Who is Jose Rizal?
+17. Explain who Jose Rizal was and why he was significant.
+18. What does Rule 1.2 say?
+19. Explain Rule 1.2.
+20. What does Rule 10.6 say?
+21. What is Dir 4.12?
+22. Explain Directive 4.12.
+23. What is Section 6?
+24. Explain Section 6.
+25. What does Rule 99.99 say?
+26. What does Rule 1.2 say?
+27. Why is that rule important?
+28. Explain that rule.
+29. What is MISRA C?
+30. Explain MISRA C.
+31. Explain the employee leave policy.
+
+Latency evidence to inspect
+- LLM CALL LATENCY -> purpose + model + seconds
+- REQUEST LATENCY PROFILE -> retrieval_seconds + total_seconds
+- LATENCY OPTIMIZATION -> FOCUS VERIFIER SKIPPED or COMPOUND VERIFIER SKIPPED when safe
+- Direct exact Rule/Directive and direct Section questions should use No LLM where supported.
+
+Stop conditions
+- Any TEST RESULT = FAIL
+- Any Python traceback / ERROR / WARNING
+- Any supported answer unexpectedly returns the strict fallback
+- Any unknown structured ID returns a fabricated answer
+- Any direct Section question unexpectedly invokes an LLM
