@@ -1,0 +1,4 @@
+KB EMBED RECOVERY TEST
+
+Project Falcon's internal access code word is MARIGOLD-7429.
+This document exists only to verify Update Knowledge Base embedding.

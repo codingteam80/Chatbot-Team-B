@@ -1,9 +1,9 @@
 {
   "schema": "misra-semantic-rule-index-v2-profile-signature",
   "embedding_model": "qwen3-embedding:8b",
-  "corpus_sha256": "18403635694a8c0dca6a1414f2b1f44f52e881d64b80eb8e26eea5fce0e7eb27",
-  "created_at": "2026-09-24T15:41:22",
+  "profile_sha256": "819becae880ea5c531c90227c38619bbdd7a0fe9f994e95bdfda5be378d459c5",
   "profile_count": 173,
+  "created_at": "2026-09-27T10:16:34",
   "vector_dimensions": 4096,
   "profiles": [
     {
@@ -2562,13 +2562,17 @@
       "kind": "rule",
       "identifier": "22.2",
       "display_name": "Rule 22.2",
-      "requirement_text": "A block of memory shall only be freed if it was allocated by means of a",
-      "profile_text": "Rule 22.2. Requirement: A block of memory shall only be freed if it was allocated by means of a",
+      "requirement_text": "A block of memory shall only be freed if it was allocated by means of a Standard Library function C90 [Undefined 92], C99 [Undefined 169]",
+      "profile_text": "Rule 22.2. Requirement: A block of memory shall only be freed if it was allocated by means of a Standard Library function C90 [Undefined 92], C99 [Undefined 169]\nRationale: Rule 22.2 Rationale Freeing non-allocated memory, or freeing the same allocated memory more than once leads to undefined behaviour.\nAmplification: Rule 22.2 Amplification The Standard Library functions that allocate memory are malloc , calloc and realloc . A block of memory is freed when its address is passed to free and potentially freed when its address is passed to realloc . Once freed, a block of memory is no longer considered to be allocated and therefore cannot subsequently be freed again.\nExample: Rule 22.2 Example #include <stdlib.h> void fn ( void ) { int32_t a; /* Non-compliant - a does not point to allocated storage */ free ( &a ); } void g ( void ) { char *p = ( char * ) malloc ( 512 ); char *q = p; free ( p ); /* Non-compliant - allocated block freed a second time */ free ( q ); /* Non-compliant - allocated block may be freed a third time */ p = ( char * ) realloc ( p, 1024 ); }",
       "file_name": "MISRA_FromInternet.pdf",
       "file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\MISRA_FromInternet.pdf",
       "page_start": 192,
       "page_end": 192,
-      "supporting_roles": []
+      "supporting_roles": [
+        "amplification",
+        "example",
+        "rationale"
+      ]
     },
     {
       "kind": "rule",
@@ -2698,7 +2702,5 @@
         "rationale"
       ]
     }
-  ],
-  "profile_sha256": "90bf71a849ec9aa79164f203808e52b7b4b0a9d9fe3541de02113b091a78ff4c",
-  "signature_migrated_at": "2026-09-24T16:56:59"
+  ]
 }

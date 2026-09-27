@@ -1,0 +1,30 @@
+{
+    "employee_leave_test.txt": {
+        "file_name": "Employee_Leave_Test.txt",
+        "source_relative_path": "Employee_Leave_Test.txt",
+        "file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\Employee_Leave_Test.txt",
+        "indexed_file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\Employee_Leave_Test.txt",
+        "hash": "cb7624f443fa34b936ce319ce24f35eba90e077a78f38c2d61f49524a2e76f5b",
+        "file_size": 310,
+        "modified_time_ns": 1790255199051284600,
+        "index_schema_version": "structure-aware-pdf-v4-rule-aware-option-c-qdrant-qwen3-tech",
+        "embedding_model": "qwen3-embedding:8b",
+        "embedding_normalize": true,
+        "last_indexed": "2026-09-24 21:07:06",
+        "index_status": "indexed"
+    },
+    "misra_frominternet.pdf": {
+        "file_name": "MISRA_FromInternet.pdf",
+        "source_relative_path": "MISRA_FromInternet.pdf",
+        "file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\MISRA_FromInternet.pdf",
+        "indexed_file_path": "C:\\user_dev\\company-chatbot\\data\\technical_documents\\MISRA_FromInternet.pdf",
+        "hash": "3ebd84ca1855ca96c7f5fb45f2f030862f95a909a49fbf976b0fffbd4fa62f10",
+        "file_size": 1800548,
+        "modified_time_ns": 1789761964000000000,
+        "index_schema_version": "structure-aware-pdf-v4-rule-aware-option-c-qdrant-qwen3-tech",
+        "embedding_model": "qwen3-embedding:8b",
+        "embedding_normalize": true,
+        "last_indexed": "2026-09-24 15:39:16",
+        "index_status": "indexed"
+    }
+}

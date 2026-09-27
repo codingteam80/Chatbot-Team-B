@@ -95,37 +95,88 @@ def _module_available(name: str) -> bool:
         return False
 
 
-def _qdrant_storage_preflight() -> tuple[bool, str]:
-    """Verify local Qdrant storage can be opened/closed before a rebuild.
+def _qdrant_storage_error_kind(error) -> str:
+    """Classify an active-store open failure without guessing corruption details.
 
-    Local Qdrant uses a storage lock on Windows. Detect another DocuBot/Python
-    process holding that lock before spending time parsing and embedding all
-    documents, which is a common cross-PC deployment failure mode.
+    A live local-Qdrant lock must still block an update. Other read/open failures
+    may be recovered by a full source rebuild because that rebuild writes a new
+    sibling staging store and does not need to read vectors from the broken one.
     """
-    if not Path(QDRANT_DIR).exists():
-        return True, ""
+    text = f"{type(error).__name__}: {error}".casefold()
+    lock_markers = (
+        "already accessed by another instance",
+        "concurrent access",
+        "being used by another process",
+        "used by another process",
+        "winerror 32",
+        "sharing violation",
+        "resource temporarily unavailable",
+    )
+    permission_markers = (
+        "permission denied",
+        "access is denied",
+        "winerror 5",
+        "read-only file system",
+    )
+    if any(marker in text for marker in lock_markers):
+        return "locked"
+    if any(marker in text for marker in permission_markers):
+        return "permission"
+    return "unreadable"
+
+
+def _qdrant_storage_state() -> dict:
+    """Read the active local Qdrant state while preserving the exact error.
+
+    ``qdrant_collection_count`` intentionally degrades errors to zero for normal
+    retrieval. The updater needs more detail so it can distinguish a genuinely
+    empty store from a damaged/copied store that should be rebuilt from source.
+    """
+    path = Path(QDRANT_DIR)
+    state = {
+        "path": str(path),
+        "exists": path.exists(),
+        "readable": True,
+        "count": 0,
+        "error": "",
+        "error_kind": "",
+    }
+    if not path.exists():
+        return state
+
     client = None
     try:
         from retrieval.qdrant_search import open_qdrant_client
+        from config.settings import QDRANT_COLLECTION_NAME
 
         client = open_qdrant_client()
-        # A lightweight collection listing forces the local storage backend to
-        # open. Different qdrant-client releases expose slightly different APIs.
-        getter = getattr(client, "get_collections", None)
-        if callable(getter):
-            getter()
+        collection_exists = getattr(client, "collection_exists", None)
+        if callable(collection_exists):
+            try:
+                if not collection_exists(QDRANT_COLLECTION_NAME):
+                    return state
+            except Exception:
+                # Some local-Qdrant versions do not expose this cleanly. Let
+                # count/get_collections below provide the authoritative result.
+                pass
+
+        count = getattr(client, "count", None)
+        if callable(count):
+            try:
+                state["count"] = int(count(QDRANT_COLLECTION_NAME, exact=True).count)
+            except TypeError:
+                state["count"] = int(count(QDRANT_COLLECTION_NAME).count)
         else:
-            collection_exists = getattr(client, "collection_exists", None)
-            if callable(collection_exists):
-                from config.settings import QDRANT_COLLECTION_NAME
-                collection_exists(QDRANT_COLLECTION_NAME)
-        return True, ""
+            getter = getattr(client, "get_collections", None)
+            if callable(getter):
+                getter()
+        return state
     except Exception as error:
-        return False, (
-            "The active local Qdrant storage cannot be opened exclusively/read safely. "
-            "Close other DocuBot/Python processes using this project and retry. "
-            f"Detail: {type(error).__name__}: {error}"
-        )
+        state["readable"] = False
+        state["count"] = None
+        state["error"] = f"{type(error).__name__}: {error}"
+        state["error_kind"] = _qdrant_storage_error_kind(error)
+        return state
     finally:
         close = getattr(client, "close", None) if client is not None else None
         if callable(close):
@@ -133,6 +184,33 @@ def _qdrant_storage_preflight() -> tuple[bool, str]:
                 close()
             except Exception:
                 pass
+
+
+def _qdrant_storage_preflight() -> tuple[bool, str, str]:
+    """Verify local Qdrant storage can be opened/closed before an update.
+
+    Return ``(ok, message, kind)``. A locked/permission-denied store is never
+    bypassed. An otherwise unreadable store can be handled only by an explicitly
+    authorized full-rebuild recovery path.
+    """
+    state = _qdrant_storage_state()
+    if state.get("readable"):
+        return True, "", ""
+
+    kind = str(state.get("error_kind") or "unreadable")
+    if kind == "locked":
+        guidance = "Close other DocuBot/Python processes using this project and retry."
+    elif kind == "permission":
+        guidance = "Check folder permissions/read-only attributes before retrying."
+    else:
+        guidance = (
+            "The store may be incomplete, damaged, or incompatible with this local "
+            "Qdrant runtime. A certified full rebuild can recover it from source documents."
+        )
+    return False, (
+        "The active local Qdrant storage cannot be opened/read safely. "
+        f"{guidance} Detail: {state.get('error') or 'unknown Qdrant open failure'}"
+    ), kind
 
 
 def _ollama_embedding_preflight() -> tuple[bool, str]:
@@ -267,7 +345,12 @@ def _filesystem_preflight(documents) -> tuple[list[str], list[str], dict]:
     return issues, notes, diagnostics
 
 
-def get_kb_update_preflight(documents=None, *, requires_embedding: bool = True):
+def get_kb_update_preflight(
+    documents=None,
+    *,
+    requires_embedding: bool = True,
+    allow_unreadable_qdrant_recovery: bool = False,
+):
     """Return a concise, non-destructive KB-update readiness report.
 
     ``requires_embedding`` may be false for delete-only/BM25-repair updates so
@@ -320,10 +403,29 @@ def get_kb_update_preflight(documents=None, *, requires_embedding: bool = True):
             "DocuBot loaders and can still be rebuilt safely."
         )
 
+    qdrant_recovery = {
+        "allowed": bool(allow_unreadable_qdrant_recovery),
+        "used": False,
+        "error_kind": "",
+        "detail": "",
+    }
     if not issues:
-        qdrant_ok, qdrant_issue = _qdrant_storage_preflight()
+        qdrant_ok, qdrant_issue, qdrant_kind = _qdrant_storage_preflight()
         if not qdrant_ok:
-            issues.append(qdrant_issue)
+            qdrant_recovery.update({
+                "error_kind": qdrant_kind,
+                "detail": qdrant_issue,
+            })
+            if allow_unreadable_qdrant_recovery and qdrant_kind == "unreadable":
+                qdrant_recovery["used"] = True
+                notes.append(
+                    "Active Qdrant is unreadable, so this full rebuild will bootstrap a new "
+                    "staging vector store from the source documents. The old folder is not "
+                    "required for embedding and will be replaced only after the new Qdrant "
+                    "and BM25 build succeeds."
+                )
+            else:
+                issues.append(qdrant_issue)
 
     if not issues and requires_embedding:
         ollama_ok, ollama_issue = _ollama_embedding_preflight()
@@ -340,6 +442,7 @@ def get_kb_update_preflight(documents=None, *, requires_embedding: bool = True):
         "document_root": str(DOCUMENT_DIR),
         "python_executable": sys.executable,
         "filesystem": fs_diagnostics,
+        "qdrant_recovery": qdrant_recovery,
     }
 
 
@@ -380,14 +483,14 @@ def get_update_plan():
     new_manifest = ManifestManager.build(documents, previous_manifest=old_manifest)
     changes = compare_manifests(old_manifest, new_manifest)
 
-    try:
-        from retrieval.qdrant_search import qdrant_collection_count
-
-        collection_count = qdrant_collection_count()
-        collection_error = None
-    except Exception as error:
-        collection_count = None
-        collection_error = str(error)
+    qdrant_state = _qdrant_storage_state()
+    collection_count = qdrant_state.get("count")
+    collection_error = (
+        str(qdrant_state.get("error") or "")
+        if not qdrant_state.get("readable", True)
+        else None
+    )
+    qdrant_error_kind = str(qdrant_state.get("error_kind") or "")
 
     full_rebuild_reason = None
     has_document_changes = any(
@@ -397,7 +500,10 @@ def get_update_plan():
     if _manifest_requires_full_rebuild(old_manifest):
         full_rebuild_reason = "The production schema/embedding identity changed."
     elif collection_error and documents:
-        full_rebuild_reason = f"The active Qdrant index could not be opened safely: {collection_error}"
+        full_rebuild_reason = (
+            "The active Qdrant storage is unreadable and requires a certified "
+            f"source rebuild recovery: {collection_error}"
+        )
     elif not old_manifest and documents and (collection_count or 0) > 0:
         full_rebuild_reason = "An existing Qdrant index has no usable tracking manifest."
     elif old_manifest and documents and collection_count == 0:
@@ -421,6 +527,10 @@ def get_update_plan():
         "changes": changes,
         "collection_count": collection_count,
         "collection_error": collection_error,
+        "qdrant_state": qdrant_state,
+        "qdrant_recovery_required": bool(
+            collection_error and qdrant_error_kind == "unreadable" and documents
+        ),
     }
 
 
@@ -483,6 +593,10 @@ def smart_build():
         preflight = get_kb_update_preflight(
             plan["documents"],
             requires_embedding=_plan_requires_embedding(plan),
+            allow_unreadable_qdrant_recovery=bool(
+                plan.get("mode") == "full_rebuild"
+                and plan.get("qdrant_recovery_required")
+            ),
         )
         if not preflight["ok"]:
             print("[FAIL] KB update preflight did not pass. Previous index was preserved.")
@@ -565,6 +679,10 @@ def smart_build():
                 "mode": "full_rebuild",
                 "action": "transactional_full_rebuild",
                 "unchanged_skipped": 0,
+                "qdrant_recovery_used": bool(
+                    (preflight.get("qdrant_recovery") or {}).get("used")
+                ),
+                "qdrant_recovery_detail": (preflight.get("qdrant_recovery") or {}).get("detail", ""),
             }
 
         post_plan = get_update_plan()

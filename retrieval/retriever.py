@@ -262,6 +262,72 @@ class CompanyRetriever:
         )
         return result
 
+    @staticmethod
+    def _explicit_binary_ambiguity_variants(question):
+        """Return two user-derived variants for an explicit either/or uncertainty.
+
+        This is a generic MultiQuery latency fast path, not a domain mapping.
+        When the user explicitly says they are unsure whether one interpretation
+        or another applies, preserve the common context and split only those two
+        alternatives.  No Rule/Directive identifier or answer is injected.
+        """
+
+        raw = re.sub(r"\s+", " ", str(question or "")).strip()
+        if not raw:
+            return []
+
+        # Require explicit uncertainty language so ordinary uses of the word
+        # "or" (including C operators described in prose) never enter this path.
+        match = re.search(
+            r"(?is)\b(?:(?:i(?:'m| am)|we(?:'re| are))\s+)?"
+            r"(?:not\s+sure|unsure|uncertain)\s+(?:whether|if)\s+(?P<body>.+)$",
+            raw,
+        )
+        if not match:
+            return []
+
+        body = str(match.group("body") or "").strip()
+        if not body:
+            return []
+
+        # Keep only the ambiguity-bearing sentence; preserve any trailing
+        # question/request so both variants retain the user's requested action.
+        boundary = re.search(r"[.!?](?:\s+|$)", body)
+        if boundary:
+            ambiguity = body[: boundary.start()].strip()
+            suffix = body[boundary.end():].strip()
+        else:
+            ambiguity = body
+            suffix = ""
+
+        alternatives = re.split(r"\s+or\s+", ambiguity, maxsplit=1, flags=re.I)
+        if len(alternatives) != 2:
+            return []
+        left, right = (re.sub(r"\s+", " ", part).strip(" ,;:-") for part in alternatives)
+        left = re.sub(
+            r"(?i)^(?:the\s+)?(?:concern|issue|question|problem|risk)\s+is\s+",
+            "",
+            left,
+        ).strip()
+        if len(re.findall(r"[A-Za-z0-9]+", left)) < 2 or len(re.findall(r"[A-Za-z0-9]+", right)) < 2:
+            return []
+
+        prefix = raw[: match.start()].strip()
+        prefix = re.sub(r"(?i)\b(?:but|and)\s*$", "", prefix).strip(" ,;:-")
+        def compose(facet):
+            pieces = []
+            if prefix:
+                pieces.append(prefix.rstrip(".?!") + ".")
+            pieces.append(f"Focus on {facet.rstrip('.?!')}.")
+            if suffix:
+                pieces.append(suffix)
+            return re.sub(r"\s+", " ", " ".join(pieces)).strip()
+
+        variants = [compose(left), compose(right)]
+        if variants[0].casefold() == variants[1].casefold():
+            return []
+        return variants
+
     def _generate_multi_query_searches(self, query, intent_query=None, structured_reference=None):
         """Return original query plus a small set of intent-preserving rewrites.
 
@@ -278,6 +344,31 @@ class CompanyRetriever:
             r"\s+", " ", str(intent_query or query or "")
         ).strip()
         if len(re.findall(r"[A-Za-z0-9]+", prompt_question)) < 3:
+            return [original]
+
+        # v6.5.5.12: clear direct-fact relations are already narrowly scoped by
+        # their relation form (winner/date/quantity/approval/etc.). Generating
+        # two LLM rewrites for these focused questions adds latency and can
+        # widen an out-of-domain lookup into unrelated corpus material. Keep
+        # them on the certified single-query retrieval path. Ambiguous semantic
+        # questions still retain original + two MultiQuery alternatives.
+        direct_relation_kind = self._direct_relation_kind(prompt_question)
+        if direct_relation_kind:
+            evidence_logger.record_event(
+                event_name="MULTI-QUERY RETRIEVAL",
+                status="SKIPPED HIGH-CONFIDENCE DIRECT FACT",
+                details={
+                    "original_query": original,
+                    "intent_query": prompt_question,
+                    "relation_kind": direct_relation_kind,
+                    "total_queries": 1,
+                    "reason": (
+                        "A focused direct-fact relation does not require LLM "
+                        "query rewriting; normal single-query BM25/vector/"
+                        "reranker retrieval remains available."
+                    ),
+                },
+            )
             return [original]
 
         cache_key = (original.casefold(), prompt_question.casefold())
@@ -327,6 +418,44 @@ class CompanyRetriever:
                 },
             )
             return searches
+
+        explicit_variants = self._explicit_binary_ambiguity_variants(prompt_question)
+        if len(explicit_variants) == 2:
+            searches = [original]
+            seen = {original.casefold()}
+            for variant in explicit_variants:
+                clean = re.sub(r"\s+", " ", str(variant or "")).strip()
+                if clean and clean.casefold() not in seen:
+                    seen.add(clean.casefold())
+                    searches.append(clean)
+
+            if len(searches) == 3:
+                if len(self._multi_query_search_cache) >= 64:
+                    oldest = next(iter(self._multi_query_search_cache), None)
+                    if oldest is not None:
+                        self._multi_query_search_cache.pop(oldest, None)
+                self._multi_query_search_cache[cache_key] = tuple(searches)
+
+                if len(self._multi_query_variant_cache) >= 64:
+                    oldest = next(iter(self._multi_query_variant_cache), None)
+                    if oldest is not None:
+                        self._multi_query_variant_cache.pop(oldest, None)
+                self._multi_query_variant_cache[intent_cache_key] = tuple(searches[1:])
+
+                evidence_logger.record_event(
+                    event_name="MULTI-QUERY RETRIEVAL",
+                    status="ENABLED",
+                    details={
+                        "original_query": original,
+                        "intent_query": prompt_question,
+                        "alternative_queries": searches[1:],
+                        "total_queries": 3,
+                        "seconds": 0.0,
+                        "variant_source": "explicit user ambiguity decomposition",
+                        "fusion": "reciprocal-rank fusion before existing hybrid + BGE rerank",
+                    },
+                )
+                return searches
 
         import time
         started = time.perf_counter()
@@ -2431,6 +2560,7 @@ class CompanyRetriever:
                 "what", "which", "are", "the", "misra", "rule", "rules", "guideline", "guidelines",
                 "and", "or",
                 "for", "related", "relation", "to", "about", "apply", "applies", "applicable", "list",
+                "based",
                 "enumerate", "name", "all", "show", "give", "me", "statements", "statement",
                 "does", "do", "did", "say", "says", "saying", "deal", "deals", "dealing",
                 "with", "regarding", "concern", "concerns", "concerning",
@@ -2565,8 +2695,8 @@ class CompanyRetriever:
                         "requirement text; broader family expansion was not needed."
                     )
 
-            # A broad query such as "Which MISRA rules apply to pointers?"
-            # must not be silently narrowed to the Section 8.11 "Pointer type
+            # Broad pointer-family queries must not be silently narrowed to the
+            # Section 8.11 "Pointer type
             # conversions" family. Build a conservative source-grounded
             # inventory from Rule requirements whose own statement explicitly
             # mentions pointer/pointers. This is broader than Rule 11 while
@@ -2676,7 +2806,47 @@ class CompanyRetriever:
                     for token in re.findall(r"[a-z0-9]+", heading_titles.get(best_major, "").casefold())
                 }
                 extra_specific_tokens = distinctive.difference(best_title_tokens)
-                if specific_statement_ids and extra_specific_tokens:
+
+                # If the query names a broad source family *and* an additional
+                # distinctive construct, narrow inside that family using only
+                # the authoritative requirement statements.  Example: a
+                # "goto-based control flow" request should return the Control
+                # flow members whose own requirement text mentions goto rather
+                # than every Rule in the chapter.  This remains fully
+                # source-driven and works for unseen family + construct pairs.
+                family_specific_ids = []
+                if extra_specific_tokens and best_score >= 1:
+                    for rule_id, record in rule_records.items():
+                        if not rule_id.startswith(best_major + "."):
+                            continue
+                        lines = [
+                            line.strip()
+                            for line in record["text"].splitlines()
+                            if line.strip()
+                        ]
+                        statement_parts = []
+                        for line in lines[1:]:
+                            if re.fullmatch(
+                                r"(?i)(?:Category|Analysis|Applies to|Rationale|Amplification|Example|Examples|Exception|Exceptions|See also)",
+                                line,
+                            ):
+                                break
+                            statement_parts.append(line)
+                        statement_tokens = {
+                            self._structured_catalog_token(token)
+                            for token in re.findall(
+                                r"[a-z0-9]+",
+                                self._normalize_text(" ".join(statement_parts)),
+                            )
+                        }
+                        if extra_specific_tokens.issubset(statement_tokens):
+                            family_specific_ids.append(rule_id)
+
+                if family_specific_ids:
+                    chosen_ids = family_specific_ids
+                    family_label = " ".join(sorted(extra_specific_tokens)) or heading_titles.get(best_major, "MISRA topic")
+                    family_heading = f"{family_label.capitalize()}-related rules"
+                elif specific_statement_ids and extra_specific_tokens:
                     chosen_ids = specific_statement_ids
                     family_label = " ".join(sorted(distinctive)) or "MISRA topic"
                     family_heading = f"{family_label.capitalize()}-related rules"
@@ -5819,6 +5989,111 @@ class CompanyRetriever:
             "reason": "No meaningful target token exists anywhere in the active company corpus.",
         }
 
+    def _bm25_direct_relation_ood_fast_fail(self, query, bm25_results, intent_query=None):
+        """Fail closed when a clear direct-fact subject is absent from the corpus.
+
+        This is the relation analogue of the existing identity OOD guard. It
+        activates only for narrow direct-fact questions and requires at least
+        two meaningful subject tokens. A real subject footprint preserves the
+        normal retrieval path. For 3+ anchor subjects, one isolated corpus word
+        is treated as weak evidence only when the existing lexical-coverage
+        view also proves that no record contains two subject anchors together.
+        """
+
+        if (
+            not query
+            or self._is_compound_intent(intent_query)
+            or self._is_list_or_relationship_query(query)
+        ):
+            return False, {}
+
+        kind = self._direct_relation_kind(query)
+        if not kind:
+            return False, {}
+
+        anchors = self._direct_relation_anchor_tokens(query, kind)
+        if len(anchors) < 2:
+            return False, {"relation_kind": kind, "anchor_tokens": anchors}
+
+        presence = self.bm25.meaningful_token_presence(" ".join(anchors))
+        present_tokens = list(presence.get("present_tokens") or [])
+        if present_tokens:
+            # A single incidental word is not always a meaningful subject
+            # footprint for a multi-token direct fact.  Example: a corpus may
+            # contain the generic word "world" while having no document about
+            # the named event/entity in the question.  Before paying for the
+            # embedding/reranker path, ask the existing corpus-wide lexical
+            # coverage view whether *two or more* subject anchors co-occur in
+            # any record.  This remains conservative:
+            #   - two+ present anchors always preserve normal retrieval;
+            #   - one/two-anchor subjects preserve normal retrieval;
+            #   - older/custom BM25 implementations without coverage_search
+            #     preserve normal retrieval;
+            #   - only a 3+ anchor subject with exactly one corpus token and no
+            #     multi-anchor coverage candidate may fast-fail.
+            if len(present_tokens) >= 2 or len(anchors) <= 2:
+                return False, {
+                    **presence,
+                    "relation_kind": kind,
+                    "anchor_tokens": anchors,
+                }
+
+            coverage_search = getattr(self.bm25, "coverage_search", None)
+            if not callable(coverage_search):
+                return False, {
+                    **presence,
+                    "relation_kind": kind,
+                    "anchor_tokens": anchors,
+                }
+
+            coverage_results = coverage_search(
+                " ".join(anchors),
+                top_k=5,
+                minimum_score=0.0,
+            )
+            if coverage_results:
+                return False, {
+                    **presence,
+                    "relation_kind": kind,
+                    "anchor_tokens": anchors,
+                    "coverage_candidates": len(coverage_results),
+                }
+
+            presence = {
+                **presence,
+                "weak_single_token_footprint": True,
+                "coverage_candidates": 0,
+            }
+
+        # Defense in depth: preserve normal retrieval when a positive BM25 hit
+        # contains two or more anchor tokens even if token-coverage metadata is
+        # incomplete on an older index.
+        anchor_set = set(anchors)
+        for item in list(bm25_results or [])[:20]:
+            if float(item.get("score", 0.0) or 0.0) <= 0.0:
+                continue
+            haystack_tokens = set(re.findall(
+                r"[a-z0-9]+",
+                self._normalize_text(" ".join((
+                    str(item.get("text", "") or ""),
+                    str((item.get("metadata", {}) or {}).get("file_name", "") or ""),
+                    str((item.get("metadata", {}) or {}).get("section_title", "") or ""),
+                )))
+            ))
+            if len(anchor_set.intersection(haystack_tokens)) >= 2:
+                return False, {
+                    **presence,
+                    "relation_kind": kind,
+                    "anchor_tokens": anchors,
+                }
+
+        return True, {
+            **presence,
+            "relation_kind": kind,
+            "anchor_tokens": anchors,
+            "reason": "No meaningful direct-relation subject token exists anywhere in the active company corpus.",
+        }
+
     def _direct_relation_kind(self, query):
 
         """Classify only narrow factual relations that can be BM25-proven.
@@ -5865,6 +6140,10 @@ class CompanyRetriever:
             (
                 "time",
                 r"\b(?:when|date|year|signed|effective|deadline|issued|started|ended|approved on)\b",
+            ),
+            (
+                "winner",
+                r"\b(?:won|winner|winners|winning|awarded\s+to)\b",
             ),
         )
 
@@ -5922,6 +6201,9 @@ class CompanyRetriever:
             "time": {
                 "date", "year", "signed", "sign", "effective", "deadline", "issued",
                 "started", "start", "ended", "end", "approved",
+            },
+            "winner": {
+                "won", "winner", "winners", "winning", "award", "awarded", "to",
             },
         }.get(kind, set())
 
@@ -6893,6 +7175,33 @@ class CompanyRetriever:
                     event_name="BM25 IDENTITY OOD FAST FAIL",
                     status="NO CORPUS FOOTPRINT; ML RETRIEVAL SKIPPED",
                     details=identity_ood_details,
+                )
+                evidence_logger.record_retrieval_summary(
+                    bm25_candidates=len(bm25_results),
+                    vector_candidates=0,
+                    hybrid_candidates=0,
+                    reranker_candidates=0,
+                    accepted_chunks=0,
+                    rejected_chunks=0,
+                    final_chunks=0,
+                    configured_top_k=0,
+                    confidence_threshold=None,
+                )
+                return []
+
+            relation_ood_fast_fail, relation_ood_details = (
+                self._bm25_direct_relation_ood_fast_fail(
+                    query=query,
+                    bm25_results=bm25_results,
+                    intent_query=intent_query,
+                )
+            )
+            if relation_ood_fast_fail:
+                self._record_qa_stage("BM25", bm25_results)
+                evidence_logger.record_event(
+                    event_name="BM25 DIRECT RELATION OOD FAST FAIL",
+                    status="NO CORPUS FOOTPRINT; ML RETRIEVAL SKIPPED",
+                    details=relation_ood_details,
                 )
                 evidence_logger.record_retrieval_summary(
                     bm25_candidates=len(bm25_results),

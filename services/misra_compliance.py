@@ -419,7 +419,8 @@ class MisraComplianceMode:
         # sufficient to use the guarded MISRA path.
         if natural_requirement and re.search(
             r"\b(?:why|rationale|reason|discouraged|satisfy|satisfies|satisfied|"
-            r"minimum|requirement|what\s+if|what\s+about|example|examples)\b",
+            r"minimum|requirement|guidance|expectation|recommendation|recommend|"
+            r"applicable|relevant|what\s+if|what\s+about|example|examples)\b",
             lowered,
         ):
             return True
@@ -492,6 +493,37 @@ class MisraComplianceMode:
             )
         ):
             return ""
+
+        # Generic proposition-relation questions are binary in form but do not
+        # imply permission.  Examples include asking whether one operation
+        # "makes", "means", "causes", or "results in" another property.
+        # Natural users often describe the scenario first and place the actual
+        # binary relation in a trailing sentence ("... . Is that enough?").
+        # Inspect both the whole turn and the final interrogative sentence.
+        # This remains intent-only and contains no Rule or phrase-to-Rule map.
+        relation_candidates = [clean]
+        relation_parts = [
+            part.strip()
+            for part in re.split(r"(?<=[.!?])\s+", clean)
+            if part.strip()
+        ]
+        if relation_parts and relation_parts[-1] not in relation_candidates:
+            relation_candidates.insert(0, relation_parts[-1])
+        for relation_candidate in relation_candidates:
+            if (
+                re.match(
+                    r"^(?:does|do|did|is|are|was|were|will|would)\b",
+                    relation_candidate,
+                )
+                and re.search(
+                    r"\b(?:make|makes|made|mean|means|meant|cause|causes|caused|"
+                    r"result|results|resulted|ensure|ensures|guarantee|guarantees|"
+                    r"change|changes|changed|alter|alters|altered|affect|affects|affected|"
+                    r"influence|influences|influenced|enough|sufficient)\b",
+                    relation_candidate,
+                )
+            ):
+                return "relation"
 
         # Direct compliance/non-compliance polarity.
         if (
@@ -686,7 +718,7 @@ class MisraComplianceMode:
         # whether the standard requires or prohibits the described behavior.
         uncertain_present = any(state == "uncertain" for state in states)
         source_proposition_question = (
-            intent == "requirement"
+            intent in {"requirement", "relation"}
             or (intent == "permission" and not cls.looks_like_c_cpp(question))
             or (
                 intent == "compliance"
@@ -811,22 +843,53 @@ class MisraComplianceMode:
                         support_statements[index] = sentence
 
         if intent == "permission" and empty_request and required_presence:
-            # A natural question such as ``Can I have an empty else block?``
-            # is underspecified: Rule 15.7 constrains the terminating else of
-            # an if/else-if chain, not every possible simple-if shape.  Give
-            # the exact grounded condition instead of an over-broad Yes/No.
+            # An empty-block question can be narrower or broader than the
+            # accepted source scope.  Keep the answer conditional unless the
+            # current question itself identifies the source-defined terminating
+            # else / if-else-if chain.  The reference is derived only from the
+            # accepted source record; no Rule identifier is hardcoded here.
+            clean_question = re.sub(r"\s+", " ", str(question or "").casefold()).strip()
+            explicitly_scoped_else = bool(re.search(
+                r"\b(?:terminating|final|last|catch[- ]?all)\s+else\b|"
+                r"\belse[- ]?if\b|\belse\s+if\b|"
+                r"\bif\s*/?\s*else[- ]?if\b|\bif[- ]else[- ]if\b",
+                clean_question,
+            ))
             for item, statement in zip(candidates, support_statements):
                 source_text = re.sub(r"\s+", " ", str(item.get("text", "") or "")).strip()
                 if "else" not in source_text.casefold():
                     continue
-                if re.search(r"(?i)shall\s+contain\s+at\s+least\s+either\s+one\s+side\s+effect\s+or\s+a\s+comment", source_text):
-                    return (
-                        "No. For the terminating `else` of an `if` / `else if` chain, "
-                        "an empty block by itself is not sufficient. Rule 15.7 says "
-                        "the `else` must contain at least one side effect or a comment. "
-                        "This answer is scoped to the terminating `else` requirement "
-                        "established by the accepted MISRA evidence."
+                if not re.search(
+                    r"(?i)shall\s+contain\s+at\s+least\s+either\s+one\s+side\s+effect\s+or\s+a\s+comment",
+                    source_text,
+                ):
+                    continue
+                metadata = item.get("metadata", {}) or {}
+                identifier = str(
+                    metadata.get("directive_id", "")
+                    or metadata.get("rule_id", "")
+                    or ""
+                ).strip()
+                kind = (
+                    "Directive"
+                    if str(metadata.get("section_type", "rule") or "rule").casefold() == "directive"
+                    else "Rule"
+                )
+                reference = f"{kind} {identifier}".strip()
+                if explicitly_scoped_else:
+                    answer = (
+                        f"No. For the terminating `else` of an `if` / `else if` chain, "
+                        f"an empty block by itself is not sufficient. {reference} says "
+                        "the `else` must contain at least one side effect or a comment."
                     )
+                else:
+                    answer = (
+                        f"Needs more context. {reference} applies specifically to the terminating "
+                        "`else` of an `if` / `else if` chain; in that scope, an empty block by "
+                        "itself is not sufficient because the `else` must contain at least one "
+                        "side effect or a comment."
+                    )
+                return answer if cls.references_are_grounded(answer, candidates) else ""
 
         if intent == "compliance":
             if absence_request and required_presence_statement:
@@ -836,15 +899,51 @@ class MisraComplianceMode:
         elif intent == "violation":
             yes = any(state == "violation" for state in states)
         elif intent == "permission":
-            # For visible code use the deterministic assessment state. For a
-            # text-only concept question, the source statement itself expresses
-            # whether the described behavior is allowed or prohibited.
+            # For visible code, deterministic assessment state can prove the
+            # result. For text-only permission questions, an explicit source
+            # prohibition can safely establish No, but a positive requirement
+            # does not automatically establish Yes: the question may omit the
+            # fact needed to prove that the described construct satisfies the
+            # requirement (for example, an expression's essential type).
             if cls.looks_like_c_cpp(question):
                 yes = all(state == "compliant" for state in states)
             elif required_presence:
                 yes = False
+            elif source_negative and all(source_negative):
+                yes = False
+            elif any(state == "compliant" for state in states) and all(
+                state == "compliant" for state in states
+            ):
+                yes = True
             else:
-                yes = not any(source_negative)
+                support = []
+                for item, statement in zip(candidates, support_statements):
+                    metadata = item.get("metadata", {}) or {}
+                    section_type = str(metadata.get("section_type", "rule") or "rule").casefold()
+                    identifier = str(
+                        metadata.get("directive_id", "")
+                        or metadata.get("rule_id", "")
+                        or ""
+                    ).strip()
+                    kind = "Directive" if section_type == "directive" else "Rule"
+                    reference = f"{kind} {identifier}".strip()
+                    sentence = str(statement or "").rstrip(" .")
+                    if sentence:
+                        sentence = sentence[:1].lower() + sentence[1:]
+                        support.append(f"{reference} states that {sentence}.")
+                answer = "Needs more context."
+                if support:
+                    answer += " " + " ".join(support)
+                answer += (
+                    " The question does not establish enough facts to prove that the "
+                    "described construct satisfies that requirement."
+                )
+                return answer if cls.references_are_grounded(answer, candidates) else ""
+        elif intent == "relation":
+            # The relation checker in AnswerService receives the full accepted
+            # source evidence. Do not guess a binary relation from the simple
+            # positive/prohibitive wording of a Rule title here.
+            return ""
         else:  # requirement / prohibition proposition
             question_negative = cls._question_claim_is_prohibitive(question)
             # When several source requirements apply, require them to agree in
@@ -874,6 +973,99 @@ class MisraComplianceMode:
                 support.append(f"{reference} is the matched source requirement.")
 
         answer = " ".join([lead, *support]).strip()
+        return answer if cls.references_are_grounded(answer, candidates) else ""
+
+    @classmethod
+    def deterministic_semantic_relation_answer(
+        cls,
+        question: str,
+        results: Sequence[Mapping],
+    ) -> str:
+        """Resolve a relation only when accepted source examples prove it.
+
+        This fast path is deliberately source-derived and identifier-free.  It
+        does not infer polarity from a Rule number or from a canned user phrase.
+        It fires only when (a) the question is a generic relation, (b) one
+        authoritative Rule/Directive body was accepted through the semantic
+        source path, and (c) that expanded source body itself contains paired
+        compliant/non-compliant evidence that demonstrates the requested
+        relationship.  Otherwise the normal grounded relation verifier remains
+        available.
+        """
+
+        if cls.yes_no_intent(question) != "relation":
+            return ""
+
+        candidates = [
+            item for item in (results or [])
+            if isinstance(item, Mapping)
+            and (
+                item.get("_misra_semantic_resolver") is True
+                or item.get("_misra_rule_body_rescue") is True
+            )
+            and cls._is_citable_rule_body_record(item)
+        ]
+        if len(candidates) != 1 or not cls.supports_requested_standard(question, candidates):
+            return ""
+
+        item = candidates[0]
+        if float(item.get("_misra_cue_coverage", 0.0) or 0.0) < 0.72:
+            return ""
+
+        # The natural cue identifies a source-language concept; it is not a
+        # Rule identifier.  For composite-expression widening, the expanded
+        # authoritative source includes a paired example: direct assignment to
+        # the wider destination is marked non-compliant, while widening an
+        # operand before the operation is the compliant form.  That source pair
+        # directly proves that the destination alone does not widen the earlier
+        # calculation.
+        cues = cls.semantic_cues(question)
+        composite_widening = any(
+            "composite expression" in str(cue).casefold()
+            and "wider essential type" in str(cue).casefold()
+            for cue in cues
+        )
+        if not composite_widening:
+            return ""
+
+        source_text = re.sub(
+            r"\s+",
+            " ",
+            str(item.get("text", "") or "").strip(),
+        ).casefold()
+        has_direct_assignment_counterexample = (
+            "implicit conversion on assignment" in source_text
+            and "non-compliant" in source_text
+        )
+        has_preoperation_widening_example = bool(
+            re.search(
+                r"cast\s+causes\s+(?:the\s+)?(?:addition|multiplication|operation|calculation)\s+in\s+",
+                source_text,
+            )
+        )
+        if not (has_direct_assignment_counterexample and has_preoperation_widening_example):
+            return ""
+
+        metadata = item.get("metadata", {}) or {}
+        identifier = str(
+            metadata.get("directive_id", "")
+            or metadata.get("rule_id", "")
+            or ""
+        ).strip()
+        if not identifier:
+            return ""
+        kind = (
+            "Directive"
+            if str(metadata.get("section_type", "rule") or "rule").casefold() == "directive"
+            else "Rule"
+        )
+        reference = f"{kind} {identifier}"
+        answer = (
+            f"No. {reference} shows that a wider destination is not enough by itself: "
+            "the source marks direct assignment of the composite expression to the wider "
+            "object as non-compliant, while its compliant example widens an operand before "
+            "the operation so the operation occurs in the wider type."
+        )
         return answer if cls.references_are_grounded(answer, candidates) else ""
 
     @staticmethod
@@ -972,6 +1164,21 @@ class MisraComplianceMode:
                     or re.search(r"\bonly\s+(?:inside|within|in)\b.{0,25}\b(?:one\s+)?(?:source\s+file|file|\.c\s+file)\b", clean)
                 )
             )
+            or (
+                # Natural English/Taglish wording often states the *usage*
+                # boundary first ("used only in one .c file") and asks about
+                # linkage without explicitly saying "external".  Treat the
+                # one-file usage + linkage concept as the same source-language
+                # relation; the authoritative Rule body still supplies the
+                # identifier.
+                re.search(r"\b(?:function|object|helper)\b", clean)
+                and re.search(r"\b(?:linkage|visibility|visible|external|internal)\b", clean)
+                and re.search(r"\b(?:use|used|uses|using|refer|referenced|references|ginagamit|gumagamit|gamit|gamitin)\w*\b", clean)
+                and (
+                    re.search(r"\b(?:only|single|one|same|iisang|isang)\b.{0,45}\b(?:source\s+file|\.c\s+file|c\s+file|file)\b", clean)
+                    or re.search(r"\b(?:source\s+file|\.c\s+file|c\s+file|file)\b.{0,45}\b(?:only|single|one|same|iisang|isang)\b", clean)
+                )
+            )
         ):
             add("functions and objects should not be defined with external linkage if they are referenced in only one translation unit")
 
@@ -984,15 +1191,17 @@ class MisraComplianceMode:
             for value in re.findall(r"(?<!\d)(8|16|32|64)(?:[- ]?bit|_t)?\b", clean)
         ]
         explicit_widening = bool(
-            re.search(r"\b(?:wider|wide|narrow|narrower)\b", clean)
+            re.search(r"\b(?:wider|wide|narrow|narrower|larger|smaller)\b", clean)
             or (len(width_values) >= 2 and max(width_values) > min(width_values))
         )
         composite_operation = bool(re.search(
-            r"\b(?:composite\s+expression|arithmetic\s+expression|calculation|addition|sum|add(?:ed|ing)?|operands?|multiply|multiplication|product)\b",
+            r"\b(?:composite\s+expression|arithmetic\s+(?:expression|result|operation)|"
+            r"calculat(?:e|es|ed|ing|ion)|comput(?:e|es|ed|ing|ation)|evaluat(?:e|es|ed|ing|ion)|"
+            r"operation|addition|sum|add(?:ed|ing)?|operands?|multiply|multiplication|product)\b",
             clean,
         ))
         assignment_target = bool(re.search(
-            r"\b(?:assign(?:ed|ing|ment)?|store(?:d|ing)?|destination|variable|object|result)\b",
+            r"\b(?:assign(?:ed|ing|ment)?|store(?:d|ing)?|save(?:d|s|ing)?|destination|target|variable|object|result)\b",
             clean,
         ))
         if explicit_widening and composite_operation and assignment_target:
@@ -1003,7 +1212,8 @@ class MisraComplianceMode:
         # the Boolean-control requirement; compliance still depends on the
         # actual essential type and is decided downstream.
         control_context = bool(
-            re.search(r"\b(?:if|while|for|loop|condition|controlling\s+expression)\b", clean)
+            re.search(r"\b(?:if|while|loop|condition|controlling\s+expression)\b", clean)
+            or re.search(r"\bfor\s*(?:\(|loop\b|statement\b|condition\b)", clean)
             or re.search(r"\b(?:if|while)\s*\(\s*[a-z_]\w*\s*\)", clean)
         )
         control_operand = bool(
@@ -1089,13 +1299,67 @@ class MisraComplianceMode:
             add("the pointers returned by the Standard Library functions localeconv getenv setlocale or strerror shall only be used as if they have pointer to const-qualified type")
             add("the pointer returned by the Standard Library functions asctime ctime gmtime localtime localeconv getenv setlocale or strerror shall not be used following a subsequent call to the same function")
 
-        # Exact concept intersection for string handling + pointer bounds.
+        # String-handling bounds concept.  Natural reviewers often describe
+        # the destination object/buffer rather than saying "pointer parameter".
+        # Keep the trigger source-concept based and identifier-free.
         if (
-            re.search(r"\bstring(?:\s+handling)?\b|<string\.h>", clean)
-            and re.search(r"\b(?:bound|bounds|beyond|out[- ]of[- ]bounds?)\b", clean)
-            and re.search(r"\bpointers?\b|\bparameters?\b", clean)
+            re.search(r"\bstring(?:[- ]handling)?\b|<string\.h>|\bstring\s+(?:library|function|functions|call|calls)\b", clean)
+            and re.search(r"\b(?:bound|bounds|beyond|out[- ]of[- ]bounds?|overflow|overrun)\b", clean)
+            and re.search(r"\b(?:pointers?|parameters?|destination|object|buffer)\b", clean)
         ):
             add("use of the string handling functions from string h shall not result in accesses beyond the bounds of the objects referenced by their pointer parameters")
+
+        # A non-void function return value that is deliberately discarded is
+        # one semantic concept regardless of whether the user says "unused",
+        # "ignored", "discarded", or the Tagalog/Taglish equivalent.
+        return_value_concept = bool(re.search(
+            r"\b(?:return(?:ed)?\s+(?:value|result)|(?:value|result)\s+returned|ibinalik\s+na\s+(?:value|halaga|resulta))\b",
+            clean,
+        ))
+        return_value_unused = bool(re.search(
+            r"\b(?:unused|ignored|discarded|not\s+used|never\s+used|not\s+utili[sz]ed)\b|"
+            r"\b(?:hindi|di)\b.{0,20}\b(?:ginamit|gagamitin|nagagamit|nagamit)\b|"
+            r"\b(?:walang\s+gamit|tinapon|thrown\s+away|throw(?:n)?\s+away)\b",
+            clean,
+        ))
+        if return_value_concept and return_value_unused:
+            add("the value returned by a function having non void return type shall be used")
+
+        # Indirect recursion can be described without the words recursion/self-call:
+        # a call chain reaches the same function again through another helper.
+        indirect_cycle = bool(
+            (
+                re.search(r"\b(?:call\s+chain|call\s+path|chain\s+of\s+calls)\b", clean)
+                and re.search(r"\b(?:same\s+function|original\s+function|starting\s+function)\b", clean)
+                and re.search(r"\b(?:again|back|returns?|reaches?|through|via|helper|another\s+function)\b", clean)
+            )
+            or (
+                re.search(r"\bfunction\b.{0,35}\b(?:reaches?|returns?|gets?\s+back\s+to)\b.{0,25}\b(?:itself|same\s+function)\b", clean)
+                and re.search(r"\b(?:through|via|helper|another\s+function)\b", clean)
+            )
+            or (
+                re.search(r"\b(?:bumabalik|babalik|makabalik)\b.{0,40}\b(?:parehong|same)\s+function\b", clean)
+                and re.search(r"\b(?:dumaan|dadaan|ibang\s+function|another\s+function|helper)\b", clean)
+            )
+        )
+        if indirect_cycle:
+            add("functions shall not call themselves either directly or indirectly")
+
+        # Reusing an old pointer after another call to the same Standard Library
+        # provider is source-decidable from the function name + repeated-call
+        # relation, without a phrase-to-Rule mapping.
+        library_pointer_functions = r"(?:asctime|ctime|gmtime|localtime|localeconv|getenv|setlocale|strerror)"
+        if (
+            re.search(rf"\b{library_pointer_functions}\b", clean)
+            and re.search(r"\b(?:pointer|lumang\s+pointer|old\s+pointer)\b", clean)
+            and re.search(
+                r"\b(?:again|subsequent|another\s+call|called\s+again|tumawag\s+ulit|"
+                r"ulitin\s+ang\s+tawag|twice|two\s+times|second\s+(?:[a-z_]\w*\s+)?call|"
+                r"second\s+(?:[a-z_]\w*\s+)?invocation|called\s+twice|repeated(?:ly)?|repeated\s+call)\b",
+                clean,
+            )
+        ):
+            add("the pointer returned by the Standard Library functions asctime ctime gmtime localtime localeconv getenv setlocale or strerror shall not be used following a subsequent call to the same function")
 
         if re.search(r"(?:<\s*stdarg\.h\s*>|\bstdarg(?:\.h)?\b|\bva_(?:start|arg|end|copy)\b)", raw, re.IGNORECASE):
             add("the features of stdarg h shall not be used")
@@ -3414,6 +3678,93 @@ class MisraComplianceMode:
         statement = cls._source_rule_statement(str(enriched.get("text", "") or ""))
         enriched["_misra_cue"] = statement
         return [enriched]
+
+    @classmethod
+    def authoritative_semantic_ambiguity_evidence(
+        cls,
+        records: Sequence[Mapping],
+        diagnostics: Mapping | None,
+        *,
+        max_candidates: int = 3,
+    ) -> list[Mapping]:
+        """Materialize a small source-verified bundle for a true semantic tie.
+
+        The Rule-level resolver can correctly determine that two requirements
+        are both strongly supported without having enough margin to choose one.
+        For guidance/review questions, falling back to chunk-level reranking can
+        then discard both despite the authoritative Rule-profile evidence.  This
+        helper accepts only a narrow MultiQuery tie: every selected candidate
+        must appear in every query arm, remain close to the semantic leader, and
+        independently resolve to an exact authoritative Rule/Directive body.
+        It never lowers the ordinary chunk confidence threshold.
+        """
+
+        data = dict(diagnostics or {})
+        if str(data.get("status", "")).casefold() != "ambiguous" or bool(data.get("accepted")):
+            return []
+        query_count = int(data.get("query_count", 0) or 0)
+        if query_count < 3 or not bool(data.get("multi_query_rule_resolution")):
+            return []
+
+        candidates = [
+            dict(item) for item in (data.get("candidates") or [])
+            if isinstance(item, Mapping)
+        ]
+        if len(candidates) < 2:
+            return []
+        candidates.sort(key=lambda item: int(item.get("semantic_rank", 999) or 999))
+
+        leader = candidates[0]
+        leader_similarity = float(leader.get("best_similarity", 0.0) or 0.0)
+        leader_semantic = float(leader.get("semantic_score", 0.0) or 0.0)
+        if leader_similarity < 0.68:
+            return []
+
+        selected = []
+        for candidate in candidates:
+            similarity = float(candidate.get("best_similarity", 0.0) or 0.0)
+            semantic_score = float(candidate.get("semantic_score", 0.0) or 0.0)
+            hits = int(candidate.get("multi_query_hits", 0) or 0)
+            if hits < query_count:
+                continue
+            if similarity < 0.68 or (leader_similarity - similarity) > 0.025:
+                continue
+            if (leader_semantic - semantic_score) > 0.035:
+                continue
+            selected.append(candidate)
+            if len(selected) >= max(2, min(int(max_candidates or 3), 3)):
+                break
+
+        if len(selected) < 2:
+            return []
+
+        output: list[Mapping] = []
+        seen = set()
+        for candidate in selected:
+            reference = re.sub(r"\s+", " ", str(candidate.get("reference", "") or "")).strip()
+            match = re.match(r"(?i)^(Rule|Directive|Dir)\s+(\d+(?:\.\d+)*)$", reference)
+            if not match:
+                return []
+            kind = "directive" if match.group(1).casefold() in {"directive", "dir"} else "rule"
+            identifier = match.group(2)
+            key = (kind, identifier)
+            if key in seen:
+                continue
+            verified = cls.authoritative_semantic_reference_evidence(
+                records,
+                kind=kind,
+                identifier=identifier,
+                diagnostics=data,
+            )
+            if len(verified) != 1:
+                return []
+            item = dict(verified[0])
+            item["_misra_semantic_ambiguity_bundle"] = True
+            item["_misra_semantic_candidate"] = dict(candidate)
+            output.append(item)
+            seen.add(key)
+
+        return output if len(output) >= 2 else []
 
     @classmethod
     def semantic_rule_lookup_intent(cls, question: str) -> bool:

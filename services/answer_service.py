@@ -263,7 +263,10 @@ class AnswerService:
         candidates = [
             item for item in (results or [])
             if isinstance(item, dict)
-            and item.get("_misra_semantic_resolver") is True
+            and (
+                item.get("_misra_semantic_resolver") is True
+                or item.get("_misra_rule_body_rescue") is True
+            )
             and MisraComplianceMode._is_citable_rule_body_record(item)
         ]
         if len(candidates) != 1:
@@ -297,15 +300,22 @@ class AnswerService:
             "required": ["verdict"],
             "additionalProperties": False,
         }
+        source_evidence = re.sub(
+            r"\n{3,}",
+            "\n\n",
+            str(item.get("text", "") or "").strip(),
+        )[:6000]
         prompt = (
             "You are a strict source-grounded standards relation checker.\n"
-            "Use ONLY the exact SOURCE REQUIREMENT below. Do not use outside knowledge.\n"
-            "Interpret YES as: the proposition asked by the user is permitted/satisfied by the requirement.\n"
-            "Interpret NO as: the proposition asked by the user conflicts with or is disallowed by the requirement.\n"
-            "Use NEEDS_CONTEXT only when the exact requirement does not determine the proposition.\n"
+            "Use ONLY the accepted SOURCE EVIDENCE below. Do not use outside knowledge.\n"
+            "Interpret YES as: the proposition asked by the user is established by the source evidence.\n"
+            "Interpret NO as: the proposition asked by the user conflicts with or is disproved by the source evidence.\n"
+            "Use NEEDS_CONTEXT when a fact required to decide the proposition is not stated by the user or source.\n"
+            "Never assume an undeclared variable type, essential type, value, side effect, scope, or control-flow fact.\n"
             "Return only the requested JSON object. Do not explain your reasoning.\n\n"
             f"SOURCE REFERENCE: {reference}\n"
             f"SOURCE REQUIREMENT: {statement}\n"
+            f"SOURCE EVIDENCE:\n{source_evidence}\n"
             f"USER QUESTION: {str(question or '').strip()}"
         )
 
@@ -1399,6 +1409,39 @@ class AnswerService:
             if len(substantive) >= 4:
                 return False
 
+        # A self-contained Rule/Directive lookup must stay standalone even
+        # when the prior grounded turn was not itself tagged as MISRA and the
+        # current wording contains an ordinary pronoun such as "siya" or
+        # "that". Strip lookup boilerplate/anaphors and require substantive
+        # current-turn content before declining follow-up anchoring.
+        if MisraComplianceMode.semantic_rule_lookup_intent(question):
+            lookup_stripped = re.sub(
+                r"\b(?:which|what|ano|anong|alin|aling)\b.{0,45}"
+                r"\b(?:misra\s+)?(?:rule|directive|requirement|guideline)\b|"
+                r"\b(?:misra\s+)?(?:rule|directive|requirement|guideline)\b.{0,35}"
+                r"\b(?:apply|applies|applicable|covers?|relevant|defines?|addresses?)\b",
+                " ",
+                clean,
+                flags=re.IGNORECASE,
+            )
+            lookup_stripped = re.sub(
+                r"\b(?:this|that|it|its|same|ito|iyan|iyon|yan|yun|nito|niyan|niyon|siya|niya)\b",
+                " ",
+                lookup_stripped,
+                flags=re.IGNORECASE,
+            )
+            substantive = [
+                token for token in re.findall(r"[a-z0-9_]+", lookup_stripped)
+                if token not in {
+                    "a", "an", "the", "of", "to", "for", "in", "on", "at",
+                    "and", "or", "with", "from", "by", "is", "are", "was",
+                    "were", "be", "may", "can", "could", "should", "would",
+                    "under", "misra", "c", "risk", "ba", "ang", "ng", "sa",
+                }
+            ]
+            if len(substantive) >= 3:
+                return False
+
         # A self-contained technical/MISRA concept is a new request even when
         # it starts with a follow-up-looking word such as Why/Bakit.  Only an
         # explicit anaphor (this/that/it/ito/yan/...) may bind such a turn to the
@@ -2103,7 +2146,7 @@ class AnswerService:
                 structured_reference.kind in {"rule", "directive"}
                 and (
                     re.search(
-                        r"^what\s+does\b.+\bsay\b",
+                        r"^what\s+does\b.+\b(?:say|state)\b",
                         clean
                     )
                     or re.search(
@@ -10464,10 +10507,19 @@ Instructions:
         # it is not, the existing rescue/hybrid path continues unchanged.
         try:
             family_retriever = self.query_service._get_retriever()
-            structured_family = family_retriever._retrieve_structured_rule_topic_family(
+            # Probe the same source-driven structured catalog used by the
+            # retriever before semantic Rule resolution. This lets broad,
+            # explicit rule-list questions return the complete authoritative
+            # family without first spending time on single-Rule MultiQuery.
+            structured_family = family_retriever._retrieve_structured_rule_catalog(
                 query=search_question,
                 intent_query=semantic_target_question,
             )
+            if not structured_family:
+                structured_family = family_retriever._retrieve_structured_rule_topic_family(
+                    query=search_question,
+                    intent_query=semantic_target_question,
+                )
             if structured_family:
                 structured_family = MisraComplianceMode.annotate_structured_family_assessment(
                     semantic_target_question,
@@ -10598,6 +10650,40 @@ Instructions:
                     status="AUTHORITATIVE REFERENCE VERIFICATION FAILED",
                     details={"reference": semantic_resolution.get("reference", "")},
                 )
+
+            if (
+                not semantic_resolution.get("accepted")
+                and str(semantic_resolution.get("status", "")).casefold() == "ambiguous"
+                and bool(semantic_resolution.get("multi_query_rule_resolution"))
+                and MisraComplianceMode.guidance_intent(semantic_target_question)
+            ):
+                records = MisraComplianceMode.load_authoritative_bm25_records()
+                ambiguity_evidence = MisraComplianceMode.authoritative_semantic_ambiguity_evidence(
+                    records,
+                    semantic_resolution,
+                    max_candidates=3,
+                )
+                if ambiguity_evidence:
+                    evidence_logger.record_event(
+                        event_name="MISRA CORPUS SEMANTIC AMBIGUITY EVIDENCE",
+                        status="AUTHORITATIVE MULTI-RULE GUIDANCE VERIFIED",
+                        details={
+                            "references": sorted(MisraComplianceMode.available_references(ambiguity_evidence)),
+                            "query_count": semantic_resolution.get("query_count"),
+                            "fusion": semantic_resolution.get("multi_query_fusion", ""),
+                            "reason": (
+                                "MultiQuery produced a genuine close semantic tie; each retained "
+                                "candidate was present in every query arm and independently verified "
+                                "against an exact authoritative Rule/Directive body."
+                            ),
+                        },
+                    )
+                    return (
+                        MisraComplianceMode.build_grounded_context(
+                            ambiguity_evidence, semantic_target_question
+                        ),
+                        ambiguity_evidence,
+                    )
 
             if semantic_resolution_available:
                 evidence_logger.record_event(
@@ -11828,12 +11914,26 @@ Instructions:
             self._deterministic_structured_major_family_answer(results)
         )
 
+        structured_topic_inventory_present = any(
+            isinstance(item, dict) and item.get("_structured_topic_anchor")
+            for item in (results or [])
+        )
+        structured_topic_list_request = bool(
+            structured_topic_inventory_present
+            and (
+                self._looks_like_plural_list_question(final_question)
+                or self._is_multi_answer_question(final_question)
+            )
+        )
         precomputed_structured_list_answer = (
             self._deterministic_structured_topic_list_answer(results)
-            if answer_focus.startswith("LIST:")
-            or (
-                answer_focus.startswith("MISRA GUIDANCE:")
-                and not precomputed_misra_guidance_answer
+            if (
+                answer_focus.startswith("LIST:")
+                or (
+                    answer_focus.startswith("MISRA GUIDANCE:")
+                    and not precomputed_misra_guidance_answer
+                )
+                or structured_topic_list_request
             )
             else ""
         )
@@ -11925,6 +12025,31 @@ Instructions:
             else ""
         )
 
+        precomputed_misra_source_relation_answer = (
+            MisraComplianceMode.deterministic_semantic_relation_answer(
+                misra_evidence_question,
+                results,
+            )
+            if (
+                misra_compliance_mode
+                and not precomputed_misra_scope_guard_answer
+                and not precomputed_misra_yes_no_answer
+                and not LLM_CERTIFICATION_FORCE_GENERATION
+            )
+            else ""
+        )
+        if precomputed_misra_source_relation_answer:
+            evidence_logger.record_event(
+                event_name="MISRA SEMANTIC RELATION VERIFIER",
+                status="DETERMINISTIC SOURCE-EXAMPLE VERDICT",
+                details={
+                    "reason": (
+                        "Expanded authoritative source examples directly proved the "
+                        "requested relation; no LLM call was needed."
+                    )
+                },
+            )
+
         precomputed_misra_semantic_relation_answer = (
             self._semantic_misra_relation_answer(
                 misra_evidence_question,
@@ -11934,9 +12059,15 @@ Instructions:
                 misra_compliance_mode
                 and not precomputed_misra_scope_guard_answer
                 and not precomputed_misra_yes_no_answer
+                and not precomputed_misra_source_relation_answer
                 and not LLM_CERTIFICATION_FORCE_GENERATION
                 and any(
-                    isinstance(item, dict) and item.get("_misra_semantic_resolver") is True
+                    isinstance(item, dict)
+                    and (
+                        item.get("_misra_semantic_resolver") is True
+                        or item.get("_misra_rule_body_rescue") is True
+                    )
+                    and MisraComplianceMode._is_citable_rule_body_record(item)
                     for item in (results or [])
                 )
                 and bool(MisraComplianceMode.yes_no_intent(misra_evidence_question))
@@ -11952,6 +12083,7 @@ Instructions:
             if (
                 misra_compliance_mode
                 and not precomputed_misra_yes_no_answer
+                and not precomputed_misra_source_relation_answer
                 and not precomputed_misra_semantic_relation_answer
                 and not LLM_CERTIFICATION_FORCE_GENERATION
             )
@@ -11967,6 +12099,7 @@ Instructions:
             and not precomputed_misra_exact_application
             and not precomputed_misra_scope_guard_answer
             and not precomputed_misra_yes_no_answer
+            and not precomputed_misra_source_relation_answer
             and not precomputed_misra_semantic_relation_answer
             and not precomputed_misra_followup_answer
             and not LLM_CERTIFICATION_FORCE_GENERATION
@@ -11986,6 +12119,7 @@ Instructions:
             and not precomputed_misra_exact_application
             and not precomputed_misra_scope_guard_answer
             and not precomputed_misra_yes_no_answer
+            and not precomputed_misra_source_relation_answer
             and not precomputed_misra_semantic_relation_answer
             and not precomputed_misra_followup_answer
             and not precomputed_misra_reviewer_fast_answer
@@ -12001,6 +12135,7 @@ Instructions:
             or precomputed_misra_exact_application
             or precomputed_misra_scope_guard_answer
             or precomputed_misra_yes_no_answer
+            or precomputed_misra_source_relation_answer
             or precomputed_misra_followup_answer
             or precomputed_misra_reviewer_fast_answer
             or (
@@ -12367,6 +12502,16 @@ Instructions:
                 reason=(
                     "The exact Rule/Directive request was finalized directly from "
                     "the accepted structured source block."
+                ),
+                source_count=len(results),
+            )
+        elif precomputed_misra_source_relation_answer:
+            route_decision = ModelRouteDecision(
+                route="deterministic",
+                model_name=None,
+                reason=(
+                    "Expanded authoritative Rule/Directive examples directly established "
+                    "the requested relation; no model call was needed."
                 ),
                 source_count=len(results),
             )

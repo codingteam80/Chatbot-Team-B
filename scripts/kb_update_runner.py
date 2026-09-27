@@ -327,6 +327,8 @@ def run_kb_update_worker(
                 "reason": plan.get("reason"),
                 "changes": _json_safe(plan.get("changes") or {}),
                 "document_count": len(plan.get("documents") or []),
+                "qdrant_recovery_required": bool(plan.get("qdrant_recovery_required")),
+                "qdrant_state": _json_safe(plan.get("qdrant_state") or {}),
             }
 
             report["stage"] = "preflight"
@@ -339,6 +341,10 @@ def run_kb_update_worker(
             preflight = get_kb_update_preflight(
                 plan.get("documents") or [],
                 requires_embedding=requires_embedding,
+                allow_unreadable_qdrant_recovery=bool(
+                    plan.get("mode") == "full_rebuild"
+                    and plan.get("qdrant_recovery_required")
+                ),
             )
             report["preflight"] = _json_safe(preflight)
             if not preflight.get("ok"):

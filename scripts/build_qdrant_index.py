@@ -56,8 +56,20 @@ def _safe_close(client):
 
 
 def _remove_tree(path: Path):
-    if path.exists():
-        shutil.rmtree(path, ignore_errors=True)
+    """Remove a transactional path whether it is a directory or malformed file.
+
+    Healthy Qdrant stores are directories, but recovery must also tolerate a
+    copied/incomplete storage path that is a regular file or symlink.
+    """
+    try:
+        if path.is_symlink() or path.is_file():
+            path.unlink(missing_ok=True)
+        elif path.exists():
+            shutil.rmtree(path, ignore_errors=True)
+    except OSError:
+        # Callers already fail closed if a critical activation/rollback rename
+        # cannot complete. Cleanup itself remains best-effort.
+        pass
 
 
 def _activate_staging_directory(staging: Path, active: Path):
